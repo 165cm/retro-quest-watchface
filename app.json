@@ -1,0 +1,67 @@
+{
+  "configVersion": "v3",
+  "app": {
+    "appId": 10420724,
+    "appName": "Pixel Wayfarer Face",
+    "appType": "watchface",
+    "version": {
+      "code": 1,
+      "name": "0.1.0"
+    },
+    "vender": "independent",
+    "description": "Original retro pixel-art weather watchface for Amazfit Bip 6",
+    "icon": "images/preview.png",
+    "cover": ["images/preview.png"]
+  },
+  "permissions": ["device:os.local_storage"],
+  "runtime": {
+    "apiVersion": {
+      "compatible": "4.2",
+      "target": "4.2",
+      "minVersion": "4.2"
+    }
+  },
+  "targets": {
+    "bip-6": {
+      "module": {
+        "watchface": {
+          "path": "watchface/index",
+          "main": 1,
+          "editable": 0,
+          "lockscreen": 1
+        },
+        "app-side": {
+          "path": "app-side/index"
+        },
+        "setting": {
+          "path": "setting/index"
+        }
+      },
+      "platforms": [
+        {
+          "name": "amazfit-bip-6-cn",
+          "deviceSource": 9765120
+        },
+        {
+          "name": "amazfit-bip-6-global",
+          "deviceSource": 9765121
+        },
+        {
+          "name": "amazfit-bip-6-variant",
+          "deviceSource": 10158337
+        }
+      ],
+      "designWidth": 390
+    }
+  },
+  "i18n": {
+    "en-US": {
+      "name": "Pixel Wayfarer Face"
+    },
+    "ja-JP": {
+      "name": "Pixel Wayfarer Face"
+    }
+  },
+  "defaultLanguage": "en-US",
+  "debug": false
+}

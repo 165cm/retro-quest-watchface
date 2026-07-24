@@ -1,0 +1,32 @@
+{
+  "name": "pixel-wayfarer-face",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Original retro pixel-art watchface for Amazfit Bip 6",
+  "scripts": {
+    "assets": "node tools/generate-assets.mjs",
+    "check": "node --test tests/*.test.mjs",
+    "build": "zeus build",
+    "dev": "zeus dev",
+    "preview": "zeus preview"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@zeppos/zml": "^0.0.38"
+  },
+  "devDependencies": {
+    "@zeppos/device-types": "^3.0.0",
+    "@zeppos/zeus-cli": "1.9.3",
+    "pngjs": "^7.0.0"
+  },
+  "overrides": {
+    "@zeppos/zeus-cli": {
+      "package-json": "7.0.0",
+      "ora": "5.4.1"
+    }
+  },
+  "_moduleAliases": {
+    "zeppos-app-utils": "node_modules/@zeppos/zeus-cli/private-modules/zeppos-app-utils"
+  }
+}
