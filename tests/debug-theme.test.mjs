@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   CYCLE_THEMES,
   DEBUG_MODES,
@@ -63,7 +64,9 @@ test('only the cycle index starts the timer', () => {
 // デバッグで選べるテーマに実ファイルが無いと、端末では画像が出ないまま切り替わってしまう。
 // 巡回・固定のどちらも全テーマを指定できるので、背景とアイコンの両方が揃っていることを確認する。
 test('every selectable theme has a background and a weather icon on disk', () => {
-  const root = path.join(import.meta.dirname, '..', 'assets', 'bip-6', 'images')
+  // import.meta.dirname は Node 20.11 以降のため、古いNodeでも動く書き方にする。
+  const here = path.dirname(fileURLToPath(import.meta.url))
+  const root = path.join(here, '..', 'assets', 'bip-6', 'images')
   for (const theme of CYCLE_THEMES) {
     const background = path.join(root, 'backgrounds', `${theme}.png`)
     const icon = path.join(root, 'weather', `${theme}.png`)

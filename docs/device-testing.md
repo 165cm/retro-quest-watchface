@@ -18,27 +18,195 @@ PC・スマホ・端末が**同じネットワーク**にあると安定しま�
 
 ---
 
-## 1. ローカル準備
+## 1. ローカル準備（PCでの作業）
+
+> **結論から:** すべてのコマンドは
+> **`package.json` がある一番上のフォルダ（リポジトリのルート）** で実行します。
+> このプロジェクトなら `retro-quest-watchface` フォルダの直下です。
+>
+> `npm run ...` は実は中のフォルダ（`watchface/` など）から実行しても動きます
+> （npmが自動で上へ`package.json`を探しに行くため）。
+> ただし `node tools/...` のように直接実行するコマンドは
+> **ルートでないと失敗する**ので、常にルートにいる習慣にしてください。
+
+以下、ターミナルを触ったことがない前提で順に進めます。
+
+### 1-1. ターミナルを開く
+
+| OS | 開き方 |
+|---|---|
+| macOS | Launchpad →「ターミナル」（Terminal）を検索して起動 |
+| Windows | スタートメニュー →「PowerShell」を検索して起動 |
+
+以降の「コマンド」は、この黒い画面に打って **Enter** を押します。
+
+### 1-2. Node.js が入っているか確認する
+
+```sh
+node -v
+npm -v
+```
+
+`v20.18.1` のようにバージョンが出れば入っています。
+
+- **バージョンが出ない／command not found** の場合は
+  [Node.js公式サイト](https://nodejs.org/)から **LTS版** をインストールしてください。
+  インストール後、ターミナルを一度閉じて開き直してから再確認します。
+- **`v18` より古い場合** は LTS版へ更新してください（`npm run check` のテスト実行に必要です）。
+
+### 1-3. プロジェクトを手元に持ってくる（初回だけ）
+
+まず、置き場所にしたいフォルダへ移動します。ここでは書類フォルダを例にします。
+
+```sh
+cd ~/Documents
+```
+
+> `cd` は「フォルダを移動する」コマンドです。
+> Windowsでも `cd ~/Documents` で同じ場所へ移動できます。
+
+次にプロジェクトをダウンロード（クローン）します。
+
+```sh
+git clone https://github.com/165cm/retro-quest-watchface.git
+```
+
+`git clone` でエラーが出る場合はGitが入っていません。
+[Git公式サイト](https://git-scm.com/downloads)からインストールしてください。
+
+> **すでにクローン済みの人はこの手順は不要です。** 1-4へ進んでください。
+
+### 1-4. 作業フォルダへ移動する ← ここが「どのフォルダか」の答え
+
+```sh
+cd ~/Documents/retro-quest-watchface
+```
+
+**このフォルダが作業場所です。** 以降のコマンドはすべてここで実行します。
+
+すでにクローン済みで場所が分からない場合は、Finder / エクスプローラーで
+`retro-quest-watchface` フォルダを探し、**フォルダをターミナルにドラッグ&ドロップ**すると
+パスが入力されます（`cd ` と半角スペースを打ってからドラッグ）。
+
+### 1-5. 正しいフォルダにいるか確認する
+
+```sh
+pwd
+ls
+```
+
+- `pwd` は今いる場所を表示します。末尾が `/retro-quest-watchface` になっていればOKです。
+- `ls` でファイル一覧が出ます。**次の3つが見えていれば正解**です。
+
+```
+package.json    app.json    watchface
+```
+
+Windowsで `ls` が使えない場合は `dir` を使ってください。
+
+> `package.json` が見えない場合は場所が違います。
+> `watchface` や `tools` の中にいるなら `cd ..` で1つ上に戻れます。
+
+### 1-6. ブランチを切り替える（重要）
+
+この文字盤デザインの変更は **`main` ではなく専用のブランチ**に入っています。
+クローンした直後は `main` なので、切り替えないと古い状態のままです。
+
+```sh
+git fetch origin
+git checkout claude/watch-face-design-refresh-02erxv
+```
+
+確認します。
+
+```sh
+git branch --show-current
+```
+
+`claude/watch-face-design-refresh-02erxv` と表示されればOKです。
+
+### 1-7. 依存パッケージをインストールする（初回と、更新時）
 
 ```sh
 npm install
-npm run assets     # 数字・記号・天候アイコン・プレビューを生成
-npm run check      # 純粋ロジックのテスト（15件）
 ```
 
-`npm run check` には**選択可能な全テーマに背景と天候アイコンの実ファイルが
-存在するか**のチェックも含まれます。ここが落ちる場合、端末で背景が出ません。
+初回は1〜2分かかります。`node_modules` フォルダが作られますが、触る必要はありません。
+警告（`npm warn deprecated ...`）がたくさん出ますが、**エラーでなければ問題ありません**。
 
-次にビルドが通ることを確認します。
+### 1-8. アセットを生成してテストする
 
 ```sh
-npx zeus login     # 初回のみ。ブラウザでZepp開発者アカウントにログイン
-npm run build      # dist/ に .zab を生成
+npm run assets
+npm run check
 ```
+
+期待される出力:
+
+```
+Generated original pixel assets in assets/bip-6/images
+```
+
+```
+# tests 15
+# pass 15
+# fail 0
+```
+
+`fail 0` になっていればOKです。`npm run check` には
+**選択可能な全テーマに背景と天候アイコンの実ファイルがあるか**のチェックも含まれます。
+ここが落ちる場合、端末で背景が表示されません。
+
+### 1-9. 見た目を確認する（任意）
+
+`docs/` フォルダにプレビュー画像が生成されています。ダブルクリックで開けます。
+
+- `docs/preview-390x450.png` — 晴れ
+- `docs/preview-night-390x450.png` — 夜
+- `docs/preview-rain-390x450.png` — 雨
+
+### 1-10. ビルドする
+
+Zepp開発者アカウントへのログインが必要です（初回のみ）。
+
+```sh
+npx zeus login
+```
+
+ブラウザが開くのでログインします。続いてビルドします。
+
+```sh
+npm run build
+```
+
+成功すると `dist/` フォルダに `.zab` ファイルができます。
 
 > `zeus build` は起動時にデバイス一覧を取得するためネットワークへ接続します。
 > オフライン環境やプロキシ配下では `Updating devices, waiting ...` で
 > AxiosError（405など）が出て停止します。その場合はネットワークを見直してください。
+
+### よくある間違い
+
+| 出たメッセージ | 原因 | 対処 |
+|---|---|---|
+| `npm error code ENOENT` / `Could not read package.json` | **リポジトリの外**で実行している | 1-4・1-5でルートへ移動 |
+| `Missing script: "assets"` | 別のプロジェクトのフォルダにいる | 同上 |
+| `Cannot find package 'pngjs'` | `npm install` 未実行 | 1-7を実施 |
+| `command not found: npm` | Node.js未インストール | 1-2を実施 |
+| `command not found: git` | Git未インストール | 1-3のリンクからインストール |
+| 変更が反映されていない | ブランチが `main` のまま | 1-6を実施 |
+| `zeus: command not found` | `npx` を付けていない | `npx zeus login` と書く |
+| `art/backgrounds-src が見つかりません` | `npm run normalize` をルート以外で実行 | ルートへ移動して再実行 |
+
+### 2回目以降の作業
+
+一度セットアップすれば、次回からはこれだけです。
+
+```sh
+cd ~/Documents/retro-quest-watchface
+git pull origin claude/watch-face-design-refresh-02erxv
+npm run check
+```
 
 ---
 
