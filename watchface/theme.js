@@ -12,6 +12,7 @@ export const COLORS = Object.freeze({
   HIGH_ORANGE: 0xe98a4a,
   AOD_TEXT: 0xb8b8b8,
   BLACK: 0x000000,
+  PANEL_ACCENT_GOLD: 0xc9a85c,
 })
 
 export const TYPE = Object.freeze({

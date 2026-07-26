@@ -42,6 +42,44 @@ function digitArray(path) {
   return Array.from({ length: 10 }, (_, index) => `${path}/${index}.png`)
 }
 
+function questWindowFrame(rect, { inset = false } = {}) {
+  ui.createWidget(ui.widget.STROKE_RECT, {
+    ...rect,
+    color: COLORS.PANEL_EDGE,
+    line_width: 2,
+    radius: 0,
+    show_level: ui.show_level.ONLY_NORMAL,
+  })
+  if (inset) {
+    ui.createWidget(ui.widget.STROKE_RECT, {
+      x: rect.x + 4,
+      y: rect.y + 4,
+      w: rect.w - 8,
+      h: rect.h - 8,
+      color: COLORS.PANEL_ACCENT_GOLD,
+      line_width: 1,
+      radius: 0,
+      show_level: ui.show_level.ONLY_NORMAL,
+    })
+  }
+  const gem = inset ? 4 : 3
+  ;[
+    [rect.x - 1, rect.y - 1],
+    [rect.x + rect.w - gem + 1, rect.y - 1],
+    [rect.x - 1, rect.y + rect.h - gem + 1],
+    [rect.x + rect.w - gem + 1, rect.y + rect.h - gem + 1],
+  ].forEach(([gx, gy]) => {
+    ui.createWidget(ui.widget.FILL_RECT, {
+      x: gx,
+      y: gy,
+      w: gem,
+      h: gem,
+      color: COLORS.PANEL_ACCENT_GOLD,
+      show_level: ui.show_level.ONLY_NORMAL,
+    })
+  })
+}
+
 function temperatureWidget(rect, type, path, unitPath, showLevel) {
   return ui.createWidget(ui.widget.TEXT_IMG, {
     ...rect,
@@ -208,13 +246,7 @@ WatchFace(
       color: COLORS.PANEL_NAVY,
       show_level: ui.show_level.ONLY_NORMAL,
     })
-    ui.createWidget(ui.widget.STROKE_RECT, {
-      ...LAYOUT.copyPanel,
-      color: COLORS.PANEL_EDGE,
-      line_width: 2,
-      radius: 0,
-      show_level: ui.show_level.ONLY_NORMAL,
-    })
+    questWindowFrame(LAYOUT.copyPanel, { inset: true })
     const preset = getCopyPreset(this.state.presetIndex)
     this.state.copyLabel = textWidget(
       LAYOUT.copyLabel,
@@ -279,6 +311,7 @@ WatchFace(
       radius: 2,
       show_level: ui.show_level.ONLY_NORMAL,
     })
+    questWindowFrame({ x: 18, y: 353, w: 354, h: 42 })
     textWidget(
       LAYOUT.hp.label,
       'HP',

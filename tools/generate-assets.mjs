@@ -91,6 +91,44 @@ function rect(png, x, y, w, h, fill) {
   }
 }
 
+function dither(png, x, y, w, h, colorA, colorB, phase = 0) {
+  const a = typeof colorA === 'string' ? color(colorA) : colorA
+  const b = typeof colorB === 'string' ? color(colorB) : colorB
+  for (let yy = y; yy < y + h; yy += 1) {
+    for (let xx = x; xx < x + w; xx += 1) {
+      setPixel(png, xx, yy, (xx + yy + phase) % 2 === 0 ? a : b)
+    }
+  }
+}
+
+function ditherPolygon(png, points, colorA, colorB, phase = 0) {
+  const ys = points.map((point) => point[1])
+  const minY = Math.max(0, Math.floor(Math.min(...ys)))
+  const maxY = Math.min(png.height - 1, Math.ceil(Math.max(...ys)))
+  const a = typeof colorA === 'string' ? color(colorA) : colorA
+  const b = typeof colorB === 'string' ? color(colorB) : colorB
+  for (let y = minY; y <= maxY; y += 1) {
+    const intersections = []
+    for (let i = 0; i < points.length; i += 1) {
+      const p0 = points[i]
+      const p1 = points[(i + 1) % points.length]
+      if ((p0[1] <= y && p1[1] > y) || (p1[1] <= y && p0[1] > y)) {
+        const ratio = (y - p0[1]) / (p1[1] - p0[1])
+        intersections.push(p0[0] + ratio * (p1[0] - p0[0]))
+      }
+    }
+    intersections.sort((m, n) => m - n)
+    for (let i = 0; i < intersections.length; i += 2) {
+      const start = Math.ceil(intersections[i])
+      const end = Math.floor(intersections[i + 1])
+      if (!Number.isFinite(start) || !Number.isFinite(end)) continue
+      for (let x = start; x <= end; x += 1) {
+        setPixel(png, x, y, (x + y + phase) % 2 === 0 ? a : b)
+      }
+    }
+  }
+}
+
 function overlayRect(png, x, y, w, h, fill, alpha) {
   const rgba = color(fill)
   const opacity = alpha / 255
@@ -212,7 +250,8 @@ function drawPattern(png, rows, x, y, scale, palette) {
   })
 }
 
-function generateDigitSet(name, width, height, scale, fill, outline = null) {
+function generateDigitSet(name, width, height, scale, fill, outline = null, options = {}) {
+  const { thickness = 2, shadow = null, shadowOffset = 3 } = options
   const directory = path.join(ASSET_ROOT, 'digits', name)
   for (let digit = 0; digit <= 9; digit += 1) {
     const png = image(width, height, '#00000000')
@@ -220,8 +259,12 @@ function generateDigitSet(name, width, height, scale, fill, outline = null) {
     const glyphH = 7 * scale
     const x = Math.floor((width - glyphW) / 2)
     const y = Math.floor((height - glyphH) / 2)
-    if (outline) drawGlyphOutlined(png, digit, x, y, scale, fill, outline)
-    else drawGlyph(png, digit, x, y, scale, fill)
+    if (outline) {
+      if (shadow) drawGlyph(png, digit, x + shadowOffset, y + shadowOffset, scale, shadow)
+      drawGlyphOutlined(png, digit, x, y, scale, fill, outline, thickness)
+    } else {
+      drawGlyph(png, digit, x, y, scale, fill)
+    }
     writePng(path.join(directory, `${digit}.png`), png)
   }
 
@@ -263,7 +306,8 @@ function cloud(png, x, y, fill, shade) {
   rect(png, x + 8, y, 32, 8, fill)
   rect(png, x, y + 8, 58, 12, fill)
   rect(png, x + 18, y - 8, 22, 10, fill)
-  rect(png, x + 8, y + 16, 46, 5, shade)
+  dither(png, x + 8, y + 16, 46, 5, fill, shade)
+  dither(png, x + 18, y - 8, 22, 4, '#FFFFFF', fill, 1)
 }
 
 function pine(png, x, y, height, dark, light) {
@@ -272,27 +316,47 @@ function pine(png, x, y, height, dark, light) {
   polygon(png, [[x, y - height], [x - height * 0.22, y - height * 0.45], [x + height * 0.22, y - height * 0.45]], light)
   polygon(png, [[x, y - height * 0.75], [x - height * 0.3, y - height * 0.18], [x + height * 0.3, y - height * 0.18]], dark)
   polygon(png, [[x, y - height * 0.5], [x - height * 0.35, y], [x + height * 0.35, y]], dark)
+  ditherPolygon(png, [[x, y - height], [x, y - height * 0.45], [x + height * 0.22, y - height * 0.45]], light, dark, Math.round(x))
+  ditherPolygon(png, [[x, y - height * 0.5], [x, y], [x + height * 0.35, y]], dark, light, Math.round(x) + 1)
 }
 
 function castle(png, x, y, night) {
   const stone = night ? '#5D6670' : '#B7AA8B'
   const lightStone = night ? '#78808A' : '#D0C19E'
+  const shadowStone = night ? '#3E4650' : '#8A7C5E'
   const roof = night ? '#14233E' : '#253E56'
+  const roofShade = night ? '#0C1830' : '#182B3D'
   rect(png, x, y - 60, 68, 60, stone)
+  dither(png, x, y - 60, 14, 60, shadowStone, stone)
   rect(png, x - 12, y - 46, 20, 46, stone)
+  dither(png, x - 12, y - 46, 10, 46, shadowStone, stone)
   rect(png, x + 60, y - 46, 20, 46, stone)
+  dither(png, x + 60, y - 46, 10, 46, shadowStone, stone)
   rect(png, x + 24, y - 84, 22, 84, lightStone)
+  dither(png, x + 24, y - 84, 9, 84, stone, lightStone)
   polygon(png, [[x - 14, y - 46], [x - 2, y - 64], [x + 10, y - 46]], roof)
+  ditherPolygon(png, [[x - 2, y - 64], [x - 2, y - 46], [x + 10, y - 46]], roofShade, roof, 3)
   polygon(png, [[x + 20, y - 84], [x + 35, y - 106], [x + 50, y - 84]], roof)
+  ditherPolygon(png, [[x + 35, y - 106], [x + 35, y - 84], [x + 50, y - 84]], roofShade, roof, 3)
   polygon(png, [[x + 58, y - 46], [x + 70, y - 64], [x + 82, y - 46]], roof)
+  ditherPolygon(png, [[x + 70, y - 64], [x + 70, y - 46], [x + 82, y - 46]], roofShade, roof, 3)
   rect(png, x + 30, y - 22, 12, 22, '#20232B')
   const window = night ? '#F5B942' : '#497795'
   for (const [wx, wy] of [[4, -36], [28, -66], [52, -36], [67, -28]]) {
+    if (night) {
+      dither(png, x + wx - 2, y + wy - 2, 9, 12, '#7A5A2A', stone, wx + wy)
+    }
     rect(png, x + wx, y + wy, 5, 8, window)
     rect(png, x + wx + 2, y + wy, 1, 8, lightStone)
   }
   rect(png, x + 34, y - 118, 3, 14, '#D7D6C4')
   rect(png, x + 37, y - 117, 12, 7, '#D9534F')
+  if (night) {
+    rect(png, x - 10, y, 3, 10, '#392F2A')
+    rect(png, x + 76, y, 3, 10, '#392F2A')
+    dither(png, x - 13, y - 9, 9, 9, '#F5B942', '#D9862F', 1)
+    dither(png, x + 73, y - 9, 9, 9, '#F5B942', '#D9862F', 1)
+  }
 }
 
 function drawWorld(theme) {
@@ -305,6 +369,7 @@ function drawWorld(theme) {
   if (night) {
     ;[[24, 18], [72, 61], [124, 34], [184, 79], [234, 22], [284, 58], [340, 31]]
       .forEach(([x, y]) => rect(png, x, y, 3, 3, '#D5E7EB'))
+    dither(png, 278, 4, 54, 54, '#1B2E52', palette.sky[0], 1)
     drawPattern(
       png,
       ['001110000', '011110000', '111100000', '111000000', '111000000', '111100000', '011111100', '001111000'],
@@ -313,7 +378,16 @@ function drawWorld(theme) {
       4,
       { 1: '#F0DB82' },
     )
+    rect(png, 300, 30, 3, 3, '#D9A93A')
+    rect(png, 308, 42, 2, 2, '#D9A93A')
   } else if (!['cloudy_day', 'rain', 'thunder', 'snow', 'fog', 'unknown'].includes(theme)) {
+    ditherPolygon(
+      png,
+      [[8, 4], [82, 4], [82, 78], [8, 78]],
+      '#FFE8A3',
+      palette.sky[0],
+      1,
+    )
     drawPattern(
       png,
       ['0001000', '0011100', '0111110', '1112111', '0111110', '0011100', '0001000'],
@@ -326,6 +400,10 @@ function drawWorld(theme) {
     rect(png, 42, 65, 6, 7, '#F8D257')
     rect(png, 14, 38, 7, 6, '#F8D257')
     rect(png, 69, 38, 7, 6, '#F8D257')
+    rect(png, 22, 20, 5, 5, '#F8D257')
+    rect(png, 61, 20, 5, 5, '#F8D257')
+    rect(png, 22, 63, 5, 5, '#F8D257')
+    rect(png, 61, 63, 5, 5, '#F8D257')
   }
 
   if (theme.includes('cloudy') || ['rain', 'thunder', 'snow', 'unknown'].includes(theme)) {
@@ -336,7 +414,10 @@ function drawWorld(theme) {
 
   polygon(png, [[0, 238], [58, 146], [112, 229], [165, 126], [226, 230], [286, 155], [366, 236], [366, 300], [0, 300]], palette.far)
   polygon(png, [[32, 215], [58, 164], [80, 205]], '#D7E3E1')
+  ditherPolygon(png, [[32, 215], [58, 164], [66, 184]], '#F4F3E8', '#D7E3E1', 1)
   polygon(png, [[133, 180], [165, 126], [196, 178], [178, 163], [165, 178], [153, 158]], '#E5EBE6')
+  ditherPolygon(png, [[153, 158], [165, 126], [178, 163], [165, 178]], '#F4F3E8', '#E5EBE6', 1)
+  ditherPolygon(png, [[133, 180], [153, 158], [165, 178]], palette.far, '#E5EBE6', 1)
   polygon(png, [[0, 277], [84, 194], [139, 268], [218, 187], [292, 269], [341, 209], [366, 248], [366, 326], [0, 326]], palette.mid)
   polygon(png, [[0, 315], [65, 245], [128, 306], [205, 233], [278, 311], [366, 251], [366, 350], [0, 350]], palette.near)
   polygon(png, [[0, 306], [76, 285], [150, 321], [222, 288], [300, 308], [366, 278], [366, 430], [0, 430]], palette.forest)
@@ -390,15 +471,32 @@ function blit(target, source, dx, dy) {
   }
 }
 
+function questWindowFrame(png, x, y, w, h, { inset = false } = {}) {
+  rect(png, x, y, w, 2, '#F4F3E8')
+  rect(png, x, y + h - 2, w, 2, '#F4F3E8')
+  rect(png, x, y, 2, h, '#F4F3E8')
+  rect(png, x + w - 2, y, 2, h, '#F4F3E8')
+  if (inset) {
+    rect(png, x + 4, y + 4, w - 8, 1, '#C9A85C')
+    rect(png, x + 4, y + h - 5, w - 8, 1, '#C9A85C')
+    rect(png, x + 4, y + 4, 1, h - 8, '#C9A85C')
+    rect(png, x + w - 5, y + 4, 1, h - 8, '#C9A85C')
+  }
+  const gem = inset ? 4 : 3
+  ;[
+    [x - 1, y - 1],
+    [x + w - gem + 1, y - 1],
+    [x - 1, y + h - gem + 1],
+    [x + w - gem + 1, y + h - gem + 1],
+  ].forEach(([gx, gy]) => rect(png, gx, gy, gem, gem, '#C9A85C'))
+}
+
 function preview(theme = 'clear_day') {
   const png = image(390, 450, '#031426')
   blit(png, drawWorld(theme), 12, 10)
   overlayRect(png, 18, 76, 354, 54, '#031426', 150)
   rect(png, 12, 146, 366, 68, '#061B31')
-  rect(png, 12, 146, 366, 2, '#F4F3E8')
-  rect(png, 12, 212, 366, 2, '#F4F3E8')
-  rect(png, 12, 146, 2, 68, '#F4F3E8')
-  rect(png, 376, 146, 2, 68, '#F4F3E8')
+  questWindowFrame(png, 12, 146, 366, 68, { inset: true })
 
   drawText(png, 'L 24°', 25, 101, 2, '#69A7E8', 2)
   drawText(png, '29°', 162, 91, 4, '#F4F3E8', 3)
@@ -408,15 +506,17 @@ function preview(theme = 'clear_day') {
 
   const digits = [1, 0, 0, 9]
   const xs = [81, 131, 193, 243]
-  digits.forEach((digit, index) =>
-    drawGlyphOutlined(png, digit, xs[index], 231, 8, '#F4F3E8', '#031426'),
-  )
+  digits.forEach((digit, index) => {
+    drawGlyph(png, digit, xs[index] + 3, 231 + 3, 8, '#010912')
+    drawGlyphOutlined(png, digit, xs[index], 231, 8, '#F4F3E8', '#031426', 3)
+  })
   rect(png, 179, 250, 7, 7, '#F4F3E8')
   rect(png, 179, 273, 7, 7, '#F4F3E8')
 
   overlayRect(png, 18, 299, 354, 42, '#031426', 145)
   drawText(png, '7/24 FRI', 117, 307, 3, '#F4F3E8', 3)
   overlayRect(png, 18, 353, 354, 42, '#031426', 165)
+  questWindowFrame(png, 18, 353, 354, 42, {})
   drawText(png, 'HP', 22, 365, 3, '#F4F3E8', 3)
   drawText(png, '68%', 316, 365, 3, '#F4F3E8', 2)
 
@@ -427,7 +527,11 @@ function preview(theme = 'clear_day') {
   return png
 }
 
-generateDigitSet('time', 44, 65, 8, '#F4F3E8', '#031426')
+generateDigitSet('time', 44, 65, 8, '#F4F3E8', '#031426', {
+  thickness: 3,
+  shadow: '#010912',
+  shadowOffset: 3,
+})
 generateDigitSet('aod', 32, 49, 6, '#B8B8B8', '#000000')
 generateDigitSet('temp-low', 15, 24, 3, '#69A7E8')
 generateDigitSet('temp-now', 22, 35, 4, '#F4F3E8')
