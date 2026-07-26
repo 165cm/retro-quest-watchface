@@ -253,7 +253,7 @@ function drawPattern(png, rows, x, y, scale, palette) {
 }
 
 function generateDigitSet(name, width, height, scale, fill, outline = null, options = {}) {
-  const { thickness = 2, shadow = null, shadowOffset = 3 } = options
+  const { thickness = 2, shadow = null, shadowOffset = 3, colonW = null } = options
   const directory = path.join(ASSET_ROOT, 'digits', name)
   for (let digit = 0; digit <= 9; digit += 1) {
     const png = image(width, height, '#00000000')
@@ -270,7 +270,7 @@ function generateDigitSet(name, width, height, scale, fill, outline = null, opti
     writePng(path.join(directory, `${digit}.png`), png)
   }
 
-  const colon = image(name === 'time' ? 16 : name === 'aod' ? 12 : width, height, '#00000000')
+  const colon = image(colonW || (name === 'aod' ? 12 : width), height, '#00000000')
   const dot = Math.max(2, scale)
   rect(colon, Math.floor((colon.width - dot) / 2), Math.floor(height * 0.32), dot, dot, fill)
   rect(colon, Math.floor((colon.width - dot) / 2), Math.floor(height * 0.64), dot, dot, fill)
@@ -361,6 +361,128 @@ function castle(png, x, y, night) {
   }
 }
 
+// 34×34の天候アイコン。背景と同じテーマキーで差し替える。
+const ICON_SIZE = 34
+
+const ICON_COLORS = Object.freeze({
+  sun: '#F8D257',
+  sunCore: '#FFF2A1',
+  moon: '#F0DB82',
+  moonShade: '#D9A93A',
+  cloud: '#DCE4E6',
+  cloudShade: '#A7B4BA',
+  cloudDark: '#7C8A93',
+  rain: '#69A7E8',
+  snow: '#F4F3E8',
+  bolt: '#F5D765',
+  fog: '#C2CBCB',
+})
+
+function iconSun(png, cx, cy, radius) {
+  for (let y = -radius; y <= radius; y += 1) {
+    for (let x = -radius; x <= radius; x += 1) {
+      const distance = x * x + y * y
+      if (distance > radius * radius) continue
+      const fill = distance <= (radius - 3) * (radius - 3) ? ICON_COLORS.sunCore : ICON_COLORS.sun
+      rect(png, cx + x, cy + y, 1, 1, fill)
+    }
+  }
+  const reach = radius + 5
+  for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+    rect(png, cx + dx * reach - (dy === 0 ? 0 : 1), cy + dy * reach - (dx === 0 ? 0 : 1), dy === 0 ? 4 : 2, dx === 0 ? 4 : 2, ICON_COLORS.sun)
+  }
+  for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const offset = Math.round(reach * 0.7)
+    rect(png, cx + dx * offset - 1, cy + dy * offset - 1, 2, 2, ICON_COLORS.sun)
+  }
+}
+
+function iconMoon(png, cx, cy, radius) {
+  for (let y = -radius; y <= radius; y += 1) {
+    for (let x = -radius; x <= radius; x += 1) {
+      if (x * x + y * y > radius * radius) continue
+      // 右側を欠かせて三日月にする。
+      const bite = (x - radius * 0.55) ** 2 + y * y
+      if (bite <= (radius * 0.9) ** 2) continue
+      const edge = x * x + y * y > (radius - 2) * (radius - 2)
+      rect(png, cx + x, cy + y, 1, 1, edge ? ICON_COLORS.moonShade : ICON_COLORS.moon)
+    }
+  }
+}
+
+function iconCloud(png, x, y, dark = false) {
+  const body = dark ? ICON_COLORS.cloudDark : ICON_COLORS.cloud
+  const shade = dark ? '#5E6C75' : ICON_COLORS.cloudShade
+  rect(png, x + 6, y + 2, 12, 6, body)
+  rect(png, x + 2, y + 6, 20, 7, body)
+  rect(png, x, y + 9, 24, 5, body)
+  rect(png, x + 2, y + 12, 20, 3, shade)
+  rect(png, x + 6, y + 2, 8, 2, dark ? '#95A2AB' : '#FFFFFF')
+}
+
+function iconRain(png, x, y) {
+  for (const dx of [3, 10, 17]) {
+    line(png, x + dx, y, x + dx - 3, y + 8, ICON_COLORS.rain, 2)
+  }
+}
+
+function iconSnow(png, x, y) {
+  for (const [dx, dy] of [[3, 1], [11, 5], [19, 1], [7, 8], [15, 8]]) {
+    rect(png, x + dx, y + dy, 3, 3, ICON_COLORS.snow)
+  }
+}
+
+function iconBolt(png, x, y) {
+  line(png, x + 10, y, x + 4, y + 7, ICON_COLORS.bolt, 3)
+  line(png, x + 4, y + 7, x + 10, y + 7, ICON_COLORS.bolt, 3)
+  line(png, x + 10, y + 7, x + 3, y + 15, ICON_COLORS.bolt, 3)
+}
+
+function drawWeatherIcon(theme) {
+  const png = image(ICON_SIZE, ICON_SIZE, '#00000000')
+  switch (theme) {
+    case 'clear_day':
+      iconSun(png, 17, 17, 9)
+      break
+    case 'partly_cloudy_day':
+      iconSun(png, 12, 11, 7)
+      iconCloud(png, 5, 14)
+      break
+    case 'cloudy_day':
+      iconCloud(png, 5, 9)
+      break
+    case 'rain':
+      iconCloud(png, 5, 4)
+      iconRain(png, 7, 21)
+      break
+    case 'thunder':
+      iconCloud(png, 5, 3, true)
+      iconBolt(png, 8, 18)
+      break
+    case 'snow':
+      iconCloud(png, 5, 4)
+      iconSnow(png, 5, 21)
+      break
+    case 'fog':
+      iconCloud(png, 5, 2)
+      for (let i = 0; i < 3; i += 1) {
+        rect(png, 3 + (i % 2) * 4, 20 + i * 5, 26 - (i % 2) * 6, 3, ICON_COLORS.fog)
+      }
+      break
+    case 'clear_night':
+      iconMoon(png, 18, 17, 11)
+      break
+    case 'cloudy_night':
+      iconMoon(png, 20, 11, 8)
+      iconCloud(png, 5, 14)
+      break
+    default:
+      iconCloud(png, 5, 9, true)
+      break
+  }
+  return png
+}
+
 function drawWorld(theme) {
   const palette = PALETTES[theme]
   const png = image(BACKGROUND_W, BACKGROUND_H, palette.sky[0])
@@ -368,58 +490,27 @@ function drawWorld(theme) {
 
   palette.sky.forEach((band, index) => rect(png, 0, index * 48, 366, 48, band))
 
+  // 太陽・月は最上段の天候アイコンが担うため、背景には描かない。
+  // 空の上部はトップバーでほぼ覆われるので、星は覆いの下端より下にも散らす。
   if (night) {
-    ;[[24, 18], [72, 61], [124, 34], [184, 79], [234, 22], [284, 58], [340, 31]]
+    ;[[24, 74], [72, 61], [124, 92], [184, 79], [234, 68], [284, 100], [340, 84], [46, 108], [312, 62], [156, 112]]
       .forEach(([x, y]) => rect(png, x, y, 3, 3, '#D5E7EB'))
-    dither(png, 278, 4, 54, 54, '#1B2E52', palette.sky[0], 1)
-    drawPattern(
-      png,
-      ['001110000', '011110000', '111100000', '111000000', '111000000', '111100000', '011111100', '001111000'],
-      292,
-      18,
-      4,
-      { 1: '#F0DB82' },
-    )
-    rect(png, 300, 30, 3, 3, '#D9A93A')
-    rect(png, 308, 42, 2, 2, '#D9A93A')
-  } else if (!['cloudy_day', 'rain', 'thunder', 'snow', 'fog', 'unknown'].includes(theme)) {
-    ditherPolygon(
-      png,
-      [[8, 4], [82, 4], [82, 78], [8, 78]],
-      '#FFE8A3',
-      palette.sky[0],
-      1,
-    )
-    drawPattern(
-      png,
-      ['0001000', '0011100', '0111110', '1112111', '0111110', '0011100', '0001000'],
-      24,
-      20,
-      6,
-      { 1: '#F8D257', 2: '#FFF2A1' },
-    )
-    rect(png, 42, 10, 6, 7, '#F8D257')
-    rect(png, 42, 65, 6, 7, '#F8D257')
-    rect(png, 14, 38, 7, 6, '#F8D257')
-    rect(png, 69, 38, 7, 6, '#F8D257')
-    rect(png, 22, 20, 5, 5, '#F8D257')
-    rect(png, 61, 20, 5, 5, '#F8D257')
-    rect(png, 22, 63, 5, 5, '#F8D257')
-    rect(png, 61, 63, 5, 5, '#F8D257')
   }
 
+  // 雲は時刻バンドの左右マージン側へ寄せる。中央に明るい塊を置くと時刻が読みにくくなる。
   if (theme.includes('cloudy') || ['rain', 'thunder', 'snow', 'unknown'].includes(theme)) {
-    cloud(png, 24, 54, theme === 'thunder' ? '#555D72' : '#AEB9BE', '#7F919B')
-    cloud(png, 244, 78, night ? '#53637A' : '#C5CDD0', night ? '#3D4D64' : '#9DADB4')
+    cloud(png, 16, 84, theme === 'thunder' ? '#555D72' : '#AEB9BE', '#7F919B')
+    cloud(png, 296, 98, night ? '#53637A' : '#C5CDD0', night ? '#3D4D64' : '#9DADB4')
   }
-  if (theme === 'partly_cloudy_day') cloud(png, 252, 54, '#E4E9E5', '#B8CDD4')
+  if (theme === 'partly_cloudy_day') cloud(png, 294, 86, '#E4E9E5', '#B8CDD4')
 
-  polygon(png, [[0, 238], [58, 146], [112, 229], [165, 126], [226, 230], [286, 155], [366, 236], [366, 300], [0, 300]], palette.far)
-  polygon(png, [[32, 215], [58, 164], [80, 205]], '#D7E3E1')
-  ditherPolygon(png, [[32, 215], [58, 164], [66, 184]], '#F4F3E8', '#D7E3E1', 1)
-  polygon(png, [[133, 180], [165, 126], [196, 178], [178, 163], [165, 178], [153, 158]], '#E5EBE6')
-  ditherPolygon(png, [[153, 158], [165, 126], [178, 163], [165, 178]], '#F4F3E8', '#E5EBE6', 1)
-  ditherPolygon(png, [[133, 180], [153, 158], [165, 178]], palette.far, '#E5EBE6', 1)
+  // 遠景の連峰。白い雪冠が時刻バンド（y86–158）に入らないよう、稜線を下げてある。
+  polygon(png, [[0, 270], [58, 178], [112, 261], [165, 158], [226, 262], [286, 187], [366, 268], [366, 332], [0, 332]], palette.far)
+  polygon(png, [[32, 247], [58, 196], [80, 237]], '#D7E3E1')
+  ditherPolygon(png, [[32, 247], [58, 196], [66, 216]], '#F4F3E8', '#D7E3E1', 1)
+  polygon(png, [[133, 212], [165, 158], [196, 210], [178, 195], [165, 210], [153, 190]], '#E5EBE6')
+  ditherPolygon(png, [[153, 190], [165, 158], [178, 195], [165, 210]], '#F4F3E8', '#E5EBE6', 1)
+  ditherPolygon(png, [[133, 212], [153, 190], [165, 210]], palette.far, '#E5EBE6', 1)
   polygon(png, [[0, 277], [84, 194], [139, 268], [218, 187], [292, 269], [341, 209], [366, 248], [366, 326], [0, 326]], palette.mid)
   polygon(png, [[0, 315], [65, 245], [128, 306], [205, 233], [278, 311], [366, 251], [366, 350], [0, 350]], palette.near)
   polygon(png, [[0, 306], [76, 285], [150, 321], [222, 288], [300, 308], [366, 278], [366, 430], [0, 430]], palette.forest)
@@ -473,18 +564,8 @@ function blit(target, source, dx, dy) {
   }
 }
 
-function questWindowFrame(png, x, y, w, h, { inset = false } = {}) {
-  rect(png, x, y, w, 2, '#F4F3E8')
-  rect(png, x, y + h - 2, w, 2, '#F4F3E8')
-  rect(png, x, y, 2, h, '#F4F3E8')
-  rect(png, x + w - 2, y, 2, h, '#F4F3E8')
-  if (inset) {
-    rect(png, x + 4, y + 4, w - 8, 1, '#C9A85C')
-    rect(png, x + 4, y + h - 5, w - 8, 1, '#C9A85C')
-    rect(png, x + 4, y + 4, 1, h - 8, '#C9A85C')
-    rect(png, x + w - 5, y + 4, 1, h - 8, '#C9A85C')
-  }
-  const gem = inset ? 4 : 3
+// watchface/index.js の cornerGems() と同じ装飾。
+function cornerGemsAt(png, x, y, w, h, gem = 4) {
   ;[
     [x - 1, y - 1],
     [x + w - gem + 1, y - 1],
@@ -507,51 +588,96 @@ function loadBackground(theme) {
   return drawWorld(theme)
 }
 
+// 実機のdrawNormalView()と同じ座標で合成する。watchface/layout.js を変えたらここも合わせる。
 function preview(theme = 'clear_day') {
   const png = image(390, 450, '#031426')
   blit(png, loadBackground(theme), 12, 10)
-  overlayRect(png, 18, 76, 354, 54, '#031426', 150)
-  rect(png, 12, 146, 366, 68, '#061B31')
-  questWindowFrame(png, 12, 146, 366, 68, { inset: true })
 
-  drawText(png, 'L 24°', 25, 101, 2, '#69A7E8', 2)
-  drawText(png, '29°', 162, 91, 4, '#F4F3E8', 3)
-  drawText(png, 'H 32°', 277, 101, 2, '#E98A4A', 2)
-  drawText(png, 'TACTIC', 26, 155, 2, '#A9B0B8', 2)
-  drawText(png, 'SAFETY FIRST', 26, 181, 3, '#F4F3E8', 3)
-
-  const digits = [1, 0, 0, 9]
-  const xs = [81, 131, 193, 243]
-  digits.forEach((digit, index) => {
-    drawGlyph(png, digit, xs[index] + 3, 231 + 3, 8, '#010912')
-    drawGlyphOutlined(png, digit, xs[index], 231, 8, '#F4F3E8', '#031426', 3)
-  })
-  rect(png, 179, 250, 7, 7, '#F4F3E8')
-  rect(png, 179, 273, 7, 7, '#F4F3E8')
-
-  overlayRect(png, 18, 299, 354, 42, '#031426', 145)
-  drawText(png, '7/24 FRI', 117, 307, 3, '#F4F3E8', 3)
-  overlayRect(png, 18, 353, 354, 42, '#031426', 165)
-  questWindowFrame(png, 18, 353, 354, 42, {})
-  drawText(png, 'HP', 22, 365, 3, '#F4F3E8', 3)
-  drawText(png, '68%', 316, 365, 3, '#F4F3E8', 2)
-
+  // 最上段: 薄い暗幕 + 天候アイコン + 日付 + HP
+  overlayRect(png, 12, 12, 366, 66, '#031426', 100)
+  blit(png, drawWeatherIcon(theme), 20, 22)
+  drawText(png, '7/24 FRI', 62, 30, 3, '#F4F3E8', 2)
+  drawText(png, 'HP', 208, 30, 3, '#F4F3E8', 3)
   for (let i = 0; i < 10; i += 1) {
-    rect(png, 68 + i * 24, 367, 20, 15, '#A9B0B8')
-    rect(png, 70 + i * 24, 369, 16, 11, i < 7 ? '#62B84A' : '#183047')
+    const x = 242 + i * 13
+    rect(png, x, 30, 11, 16, '#A9B0B8')
+    rect(png, x + 2, 32, 7, 12, i < 7 ? '#62B84A' : '#183047')
   }
+  drawText(png, '68%', 321, 54, 3, '#F4F3E8', 2)
+
+  // 時刻: 覆いなしで背景に直接。影 + 太い縁取りで視認性を確保。
+  // 座標は watchface/time-sprites.js の中央寄せ計算と一致させる。
+  const digitW = 52
+  const digitH = 72
+  const colonW = 18
+  const gap = 6
+  const timeY = 96
+  const totalW = 4 * digitW + colonW + 4 * gap
+  let cursor = Math.round((390 - totalW) / 2)
+  const glyphInsetX = Math.floor((digitW - 5 * 9) / 2)
+  const glyphInsetY = Math.floor((digitH - 7 * 9) / 2)
+  ;[1, 0].forEach((digit) => {
+    drawGlyph(png, digit, cursor + glyphInsetX + 4, timeY + glyphInsetY + 4, 9, '#010912')
+    drawGlyphOutlined(png, digit, cursor + glyphInsetX, timeY + glyphInsetY, 9, '#F4F3E8', '#031426', 3)
+    cursor += digitW + gap
+  })
+  rect(png, cursor + Math.floor((colonW - 9) / 2), timeY + Math.floor(digitH * 0.32), 9, 9, '#F4F3E8')
+  rect(png, cursor + Math.floor((colonW - 9) / 2), timeY + Math.floor(digitH * 0.64), 9, 9, '#F4F3E8')
+  cursor += colonW + gap
+  ;[0, 9].forEach((digit) => {
+    drawGlyph(png, digit, cursor + glyphInsetX + 4, timeY + glyphInsetY + 4, 9, '#010912')
+    drawGlyphOutlined(png, digit, cursor + glyphInsetX, timeY + glyphInsetY, 9, '#F4F3E8', '#031426', 3)
+    cursor += digitW + gap
+  })
+  drawText(png, 'AM', 324, 148, 3, '#A9B0B8', 3)
+
+  // TACTICウィンドウ: タブと本文の塗りを隣接させ、枠線は辺ごとに描いて継ぎ目を開ける。
+  overlayRect(png, 20, 192, 124, 32, '#061B31', 185)
+  overlayRect(png, 20, 224, 350, 64, '#061B31', 185)
+  rect(png, 20, 192, 124, 2, '#F4F3E8')
+  rect(png, 20, 192, 2, 32, '#F4F3E8')
+  rect(png, 142, 192, 2, 32, '#F4F3E8')
+  rect(png, 142, 224, 228, 2, '#F4F3E8')
+  rect(png, 20, 224, 2, 64, '#F4F3E8')
+  rect(png, 368, 224, 2, 64, '#F4F3E8')
+  rect(png, 20, 286, 350, 2, '#F4F3E8')
+  cornerGemsAt(png, 20, 192, 350, 96)
+  drawText(png, 'TACTIC', 45, 201, 2, '#A9B0B8', 2)
+  drawText(png, 'SAFETY FIRST', 92, 243, 3, '#F4F3E8', 3)
+
+  // 気温: L / NOW / H の3列
+  overlayRect(png, 20, 314, 350, 96, '#061B31', 185)
+  rect(png, 20, 314, 350, 2, '#F4F3E8')
+  rect(png, 20, 314, 2, 96, '#F4F3E8')
+  rect(png, 368, 314, 2, 96, '#F4F3E8')
+  rect(png, 20, 408, 350, 2, '#F4F3E8')
+  cornerGemsAt(png, 20, 314, 350, 96)
+  rect(png, 136, 316, 2, 92, '#F4F3E8')
+  rect(png, 252, 316, 2, 92, '#F4F3E8')
+  drawText(png, 'L', 74, 330, 2, '#69A7E8', 2)
+  drawText(png, 'NOW', 177, 330, 2, '#F4F3E8', 2)
+  drawText(png, 'H', 306, 330, 2, '#E98A4A', 2)
+  drawText(png, '24°', 46, 358, 4, '#69A7E8', 3)
+  drawText(png, '29°', 162, 358, 4, '#F4F3E8', 3)
+  drawText(png, '32°', 278, 358, 4, '#E98A4A', 3)
+
   return png
 }
 
-generateDigitSet('time', 44, 65, 8, '#F4F3E8', '#031426', {
+generateDigitSet('time', 52, 72, 9, '#F4F3E8', '#031426', {
   thickness: 3,
   shadow: '#010912',
-  shadowOffset: 3,
+  shadowOffset: 4,
+  colonW: 18,
 })
 generateDigitSet('aod', 32, 49, 6, '#B8B8B8', '#000000')
-generateDigitSet('temp-low', 15, 24, 3, '#69A7E8')
+generateDigitSet('temp-low', 22, 35, 4, '#69A7E8')
 generateDigitSet('temp-now', 22, 35, 4, '#F4F3E8')
-generateDigitSet('temp-high', 15, 24, 3, '#E98A4A')
+generateDigitSet('temp-high', 22, 35, 4, '#E98A4A')
+
+Object.keys(PALETTES).forEach((theme) => {
+  writePng(path.join(ASSET_ROOT, 'weather', `${theme}.png`), drawWeatherIcon(theme))
+})
 
 // 背景PNGは既定では書き出さない。Image Gen由来の画像を上書きしてしまうため。
 // コード生成の背景へ戻したい場合のみ `npm run assets -- --with-backgrounds` を使う。

@@ -6,6 +6,7 @@ import { LAYOUT, SCREEN } from './layout.js'
 import { COLORS, TYPE } from './theme.js'
 import { getCopyPreset } from './copy.js'
 import {
+  TOTAL_SEGMENTS,
   formatBatteryPercent,
   getBatteryColorKey,
   getFilledSegments,
@@ -42,27 +43,30 @@ function digitArray(path) {
   return Array.from({ length: 10 }, (_, index) => `${path}/${index}.png`)
 }
 
-function questWindowFrame(rect, { inset = false } = {}) {
-  ui.createWidget(ui.widget.STROKE_RECT, {
+const PANEL_ALPHA = 185
+
+function panelFill(rect) {
+  return ui.createWidget(ui.widget.FILL_RECT, {
     ...rect,
-    color: COLORS.PANEL_EDGE,
-    line_width: 2,
-    radius: 0,
+    color: COLORS.PANEL_NAVY,
+    alpha: PANEL_ALPHA,
     show_level: ui.show_level.ONLY_NORMAL,
   })
-  if (inset) {
-    ui.createWidget(ui.widget.STROKE_RECT, {
-      x: rect.x + 4,
-      y: rect.y + 4,
-      w: rect.w - 8,
-      h: rect.h - 8,
-      color: COLORS.PANEL_ACCENT_GOLD,
-      line_width: 1,
-      radius: 0,
-      show_level: ui.show_level.ONLY_NORMAL,
-    })
-  }
-  const gem = inset ? 4 : 3
+}
+
+function panelEdge(x, y, w, h) {
+  return ui.createWidget(ui.widget.FILL_RECT, {
+    x,
+    y,
+    w,
+    h,
+    color: COLORS.PANEL_EDGE,
+    show_level: ui.show_level.ONLY_NORMAL,
+  })
+}
+
+// RPGのウィンドウ装飾。四隅に金色のドットを置いて情報カード感を和らげる。
+function cornerGems(rect, gem = 4) {
   ;[
     [rect.x - 1, rect.y - 1],
     [rect.x + rect.w - gem + 1, rect.y - 1],
@@ -105,6 +109,7 @@ WatchFace(
     battery: null,
     weather: null,
     background: null,
+    weatherIcon: null,
     mainTime: null,
     amPm: null,
     date: null,
@@ -167,151 +172,37 @@ WatchFace(
       show_level: ui.show_level.ONLY_NORMAL,
     })
 
+    this.drawTopBar()
+    this.drawTime()
+    this.drawCopyWindow()
+    this.drawTemperature()
+  },
+
+  // 天候アイコン、日付、HPゲージを一列に収める。
+  drawTopBar() {
     ui.createWidget(ui.widget.FILL_RECT, {
-      x: 18,
-      y: 76,
-      w: 354,
-      h: 54,
+      ...LAYOUT.topBar,
       color: COLORS.BACKGROUND_NAVY,
-      alpha: 150,
+      alpha: 100,
       radius: 2,
       show_level: ui.show_level.ONLY_NORMAL,
     })
 
-    textWidget(
-      LAYOUT.temperature.low,
-      'L --°',
-      22,
-      COLORS.LOW_BLUE,
-      ui.align.CENTER_H,
-      ui.show_level.ONLY_NORMAL,
-    )
-    textWidget(
-      LAYOUT.temperature.current,
-      '--°',
-      30,
-      COLORS.TEXT_PRIMARY,
-      ui.align.CENTER_H,
-      ui.show_level.ONLY_NORMAL,
-    )
-    textWidget(
-      LAYOUT.temperature.high,
-      'H --°',
-      22,
-      COLORS.HIGH_ORANGE,
-      ui.align.CENTER_H,
-      ui.show_level.ONLY_NORMAL,
-    )
-
-    textWidget(
-      { x: 24, y: 91, w: 22, h: 35 },
-      'L',
-      22,
-      COLORS.LOW_BLUE,
-      ui.align.LEFT,
-      ui.show_level.ONLY_NORMAL,
-    )
-    temperatureWidget(
-      { x: 43, y: 94, w: 78, h: 30 },
-      ui.data_type.WEATHER_LOW,
-      'images/digits/temp-low',
-      'images/digits/temp-low/degree.png',
-      ui.show_level.ONLY_NORMAL,
-    )
-    temperatureWidget(
-      LAYOUT.temperature.current,
-      ui.data_type.WEATHER_CURRENT,
-      'images/digits/temp-now',
-      'images/digits/temp-now/degree.png',
-      ui.show_level.ONLY_NORMAL,
-    )
-    textWidget(
-      { x: 270, y: 91, w: 22, h: 35 },
-      'H',
-      22,
-      COLORS.HIGH_ORANGE,
-      ui.align.LEFT,
-      ui.show_level.ONLY_NORMAL,
-    )
-    temperatureWidget(
-      { x: 289, y: 94, w: 77, h: 30 },
-      ui.data_type.WEATHER_HIGH,
-      'images/digits/temp-high',
-      'images/digits/temp-high/degree.png',
-      ui.show_level.ONLY_NORMAL,
-    )
-
-    ui.createWidget(ui.widget.FILL_RECT, {
-      ...LAYOUT.copyPanel,
-      color: COLORS.PANEL_NAVY,
+    this.state.weatherIcon = ui.createWidget(ui.widget.IMG, {
+      ...LAYOUT.weatherIcon,
+      src: 'images/weather/clear_day.png',
       show_level: ui.show_level.ONLY_NORMAL,
     })
-    questWindowFrame(LAYOUT.copyPanel, { inset: true })
-    const preset = getCopyPreset(this.state.presetIndex)
-    this.state.copyLabel = textWidget(
-      LAYOUT.copyLabel,
-      preset.label,
-      TYPE.copyLabel,
-      COLORS.TEXT_MUTED,
-      ui.align.LEFT,
-      ui.show_level.ONLY_NORMAL,
-    )
-    this.state.copyText = textWidget(
-      LAYOUT.copyText,
-      preset.text,
-      TYPE.copyText,
-      COLORS.TEXT_PRIMARY,
-      ui.align.LEFT,
-      ui.show_level.ONLY_NORMAL,
-    )
 
-    this.state.mainTime = createTimeSprites({
-      y: LAYOUT.time.y,
-      digitPath: 'images/digits/time',
-      digitW: 44,
-      digitH: 65,
-      colonW: 16,
-      gap: 6,
-      showLevel: ui.show_level.ONLY_NORMAL,
-    })
-    this.state.amPm = textWidget(
-      LAYOUT.amPm,
-      '',
-      TYPE.amPm,
-      COLORS.TEXT_MUTED,
-      ui.align.RIGHT,
-      ui.show_level.ONLY_NORMAL,
-    )
-    ui.createWidget(ui.widget.FILL_RECT, {
-      x: 18,
-      y: 299,
-      w: 354,
-      h: 42,
-      color: COLORS.BACKGROUND_NAVY,
-      alpha: 145,
-      radius: 2,
-      show_level: ui.show_level.ONLY_NORMAL,
-    })
     this.state.date = textWidget(
       LAYOUT.date,
       '7/24 FRI',
       TYPE.date,
       COLORS.TEXT_PRIMARY,
-      ui.align.CENTER_H,
+      ui.align.LEFT,
       ui.show_level.ONLY_NORMAL,
     )
 
-    ui.createWidget(ui.widget.FILL_RECT, {
-      x: 18,
-      y: 353,
-      w: 354,
-      h: 42,
-      color: COLORS.BACKGROUND_NAVY,
-      alpha: 165,
-      radius: 2,
-      show_level: ui.show_level.ONLY_NORMAL,
-    })
-    questWindowFrame({ x: 18, y: 353, w: 354, h: 42 })
     textWidget(
       LAYOUT.hp.label,
       'HP',
@@ -320,7 +211,7 @@ WatchFace(
       ui.align.LEFT,
       ui.show_level.ONLY_NORMAL,
     )
-    for (let i = 0; i < 10; i += 1) {
+    for (let i = 0; i < TOTAL_SEGMENTS; i += 1) {
       const x = LAYOUT.hp.gaugeX + i * (LAYOUT.hp.segmentW + LAYOUT.hp.gap)
       ui.createWidget(ui.widget.STROKE_RECT, {
         x,
@@ -346,11 +237,108 @@ WatchFace(
     this.state.hpPercent = textWidget(
       LAYOUT.hp.percent,
       '--%',
-      TYPE.hp,
+      TYPE.hpPercent,
       COLORS.TEXT_PRIMARY,
       ui.align.RIGHT,
       ui.show_level.ONLY_NORMAL,
     )
+  },
+
+  drawTime() {
+    this.state.mainTime = createTimeSprites({
+      y: LAYOUT.time.y,
+      digitPath: 'images/digits/time',
+      digitW: LAYOUT.time.digitW,
+      digitH: LAYOUT.time.digitH,
+      colonW: LAYOUT.time.colonW,
+      gap: LAYOUT.time.gap,
+      showLevel: ui.show_level.ONLY_NORMAL,
+    })
+    this.state.amPm = textWidget(
+      LAYOUT.amPm,
+      '',
+      TYPE.amPm,
+      COLORS.TEXT_MUTED,
+      ui.align.LEFT,
+      ui.show_level.ONLY_NORMAL,
+    )
+  },
+
+  // ラベルをタブとして本文ボックスの上に載せる。塗りは重ねず隣接させ、枠線は辺ごとに
+  // 描いてタブ下辺と本文上辺の継ぎ目を開ける。半透明なので塗りで消すと線が透けてしまう。
+  drawCopyWindow() {
+    const panel = LAYOUT.copyPanel
+    const tab = LAYOUT.copyTab
+
+    panelFill(tab)
+    panelFill(panel)
+
+    // タブ: 上・左・右のみ（下辺は本文ボックスへ開ける）
+    panelEdge(tab.x, tab.y, tab.w, 2)
+    panelEdge(tab.x, tab.y, 2, tab.h)
+    panelEdge(tab.x + tab.w - 2, tab.y, 2, tab.h)
+    // 本文ボックス: 上辺はタブの右端から始める
+    panelEdge(tab.x + tab.w - 2, panel.y, panel.x + panel.w - tab.x - tab.w + 2, 2)
+    panelEdge(panel.x, panel.y, 2, panel.h)
+    panelEdge(panel.x + panel.w - 2, panel.y, 2, panel.h)
+    panelEdge(panel.x, panel.y + panel.h - 2, panel.w, 2)
+
+    cornerGems({ x: tab.x, y: tab.y, w: panel.w, h: panel.y + panel.h - tab.y })
+
+    const preset = getCopyPreset(this.state.presetIndex)
+    this.state.copyLabel = textWidget(
+      tab,
+      preset.label,
+      TYPE.copyLabel,
+      COLORS.TEXT_MUTED,
+      ui.align.CENTER_H,
+      ui.show_level.ONLY_NORMAL,
+    )
+    this.state.copyText = textWidget(
+      LAYOUT.copyText,
+      preset.text,
+      TYPE.copyText,
+      COLORS.TEXT_PRIMARY,
+      ui.align.CENTER_H,
+      ui.show_level.ONLY_NORMAL,
+    )
+  },
+
+  // L / NOW / H の3列。値はファームウェアの文字盤データ型へ直接バインドする。
+  drawTemperature() {
+    const temp = LAYOUT.temperature
+
+    panelFill(temp.box)
+    panelEdge(temp.box.x, temp.box.y, temp.box.w, 2)
+    panelEdge(temp.box.x, temp.box.y, 2, temp.box.h)
+    panelEdge(temp.box.x + temp.box.w - 2, temp.box.y, 2, temp.box.h)
+    panelEdge(temp.box.x, temp.box.y + temp.box.h - 2, temp.box.w, 2)
+    cornerGems(temp.box)
+    temp.dividerXs.forEach((x) => panelEdge(x, temp.dividerY, 2, temp.dividerH))
+
+    const columns = [
+      { label: 'L', color: COLORS.LOW_BLUE, type: ui.data_type.WEATHER_LOW, path: 'temp-low' },
+      { label: 'NOW', color: COLORS.TEXT_PRIMARY, type: ui.data_type.WEATHER_CURRENT, path: 'temp-now' },
+      { label: 'H', color: COLORS.HIGH_ORANGE, type: ui.data_type.WEATHER_HIGH, path: 'temp-high' },
+    ]
+    columns.forEach((column, index) => {
+      const geometry = temp.columns[index]
+      textWidget(
+        { x: geometry.labelX, y: temp.labelY, w: geometry.w, h: temp.labelH },
+        column.label,
+        TYPE.tempLabel,
+        column.color,
+        ui.align.CENTER_H,
+        ui.show_level.ONLY_NORMAL,
+      )
+      temperatureWidget(
+        { x: geometry.valueX, y: temp.valueY, w: geometry.w, h: temp.valueH },
+        column.type,
+        `images/digits/${column.path}`,
+        `images/digits/${column.path}/degree.png`,
+        ui.show_level.ONLY_NORMAL,
+      )
+    })
   },
 
   updateTimeAndDate() {
@@ -414,6 +402,10 @@ WatchFace(
     this.state.background.setProperty(
       ui.prop.SRC,
       `images/backgrounds/${theme}.png`,
+    )
+    this.state.weatherIcon.setProperty(
+      ui.prop.SRC,
+      `images/weather/${theme}.png`,
     )
   },
 

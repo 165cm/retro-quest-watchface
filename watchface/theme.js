@@ -16,11 +16,13 @@ export const COLORS = Object.freeze({
 })
 
 export const TYPE = Object.freeze({
-  copyLabel: 22,
-  copyText: 27,
-  date: 28,
-  hp: 24,
-  amPm: 22,
+  copyLabel: 20,
+  copyText: 28,
+  date: 26,
+  hp: 23,
+  hpPercent: 22,
+  tempLabel: 20,
+  amPm: 24,
   aodDate: 24,
   aodHp: 22,
 })

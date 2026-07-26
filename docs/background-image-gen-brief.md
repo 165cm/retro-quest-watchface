@@ -28,61 +28,80 @@ Pixel Wayfarer Face（Amazfit Bip 6 / 390×450）の**天候別背景10枚**をI
 
 寸法が1pxでも違うと`ui.widget.IMG`側で引き伸ばされ、ピクセルが濁って台無しになります。**必ず366×430ぴったり**にしてください。
 
+なお最上段に表示される**天候アイコン**（34×34、`assets/bip-6/images/weather/*.png`）は
+`tools/generate-assets.mjs`がコード生成する別アセットで、**この指示書の対象外**です。
+天候はアイコンが明示するため、背景側に太陽・月を描く必要はありません（§2参照）。
+
 ---
 
 ## 2. 最重要制約：UI遮蔽マップ
 
-背景の上には時刻・気温・コピー・日付・HPが重なります。**「絵として良い」より「UIが読める」が優先**です。
+背景の上には時刻・日付・HP・コピー・気温が重なります。**「絵として良い」より「UIが読める」が優先**です。
 以下は**背景画像ローカル座標**（画面座標から x−12 / y−10 したもの）です。
 
 ```
 x=0                                                              x=366
 y=0    ┌──────────────────────────────────────────────────────────┐
-       │ ★ 完全可視ゾーン（66px）── 空・太陽/月・雲の主役エリア   │
-y=66   ├──────────────────────────────────────────────────────────┤
-       │ ▒ 気温オーバーレイ  背景の可視率 41%   （x6–360）        │
-y=120  ├──────────────────────────────────────────────────────────┤
-       │ ★ 可視（16px）                                           │
-y=136  ├──────────────────────────────────────────────────────────┤
-       │ █ コピーパネル  完全不可視・不透明で塗り潰される         │
-y=204  ├──────────────────────────────────────────────────────────┤
-       │ ★ 可視（10px）                                           │
-y=214  ├──────────┬────────────────────────────┬──────────────────┤
-       │ ★ 可視   │ 時刻数字が直接乗る（覆いなし）│ ★ 可視         │
-       │ x0–75    │ x75–291                    │ x291–366         │
-y=279  ├──────────┴────────────────────────────┴──────────────────┤
-       │ ★ 可視（10px）                                           │
-y=289  ├──────────────────────────────────────────────────────────┤
-       │ ▒ 日付オーバーレイ  背景の可視率 43%   （x6–360）        │
-y=331  ├──────────────────────────────────────────────────────────┤
-       │ ★ 可視（12px）                                           │
-y=343  ├──────────────────────────────────────────────────────────┤
-       │ ▒ HPオーバーレイ  背景の可視率 35%     （x6–360）        │
-y=385  ├──────────────────────────────────────────────────────────┤
-       │ ★ 完全可視ゾーン（45px）── 前景の森・草地               │
+y=2    │ ▒ トップバー（天候アイコン/日付/HP）  背景の可視率 61%    │
+y=68   ├──────────────────────────────────────────────────────────┤
+       │ ★ 完全可視（18px）                                       │
+y=86   ├────────────┬───────────────────────────┬─────────────────┤
+       │ ★ 完全可視 │ 時刻数字が直接乗る（覆いなし）│ ★ 完全可視    │
+       │ x0–58      │ x58–308                   │ x308–366        │
+y=158  ├────────────┴───────────────────────────┴─────────────────┤
+       │ ★ 完全可視（24px）                                       │
+y=182  ├──────────────┬───────────────────────────────────────────┤
+       │ ▒ ラベルタブ │ ★ 完全可視                                │
+       │ 可視率 27%   │ x132–366                                  │
+y=214  ├──────────────┴───────────────────────────────────────────┤
+       │ ▒ コピーウィンドウ  背景の可視率 27%   （x8–358）        │
+y=280  ├──────────────────────────────────────────────────────────┤
+       │ ★ 完全可視（24px）                                       │
+y=304  ├──────────────────────────────────────────────────────────┤
+       │ ▒ 気温ボックス（L/NOW/H）  背景の可視率 27% （x8–358）   │
+y=400  ├──────────────────────────────────────────────────────────┤
+       │ ★ 完全可視（30px）── 前景の草地                          │
 y=430  └──────────────────────────────────────────────────────────┘
 ```
 
+### このレイアウトの性質（重要）
+
+**背景は「主役の一枚絵」ではなく「窓越しに見える情景」です。**
+パネルが画面の大半を占め、その下は27%しか透けません。完全可視なのは
+上下の細い帯と、時刻バンドの左右マージンだけです。
+
+したがって：
+
+- **細密なディテールを描き込んでも大半は見えません。** 大きな面・シルエット・色の階調で
+  雰囲気を作ってください。小さな描き込みは透過するとノイズになるだけです。
+- **地平線は y 150–200 あたりに置いてください。** そうすると山の稜線が
+  時刻バンドの左右マージンと y158–182 の帯に覗き、奥行きが伝わります。
+- **城は右側（x 280–366）に置いてください。** 時刻バンドの右マージンと
+  タブ右側の完全可視エリアに入り、はっきり見えます。
+- **前景の草地・森は y 400–430 に見せ場を作ってください。** ここは完全可視です。
+
 ### ゾーン別の描き込み方針
 
-- **★ 完全可視ゾーン（y 0–66 / y 385–430）**
-  ここが実質的な「見せ場」です。ディテールと魅力を集中させてください。
-  上部＝空と太陽/月、下部＝前景の森・草地・川の合流点。
+- **▒ トップバー（y 2–68 / 可視率61%）**
+  ここは**天候アイコン・日付・HPゲージが乗ります**。
+  → **太陽・月をここに描かないでください。** 天候アイコンと二重になって混乱します。
+  → 空として成立させつつ、**平坦で低コントラスト**に保ってください。
+  → 夜は星を散らすのは可（小さな点なので文字を邪魔しません）。
 
-- **時刻バンド（y 214–279）**
-  半透明の覆いが**一切ありません**。ここに白（`#F4F3E8`）の巨大数字が黒縁取り付きで直接乗ります。
-  → **`#C8C8C8`より明るい色の大面積を置かないこと。** 中明度〜暗めの山肌に留めてください。
-  → 左右マージン（x 0–75 / x 291–366）は完全可視なので、右側は城や塔を覗かせる好位置です。
-  → ただし **x 298–352 / y 239–269 は12時間表示時にAM/PMテキストが乗る**ため、高輝度を避けてください。
+- **時刻バンド（y 86–158 / x 58–308）**
+  半透明の覆いが**一切ありません**。ここに白（`#F4F3E8`）の巨大数字が黒縁取り＋影付きで直接乗ります。
+  → **明部（輝度200超）が面積の5%以下**（`npm run normalize` が自動判定）。
+  → **白い雪冠・明るい雲・太陽をこの矩形に入れないこと。** 稜線は y158 より下へ。
+  → 左右マージン（x 0–58 / x 308–366）は完全可視。中景の山や城を覗かせる好位置です。
 
-- **▒ 半透明オーバーレイ（気温41% / 日付43% / HP35%）**
-  紺（`#031426`）が被って暗くなりますが**完全には隠れません**。
-  → 細かい模様・高コントラストな境界線を置くと、透けてノイズに見えます。**なだらかな面**にしてください。
-  → 逆に「何も描かない」必要はありません。山や森の大きな面が緩やかに通過するのが理想です。
+- **▒ 半透明パネル（可視率27%）**
+  紺（`#061B31`）が被って暗くなりますが**完全には隠れません**。
+  → 大きな面がなだらかに通過するのが理想。高コントラストな細部は避けてください。
+  → タブの右側（x 132–366 / y 182–214）は**完全可視**なので、ここは描き込んで構いません。
 
-- **█ コピーパネル（y 136–204）**
-  不透明パネルで100%隠れます。作画コストをかける必要はありませんが、
-  **上下の構図が不連続にならないよう地形は繋げて**ください（将来パネルを半透明化する余地を残すため）。
+- **★ 完全可視の細い帯（y 68–86 / 158–182 / 280–304 / 400–430）**
+  背景の魅力が伝わる数少ない場所です。稜線・森の輪郭・草地など、
+  **横方向に情報のある要素**を通してください。
 
 ---
 
@@ -164,12 +183,15 @@ Detailed pixel art landscape in the style of a classic 16-bit Japanese RPG overw
 Sweeping pastoral fantasy vista seen from a hilltop.
 
 Composition (vertical, portrait):
-- Foreground (bottom third): rolling green meadow, undulation shown with patches of
-  lighter and darker green, a winding dirt path.
-- Middle ground: dense coniferous pine forest, and a river meandering down a valley.
+- Sky: top ~15% only, rendered as flat horizontal bands blended with checkerboard
+  dithering. Keep it plain and low-contrast. NO sun and NO moon anywhere in the sky.
+- Horizon line placed at roughly 35-46% of the image height.
 - Far background: a range of snow-capped mountain peaks, softened by aerial perspective.
-- Middle-right, on a hill: a small original stone castle with a flagged tower.
-- Sky: upper third, rendered as horizontal bands blended with checkerboard dithering.
+  Peaks must sit BELOW 37% height — never higher.
+- Middle ground: dense coniferous pine forest, and a river meandering down a valley.
+- Right side (70-100% width): a small original stone castle with a flagged tower,
+  clearly readable as a silhouette.
+- Foreground (bottom ~10%): rolling green meadow with a winding dirt path.
 
 Style rules (strict):
 - Hard-edged pixel art at native 1:1 pixel scale. NO anti-aliasing, NO blurring,
@@ -186,28 +208,31 @@ Absolute exclusions:
 - NO characters, people, creatures or monsters.
 - Do NOT imitate any existing game's logo, characters, tilesets or specific artwork.
 
-Readability constraint:
-- Keep the horizontal band at roughly 47-65% of the image height in MID-TO-DARK tones
-  only. Nothing brighter than mid-grey there. No bright snow, no bright sky, no
-  high-contrast detail in that band.
+Readability constraint (critical):
+- The horizontal band from 20% to 37% of the image height must be MID-TO-DARK only.
+  Nothing brighter than mid-grey there. No bright snow caps, no bright clouds,
+  no sun, no high-contrast detail inside that band.
+- Most of the image will be covered by translucent UI panels, so favor large calm
+  shapes and broad tonal areas over fine intricate detail.
 ```
 
-> 最後の「Readability constraint」は§2の**時刻バンド**に対応します。ここが明るいと白い時刻数字が
-> 埋もれます。生成時に効きにくい場合は、後処理で該当帯を暗く落とす方が確実です（§6の輝度チェック参照）。
+> 「Readability constraint」は§2の**時刻バンド（y 86–158 = 高さの20〜37%）**に対応します。
+> ここが明るいと白い時刻数字が埋もれます。生成時に効きにくい場合は、
+> 後処理で該当帯を暗く落とす方が確実です（§6の輝度チェック参照）。
 
 各テーマの差分：
 
 | ファイル | 追加プロンプト |
 |---|---|
-| `clear_day` | `Bright clear midday. Vivid saturated blue sky. Fluffy white cumulus clouds with dithered highlights on top and grey undersides. Lush sunlit emerald meadow in the foreground. Crisp white snow caps on the distant peaks. The most colorful and inviting of the set — this is the master image.` |
+| `clear_day` | `Bright clear midday, no sun visible. Vivid saturated blue sky band at the very top. Lush sunlit emerald meadow and forest. Snow caps on the distant peaks, kept below 37% height. The most colorful and inviting of the set — this is the master image.` |
 | `partly_cloudy_day` | `Softer daylight, slightly hazier blue sky. More and larger cumulus clouds drifting across the upper area, casting subtle shade patches on the meadow. Slightly muted greens.` |
 | `cloudy_day` | `Fully overcast grey-blue daylight. Flat diffuse light, low contrast, no visible sun. Heavy grey cloud cover filling the upper band. Desaturated muted greens, subdued mountains.` |
 | `rain` | `Overcast rainy scene, dark blue-grey and moody. Diagonal light-blue rain streaks evenly scattered across the whole image. Dark low storm clouds. The castle windows glow warm amber against the gloom. Wet darkened meadow, swollen river.` |
 | `thunder` | `Violent night thunderstorm, very dark navy. Diagonal rain streaks. One bright jagged yellow lightning bolt striking down from the clouds in the upper middle area, faintly illuminating the peaks. Bruised dark storm clouds. Castle windows glow amber.` |
 | `snow` | `Cold quiet snowfall, pale blue-grey. White snowflake pixels scattered evenly. Snow blanketing the meadow, forest canopy and mountains. Pine trees dusted white. Pale frozen river. IMPORTANT: keep the 47-65% height band mid-to-dark — do not let bright snow fill it.` |
 | `fog` | `Thick fog, desaturated grey-green. Horizontal translucent fog bands sweeping across the mountains and forest at several heights. Very low contrast, distant peaks barely visible, depth flattened, mysterious.` |
-| `clear_night` | `Clear night, deep dark navy sky. A crescent moon in the upper right with a dithered glow halo and small craters. Scattered white star pixels. The castle windows glow warm amber, with two small braziers flanking its gate. Deep dark forest silhouette, moonlit river catching pale highlights.` |
-| `cloudy_night` | `Overcast night, dark slate blue. A crescent moon in the upper right partially veiled by drifting dark grey clouds. Few visible stars. Castle windows glow amber with braziers at the gate. Very dark forest silhouette.` |
+| `clear_night` | `Clear night, deep dark navy sky, NO moon. Scattered small white star pixels in the sky band. The castle windows glow warm amber, with two small braziers flanking its gate. Deep dark forest silhouette, river catching pale highlights.` |
+| `cloudy_night` | `Overcast night, dark slate blue, NO moon. Drifting dark grey clouds, few visible stars. Castle windows glow amber with braziers at the gate. Very dark forest silhouette.` |
 | `unknown` | `Neutral overcast twilight, ambiguous time of day. Balanced blue-grey tones, no sun, no moon, no weather effects at all. Calm, understated, deliberately unremarkable — this is the fallback when weather data is unavailable.` |
 
 ---
@@ -241,17 +266,18 @@ npm run normalize
 実行すると1枚ごとに検証結果が出力されます。
 
 ```
-clear_day.png: 366x430, grid 1, 色数 61, 時刻バンド最大輝度 168
-snow.png: 366x430, grid 1, 色数 58, 時刻バンド最大輝度 242
-  ⚠ 時刻バンドが明るすぎ → 白文字が読めない恐れ
+clear_day.png: 366x430, grid 1, 色数 54, 時刻バンド 平均輝度 126 / 明部 0.0%
+snow.png: 366x430, grid 1, 色数 62, 時刻バンド 平均輝度 160 / 明部 2.4%
 ```
 
 **注意1：** `--grid 2` 以上を指定すると、ボックス平均によって元画像のディザリング（市松模様）が
 平均化され**潰れます**。Image Gen出力のアンチエイリアス除去には有効ですが、
 リファレンスのような繊細な階調は失われます。**このスタイルでは `--grid 1`（既定）を使ってください。**
 
-**注意2：** 時刻バンドの輝度警告が出た場合、プロンプトの再試行より
-**該当帯（y214–279）を後処理で暗く落とす**方が確実です。`snow` は特に出やすいので注意してください。
+**注意2：** 時刻バンドの警告が出た場合、プロンプトの再試行より
+**該当帯（ローカル y86–158）を後処理で暗く落とす**方が確実です。
+`snow` と `partly_cloudy_day` は明部が増えやすいので注意してください。
+
 ---
 
 ## 6. 受け入れ基準
@@ -260,7 +286,8 @@ snow.png: 366x430, grid 1, 色数 58, 時刻バンド最大輝度 242
 
 - [ ] 10ファイルすべて **366×430 px**、PNG（RGBA）
 - [ ] 1枚あたり **64色以内**
-- [ ] 時刻バンド（y 214–279 / x 75–291）の**最大輝度が200以下**
+- [ ] 時刻バンド（y 86–158 / x 58–308）の**明部（輝度200超）が面積の5%以下**
+      ※ 星や雪の粒のような小さな明点は許容されます。判定は面積比です。
 
 目視で確認する項目：
 

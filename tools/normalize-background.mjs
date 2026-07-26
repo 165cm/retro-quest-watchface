@@ -16,8 +16,19 @@ const DEST_ROOT = path.join(ROOT, 'assets', 'bip-6', 'images', 'backgrounds')
 const WIDTH = 366
 const HEIGHT = 430
 
-// 時刻数字が覆いなしで直接乗る領域。ここが明るいと白文字が読めない。
-const TIME_BAND = Object.freeze({ x0: 75, x1: 291, y0: 214, y1: 279, maxLuma: 200 })
+// 時刻数字が覆いなしで直接乗る領域（背景ローカル座標 = 画面座標 - (12, 10)）。
+// ここが明るいと白文字が読めない。watchface/layout.js の time を変えたら追従させる。
+//
+// 判定は「明るいピクセルが占める面積」で行う。単発の最大輝度で見ると、
+// 星や雪の粒のような小さな点1つで警告が出てしまい、実際の可読性と合わないため。
+const TIME_BAND = Object.freeze({
+  x0: 58,
+  x1: 308,
+  y0: 86,
+  y1: 158,
+  brightLuma: 200,
+  maxBrightRatio: 0.05,
+})
 
 function parseArgs(argv) {
   const positional = []
@@ -140,7 +151,9 @@ function normalize(inputFile, outputFile, { grid, colors }) {
 
 function report(label, out, grid) {
   const seen = new Set()
-  let maxLuma = 0
+  let bandPixels = 0
+  let brightPixels = 0
+  let lumaSum = 0
   for (let y = 0; y < HEIGHT; y += 1) {
     for (let x = 0; x < WIDTH; x += 1) {
       const index = (WIDTH * y + x) << 2
@@ -148,16 +161,23 @@ function report(label, out, grid) {
       if (y >= TIME_BAND.y0 && y < TIME_BAND.y1 && x >= TIME_BAND.x0 && x < TIME_BAND.x1) {
         const luma =
           0.299 * out.data[index] + 0.587 * out.data[index + 1] + 0.114 * out.data[index + 2]
-        if (luma > maxLuma) maxLuma = luma
+        bandPixels += 1
+        lumaSum += luma
+        if (luma > TIME_BAND.brightLuma) brightPixels += 1
       }
     }
   }
+  const brightRatio = bandPixels === 0 ? 0 : brightPixels / bandPixels
+  const meanLuma = bandPixels === 0 ? 0 : lumaSum / bandPixels
   console.log(
-    `${label}: ${WIDTH}x${HEIGHT}, grid ${grid}, 色数 ${seen.size}, 時刻バンド最大輝度 ${Math.round(maxLuma)}`,
+    `${label}: ${WIDTH}x${HEIGHT}, grid ${grid}, 色数 ${seen.size}, ` +
+      `時刻バンド 平均輝度 ${Math.round(meanLuma)} / 明部 ${(brightRatio * 100).toFixed(1)}%`,
   )
   let ok = true
-  if (maxLuma > TIME_BAND.maxLuma) {
-    console.warn('  ⚠ 時刻バンドが明るすぎ → 白文字が読めない恐れ')
+  if (brightRatio > TIME_BAND.maxBrightRatio) {
+    console.warn(
+      `  ⚠ 時刻バンドの明部が${(TIME_BAND.maxBrightRatio * 100).toFixed(0)}%を超過 → 白文字が読めない恐れ`,
+    )
     ok = false
   }
   return ok
