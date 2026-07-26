@@ -38,9 +38,16 @@ npm run build
 # 純粋ロジックのテスト
 npm run check
 
-# PNGアセットとプレビューを再生成
+# 数字・記号アセットとプレビューを再生成（背景は対象外）
 npm run assets
+
+# art/backgrounds-src/ の背景元画像を正規化してassets/へ出力
+npm run normalize
 ```
+
+`npm run assets`は**背景PNGを書き換えません**。背景は`assets/bip-6/images/backgrounds/`にある
+実ファイルを正とし、プレビューもそこから読み込みます。
+コード生成の背景へ戻す場合のみ`npm run assets -- --with-backgrounds`を使用してください。
 
 Simulatorを起動してから`npm run dev`を実行し、390×450のBip 6を選択してください。SimulatorのSensorsで時刻、バッテリー、天候を切り替えて確認します。公式手順は[Simulator](https://docs.zepp.com/docs/guides/tools/simulator/interface/)を参照してください。
 
@@ -67,8 +74,11 @@ watchface/aod.js         AOD専用描画
 watchface/time-sprites.js 可変幅を抑えた画像数字描画
 setting/index.js         Zeppアプリ内プリセット設定
 app-side/index.js        Settings StorageとBLE同期
-tools/generate-assets.mjs オリジナルPNG生成
+tools/generate-assets.mjs オリジナルPNG生成、プレビュー合成
+tools/normalize-background.mjs 背景元画像の寸法・グリッド・減色の正規化と検証
+art/backgrounds-src/     背景の元画像置き場（パッケージ対象外）
 assets/bip-6/images/     パッケージ対象アセット
+docs/background-image-gen-brief.md 背景画像の生成指示書
 tests/                   バッテリー、天候、コピーのテスト
 ```
 
@@ -117,13 +127,19 @@ tests/                   バッテリー、天候、コピーのテスト
 
 ## アセットとライセンス
 
-- 背景10枚、数字、記号、プレビューは`tools/generate-assets.mjs`が生成する本プロジェクト固有のオリジナル素材です。
+- 数字、記号、プレビューは`tools/generate-assets.mjs`が生成する本プロジェクト固有のオリジナル素材です。
+- 背景10枚は**現時点では**同じく`tools/generate-assets.mjs`のコード描画によるオリジナル素材です。
 - 数字はコードで定義したオリジナル5×7ビットマップ字形です。外部フォントファイルを同梱していません。
 - 可変英字にはZepp OS端末のシステムフォントを使用します。
 - プロジェクトのコードと生成アセットは[MIT License](LICENSE)です。
 - `@zeppos/zml`はApache-2.0、Zeus CLIとZepp OS SDK関連パッケージは各配布物のライセンスに従います。
 
 生成AI画像、既存ゲームのロゴ、キャラクター、UI画像、公式フォントは使用していません。城、地形、天候表現はコードから生成する独自構図です。
+
+> ⚠ 背景を画像生成AIによる素材へ差し替えた場合、直前の一文は事実と異なります。
+> 差し替え時は上記の記述を修正し、使用サービスの商用利用条項と、
+> Zepp Console提出時のAI生成アセットの申告方針を確認してください。
+> 手順は[背景画像 生成指示書](docs/background-image-gen-brief.md)の§8を参照。
 
 ## 名称
 

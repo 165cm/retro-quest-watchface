@@ -5,6 +5,8 @@ import { PNG } from 'pngjs'
 const ROOT = process.cwd()
 const ASSET_ROOT = path.join(ROOT, 'assets', 'bip-6', 'images')
 const DOCS_ROOT = path.join(ROOT, 'docs')
+const BACKGROUND_W = 366
+const BACKGROUND_H = 430
 
 const GLYPHS = {
   0: ['01110', '10001', '10011', '10101', '11001', '10001', '01110'],
@@ -361,7 +363,7 @@ function castle(png, x, y, night) {
 
 function drawWorld(theme) {
   const palette = PALETTES[theme]
-  const png = image(366, 430, palette.sky[0])
+  const png = image(BACKGROUND_W, BACKGROUND_H, palette.sky[0])
   const night = theme.includes('night')
 
   palette.sky.forEach((band, index) => rect(png, 0, index * 48, 366, 48, band))
@@ -491,9 +493,23 @@ function questWindowFrame(png, x, y, w, h, { inset = false } = {}) {
   ].forEach(([gx, gy]) => rect(png, gx, gy, gem, gem, '#C9A85C'))
 }
 
+// 背景は assets/ に置かれた実ファイルを正とする。プレビューと実機表示を一致させるため、
+// コード生成の drawWorld() はファイルが無い／寸法が違う場合のフォールバックとしてのみ使う。
+function loadBackground(theme) {
+  const file = path.join(ASSET_ROOT, 'backgrounds', `${theme}.png`)
+  if (fs.existsSync(file)) {
+    const png = PNG.sync.read(fs.readFileSync(file))
+    if (png.width === BACKGROUND_W && png.height === BACKGROUND_H) return png
+    console.warn(
+      `warn: ${theme}.png は ${png.width}x${png.height} です（期待値 ${BACKGROUND_W}x${BACKGROUND_H}）。drawWorld() にフォールバックします。`,
+    )
+  }
+  return drawWorld(theme)
+}
+
 function preview(theme = 'clear_day') {
   const png = image(390, 450, '#031426')
-  blit(png, drawWorld(theme), 12, 10)
+  blit(png, loadBackground(theme), 12, 10)
   overlayRect(png, 18, 76, 354, 54, '#031426', 150)
   rect(png, 12, 146, 366, 68, '#061B31')
   questWindowFrame(png, 12, 146, 366, 68, { inset: true })
@@ -537,9 +553,14 @@ generateDigitSet('temp-low', 15, 24, 3, '#69A7E8')
 generateDigitSet('temp-now', 22, 35, 4, '#F4F3E8')
 generateDigitSet('temp-high', 15, 24, 3, '#E98A4A')
 
-Object.keys(PALETTES).forEach((theme) => {
-  writePng(path.join(ASSET_ROOT, 'backgrounds', `${theme}.png`), drawWorld(theme))
-})
+// 背景PNGは既定では書き出さない。Image Gen由来の画像を上書きしてしまうため。
+// コード生成の背景へ戻したい場合のみ `npm run assets -- --with-backgrounds` を使う。
+if (process.argv.includes('--with-backgrounds')) {
+  Object.keys(PALETTES).forEach((theme) => {
+    writePng(path.join(ASSET_ROOT, 'backgrounds', `${theme}.png`), drawWorld(theme))
+  })
+  console.log('Regenerated code-drawn backgrounds (--with-backgrounds)')
+}
 
 const fullPreview = preview('clear_day')
 writePng(path.join(DOCS_ROOT, 'preview-390x450.png'), fullPreview)

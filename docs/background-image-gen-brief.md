@@ -1,7 +1,11 @@
 # 背景画像 生成指示書（Codex Image Gen 向け）
 
 Pixel Wayfarer Face（Amazfit Bip 6 / 390×450）の**天候別背景10枚**をImage Genで生成するための指示書です。
-実装コードは変更不要で差し替えられる前提の仕様になっています。ファイル名・寸法・パレットは厳守してください。
+受け入れ側の実装（§7）は対応済みなので、生成した画像は `art/backgrounds-src/` に置いて
+`npm run normalize && npm run assets` を実行すればそのまま反映されます。
+ファイル名・寸法・UI遮蔽マップ（§2）は厳守してください。
+
+目標とする画風は**クラシックな16-bit和製RPGのフィールド画**です（詳細は§3）。
 
 ---
 
@@ -84,10 +88,22 @@ y=430  └───────────────────────�
 
 ## 3. アートディレクション（全10枚共通）
 
+### 目標イメージ
+**クラシックな16-bit和製RPGのフィールド／ワールドマップ画。**
+「主人公が旅立って、丘の上から次の街と城を見晴らしている」ような、**牧歌的で広がりのある風景**。
+ドット絵でありながら、空気遠近法（遠景ほど淡く青みがかる）で奥行きを感じさせる、
+やや絵画的・情感のあるピクセルアートを目指します。
+
+> **プロンプトに特定タイトル名（Dragon Quest 等）を書かないでください。**
+> 既存作品の意匠を直接再現させると権利上のリスクが生じ、§8の申告とも矛盾します。
+> 「classic 16-bit Japanese RPG overworld」のような**一般名詞での様式指定**に留めてください。
+
 ### 世界観
-オリジナルの8-bit RPG風ファンタジー風景。手前に針葉樹の森、中景に川が谷を下り、
-遠景に雪を抱いた三連の山、右手中景の丘に**石造りの城**（旗付きの塔）が建つ。
-「冒険の出発地点から城を望む」構図。
+オリジナルのファンタジー風景。
+**前景**＝なだらかな緑の草原（明暗のパッチで起伏を表現）、
+**中景**＝密度のある針葉樹の森と、谷を蛇行して下る川、
+**遠景**＝雪を抱いた連峰（空気遠近法で淡く霞む）、
+**右手中景の丘**＝石造りの城（旗を掲げた塔、夜と雨天は窓が琥珀色に灯る）。
 
 ### 構図ロック（最重要）
 10枚は**実行時に天候で差し替わる**ため、構図がズレると切り替わった瞬間に破綻して見えます。
@@ -98,14 +114,23 @@ y=430  └───────────────────────�
 > 山の稜線・川の流路・城の位置・木の配置は全10枚で**ピクセル単位で一致**させることが理想です。
 
 ### ピクセルアート様式
-- **2×2ピクセルグリッド**を基本単位とする（実効解像度183×215相当のチャンキーなドット）
-- **アンチエイリアス禁止・グラデーション禁止**。階調は必ず**ディザリング（市松模様）**で表現する
-- 光源は**右上固定**。すべての立体に右上ハイライト／左下シャドウを入れる
-- 空は**4段の横帯**（上が濃く下が淡い）＋帯の境界をディザで馴染ませる
-- 輪郭線は使わない（色の面で形を作る）。ただし城など小さい要素は1pxの明色縁で背景から分離してよい
+リファレンス画像に合わせ、**当初想定していた8-bit風のチャンキーなドットより解像度を上げます。**
+
+- **1×1ピクセルグリッド**（366×430のネイティブ解像度でドットが立つ）。
+  木や城の窓など小さな要素が判別できる密度が必要なため、2×2の粗いグリッドは使いません。
+- **アンチエイリアス禁止。** 輪郭に中間色のにじみを作らないこと。境界は必ずハードエッジ。
+- **滑らかなグラデーション禁止。** 空や霞のような階調は、
+  **横帯（バンディング）＋境界のディザリング（市松模様）**で表現します。補間による連続グラデは不可。
+- **空気遠近法を使う。** 遠景の山は明度を上げ・彩度を落とし・青側へ寄せる。
+  近景の森は暗く濃く。これが「奥行きのあるRPGフィールド」感の核になります。
+- 光源は**右上固定**。立体には右上ハイライト／左下シャドウ。
+- 輪郭線（黒フチ）は使わない。色面で形を作る。
+  ただし城のように小さく重要な要素は、1pxの明色縁で背景から分離してよい。
 
 ### パレット
-1枚あたり**24色以内**。各テーマの基準色は下表を使ってください（現行実装と色設計を揃えるため）。
+1枚あたり**64色以内**（リファレンスの階調感を出すため、当初の24色から緩和）。
+下表は**基準色（アンカー）**です。この色を軸に、ハイライト・シャドウ・ディザ用の中間色を派生させてください。
+テーマ間の色温度の一貫性を保つために使います。
 
 | テーマ | 空（上→下 4段） | 遠山 | 中山 | 近山 | 森 | 草地 | 水 |
 |---|---|---|---|---|---|---|---|
@@ -135,31 +160,55 @@ y=430  └───────────────────────�
 まず以下の**共通ベース**を全プロンプトの先頭に置いてください（英語推奨）。
 
 ```
-Original 8-bit RPG fantasy landscape, chunky pixel art on a strict 2x2 pixel grid,
-hard-edged dithered shading only, NO anti-aliasing, NO gradients, NO outlines,
-limited palette of 24 colors or fewer, light source fixed at upper right.
-Composition: coniferous pine forest in the foreground, a river flowing down a valley
-through the middle ground, three snow-capped mountain peaks in the far background,
-and a small stone castle with a flagged tower on a hill at the middle-right.
-Sky rendered as four horizontal bands, darkest at top, blended with checkerboard dithering.
-Vertical composition. No text, no numbers, no symbols, no UI elements, no characters.
-Keep the middle horizontal band (roughly 50-65% height) in mid-to-dark tones only.
+Detailed pixel art landscape in the style of a classic 16-bit Japanese RPG overworld.
+Sweeping pastoral fantasy vista seen from a hilltop.
+
+Composition (vertical, portrait):
+- Foreground (bottom third): rolling green meadow, undulation shown with patches of
+  lighter and darker green, a winding dirt path.
+- Middle ground: dense coniferous pine forest, and a river meandering down a valley.
+- Far background: a range of snow-capped mountain peaks, softened by aerial perspective.
+- Middle-right, on a hill: a small original stone castle with a flagged tower.
+- Sky: upper third, rendered as horizontal bands blended with checkerboard dithering.
+
+Style rules (strict):
+- Hard-edged pixel art at native 1:1 pixel scale. NO anti-aliasing, NO blurring,
+  NO soft edges, NO smooth gradients. Tonal transitions ONLY via banding plus
+  checkerboard dithering.
+- Aerial perspective: distant mountains lighter, desaturated and shifted toward blue;
+  foreground forest dark and saturated.
+- Light source fixed at the upper right. Highlights upper-right, shadows lower-left.
+- No black outlines. Form is defined by color areas.
+- Limited palette, 64 colors maximum.
+
+Absolute exclusions:
+- NO text, NO numbers, NO letters, NO symbols, NO UI elements, NO HUD, NO frames.
+- NO characters, people, creatures or monsters.
+- Do NOT imitate any existing game's logo, characters, tilesets or specific artwork.
+
+Readability constraint:
+- Keep the horizontal band at roughly 47-65% of the image height in MID-TO-DARK tones
+  only. Nothing brighter than mid-grey there. No bright snow, no bright sky, no
+  high-contrast detail in that band.
 ```
+
+> 最後の「Readability constraint」は§2の**時刻バンド**に対応します。ここが明るいと白い時刻数字が
+> 埋もれます。生成時に効きにくい場合は、後処理で該当帯を暗く落とす方が確実です（§6の輝度チェック参照）。
 
 各テーマの差分：
 
 | ファイル | 追加プロンプト |
 |---|---|
-| `clear_day` | `Bright clear midday. Vivid blue sky. A radiant pixel sun in the upper LEFT area with a dithered glow halo and four cross rays. Sunlit green grass in the foreground.` |
-| `partly_cloudy_day` | `Softer daylight, slightly hazy blue sky. Two or three chunky white cumulus clouds in the upper area with dithered white highlights on top and grey shading underneath.` |
-| `cloudy_day` | `Fully overcast grey-blue daylight. Flat diffuse light, low contrast, no visible sun. Heavy grey cloud cover filling the upper band. Muted desaturated greens.` |
-| `rain` | `Overcast rainy scene, dark blue-grey. Diagonal pixel rain streaks in light blue (2px wide) evenly scattered across the whole image. Dark storm clouds above. The castle windows glow warm amber. Wet, darkened ground.` |
-| `thunder` | `Violent night thunderstorm, very dark navy. Diagonal rain streaks. A bright jagged yellow lightning bolt striking down from the clouds in the upper middle area. Dark bruised storm clouds. Castle windows glow amber.` |
-| `snow` | `Cold snowy scene, pale blue-grey. Chunky white snowflake pixels (4x4) scattered evenly. Snow blanketing the grass, forest and mountains. Pine trees dusted white. Frozen pale river.` |
-| `fog` | `Thick fog, desaturated grey-green. Horizontal translucent fog bands sweeping across the mountains and forest at several heights. Very low contrast, distant peaks barely visible, flattened depth.` |
-| `clear_night` | `Clear night, very dark navy sky. A crescent moon in the upper RIGHT with a dithered glow halo and small craters. Scattered white star pixels. Castle windows glow warm amber, plus two small braziers flanking the castle gate. Deep dark forest.` |
-| `cloudy_night` | `Overcast night, dark slate blue. A crescent moon in the upper right partially veiled by dark grey clouds. Few stars. Castle windows glow amber with braziers at the gate. Very dark forest silhouette.` |
-| `unknown` | `Neutral overcast twilight, ambiguous time of day. Balanced blue-grey tones, no sun, no moon, no weather effects. Calm and readable. Deliberately understated.` |
+| `clear_day` | `Bright clear midday. Vivid saturated blue sky. Fluffy white cumulus clouds with dithered highlights on top and grey undersides. Lush sunlit emerald meadow in the foreground. Crisp white snow caps on the distant peaks. The most colorful and inviting of the set — this is the master image.` |
+| `partly_cloudy_day` | `Softer daylight, slightly hazier blue sky. More and larger cumulus clouds drifting across the upper area, casting subtle shade patches on the meadow. Slightly muted greens.` |
+| `cloudy_day` | `Fully overcast grey-blue daylight. Flat diffuse light, low contrast, no visible sun. Heavy grey cloud cover filling the upper band. Desaturated muted greens, subdued mountains.` |
+| `rain` | `Overcast rainy scene, dark blue-grey and moody. Diagonal light-blue rain streaks evenly scattered across the whole image. Dark low storm clouds. The castle windows glow warm amber against the gloom. Wet darkened meadow, swollen river.` |
+| `thunder` | `Violent night thunderstorm, very dark navy. Diagonal rain streaks. One bright jagged yellow lightning bolt striking down from the clouds in the upper middle area, faintly illuminating the peaks. Bruised dark storm clouds. Castle windows glow amber.` |
+| `snow` | `Cold quiet snowfall, pale blue-grey. White snowflake pixels scattered evenly. Snow blanketing the meadow, forest canopy and mountains. Pine trees dusted white. Pale frozen river. IMPORTANT: keep the 47-65% height band mid-to-dark — do not let bright snow fill it.` |
+| `fog` | `Thick fog, desaturated grey-green. Horizontal translucent fog bands sweeping across the mountains and forest at several heights. Very low contrast, distant peaks barely visible, depth flattened, mysterious.` |
+| `clear_night` | `Clear night, deep dark navy sky. A crescent moon in the upper right with a dithered glow halo and small craters. Scattered white star pixels. The castle windows glow warm amber, with two small braziers flanking its gate. Deep dark forest silhouette, moonlit river catching pale highlights.` |
+| `cloudy_night` | `Overcast night, dark slate blue. A crescent moon in the upper right partially veiled by drifting dark grey clouds. Few visible stars. Castle windows glow amber with braziers at the gate. Very dark forest silhouette.` |
+| `unknown` | `Neutral overcast twilight, ambiguous time of day. Balanced blue-grey tones, no sun, no moon, no weather effects at all. Calm, understated, deliberately unremarkable — this is the fallback when weather data is unavailable.` |
 
 ---
 
@@ -170,143 +219,104 @@ Image Genの出力はそのままでは**必ず**アンチエイリアスと色�
 
 1. **高解像度で生成**（例 1024×1024 以上）してから
 2. **366×430にクロップ／リサイズ**（アスペクト比 366:430 ≈ 0.851 に合わせてクロップ）
-3. **2×2ピクセルグリッドに強制**：183×215へボックス縮小 → 最近傍で×2拡大
-4. **パレット量子化**：上表の基準色＋派生を含む24色以内に減色（ディザなしの最近色マッピング）
+3. **ピクセルグリッドに整列**：`--grid 1`（このスタイルの既定）で366×430へ整える。
+   ドットが甘い・にじんでいる出力の場合のみ `--grid 2` で粗く締め直す
+4. **パレット量子化**：64色以内に減色（ディザなしの最近色マッピング）
 5. **検証**：色数・寸法・時刻バンドの最大輝度をチェック
 
-手順3〜5を一括で行うNodeスクリプト例（`pngjs`は既にdevDependenciesにあります）。
-このプロジェクトのルートに置いて実行してください（モジュール解決のため）。
+手順3〜5は `tools/normalize-background.mjs` に実装済みです（`pngjs`は既にdevDependenciesにあります）。
 
-```js
-// tools/normalize-background.mjs  ―― 使い方: node tools/normalize-background.mjs in.png out.png [色数]
-import fs from 'node:fs'
-import { PNG } from 'pngjs'
+```sh
+# 単体
+node tools/normalize-background.mjs art/backgrounds-src/clear_day.png \
+  assets/bip-6/images/backgrounds/clear_day.png
 
-const [, , input, output, maxColorsArg] = process.argv
-const MAX_COLORS = Number(maxColorsArg) || 24
-const src = PNG.sync.read(fs.readFileSync(input))
-const W = 366, H = 430, GRID = 2
-const bw = W / GRID, bh = H / GRID          // 183 × 215
-const out = new PNG({ width: W, height: H })
+# グリッドと色数を指定（既定は --grid 1 --colors 64）
+node tools/normalize-background.mjs in.png out.png --grid 2 --colors 32
 
-// --- 手順3: ボックス縮小 → 最近傍×2拡大（2×2グリッドへ強制） ---
-const blocks = []
-for (let by = 0; by < bh; by += 1) {
-  for (let bx = 0; bx < bw; bx += 1) {
-    const x0 = Math.floor((bx / bw) * src.width)
-    const x1 = Math.max(x0 + 1, Math.floor(((bx + 1) / bw) * src.width))
-    const y0 = Math.floor((by / bh) * src.height)
-    const y1 = Math.max(y0 + 1, Math.floor(((by + 1) / bh) * src.height))
-    let r = 0, g = 0, b = 0, n = 0
-    for (let y = y0; y < y1; y += 1) {
-      for (let x = x0; x < x1; x += 1) {
-        const i = (src.width * y + x) << 2
-        r += src.data[i]; g += src.data[i + 1]; b += src.data[i + 2]; n += 1
-      }
-    }
-    blocks.push([Math.round(r / n), Math.round(g / n), Math.round(b / n)])
-  }
-}
-
-// --- 手順4: 減色（出現頻度上位N色を代表色にして最近色マッピング） ---
-const histogram = new Map()
-for (const [r, g, b] of blocks) {
-  // 5bitに粗く丸めて頻度を集計（近い色をまとめる）
-  const key = `${r >> 3},${g >> 3},${b >> 3}`
-  const entry = histogram.get(key)
-  if (entry) { entry.count += 1; entry.r += r; entry.g += g; entry.b += b }
-  else histogram.set(key, { count: 1, r, g, b })
-}
-const palette = [...histogram.values()]
-  .sort((a, b) => b.count - a.count)
-  .slice(0, MAX_COLORS)
-  .map((e) => [Math.round(e.r / e.count), Math.round(e.g / e.count), Math.round(e.b / e.count)])
-
-function nearest([r, g, b]) {
-  let best = palette[0]
-  let bestDistance = Infinity
-  for (const candidate of palette) {
-    const dr = r - candidate[0], dg = g - candidate[1], db = b - candidate[2]
-    const distance = dr * dr + dg * dg + db * db
-    if (distance < bestDistance) { bestDistance = distance; best = candidate }
-  }
-  return best
-}
-
-blocks.forEach((raw, index) => {
-  const [r, g, b] = nearest(raw)
-  const bx = index % bw
-  const by = Math.floor(index / bw)
-  for (let dy = 0; dy < GRID; dy += 1) {
-    for (let dx = 0; dx < GRID; dx += 1) {
-      const o = (W * (by * GRID + dy) + (bx * GRID + dx)) << 2
-      out.data[o] = r; out.data[o + 1] = g; out.data[o + 2] = b; out.data[o + 3] = 255
-    }
-  }
-})
-fs.writeFileSync(output, PNG.sync.write(out, { colorType: 6 }))
-
-// --- 手順5: 検証レポート ---
-const colors = new Set()
-let maxLumaInTimeBand = 0
-for (let y = 0; y < H; y += 1) {
-  for (let x = 0; x < W; x += 1) {
-    const i = (W * y + x) << 2
-    colors.add(`${out.data[i]},${out.data[i + 1]},${out.data[i + 2]}`)
-    if (y >= 214 && y < 279 && x >= 75 && x < 291) {
-      const luma = 0.299 * out.data[i] + 0.587 * out.data[i + 1] + 0.114 * out.data[i + 2]
-      if (luma > maxLumaInTimeBand) maxLumaInTimeBand = luma
-    }
-  }
-}
-console.log(`${output}: ${W}x${H}, 色数 ${colors.size}, 時刻バンド最大輝度 ${Math.round(maxLumaInTimeBand)}`)
-if (colors.size > MAX_COLORS) console.warn('  ⚠ 色数が上限を超過')
-if (maxLumaInTimeBand > 200) console.warn('  ⚠ 時刻バンドが明るすぎ → 白文字が読めない恐れ')
+# 10枚まとめて（art/backgrounds-src/ の全PNGを変換）
+npm run normalize
 ```
 
-**注意：** このスクリプトのボックス縮小は、元画像のディザリング（市松模様）を平均化して**潰します**。
-Image Gen出力のアンチエイリアスを除去する目的では正しい挙動ですが、
-「ディザの質感」自体はプロンプト側で2×2グリッドに乗る粗さで描かせるか、
-仕上げに手作業／別途ディザ処理で入れ直す必要があります。
+実行すると1枚ごとに検証結果が出力されます。
 
+```
+clear_day.png: 366x430, grid 1, 色数 61, 時刻バンド最大輝度 168
+snow.png: 366x430, grid 1, 色数 58, 時刻バンド最大輝度 242
+  ⚠ 時刻バンドが明るすぎ → 白文字が読めない恐れ
+```
+
+**注意1：** `--grid 2` 以上を指定すると、ボックス平均によって元画像のディザリング（市松模様）が
+平均化され**潰れます**。Image Gen出力のアンチエイリアス除去には有効ですが、
+リファレンスのような繊細な階調は失われます。**このスタイルでは `--grid 1`（既定）を使ってください。**
+
+**注意2：** 時刻バンドの輝度警告が出た場合、プロンプトの再試行より
+**該当帯（y214–279）を後処理で暗く落とす**方が確実です。`snow` は特に出やすいので注意してください。
 ---
 
 ## 6. 受け入れ基準
 
+`npm run normalize` が自動判定する項目：
+
 - [ ] 10ファイルすべて **366×430 px**、PNG（RGBA）
-- [ ] 1枚あたり **24色以内**
-- [ ] アンチエイリアス由来の中間色が**ない**（2×2グリッドが崩れていない）
-- [ ] 10枚の**構図が一致**（山の稜線・川・城の位置が揃っている）
+- [ ] 1枚あたり **64色以内**
 - [ ] 時刻バンド（y 214–279 / x 75–291）の**最大輝度が200以下**
+
+目視で確認する項目：
+
+- [ ] **輪郭がハードエッジ**（アンチエイリアスのにじみ・ぼけがない）
+- [ ] 階調が**バンディング＋ディザ**で表現されている（滑らかな連続グラデでない）
+- [ ] **空気遠近法**が効いていて奥行きが感じられる
+- [ ] 10枚の**構図が一致**（山の稜線・川・城の位置が揃っている）
 - [ ] 半透明オーバーレイ領域（y 66–120 / 289–331 / 343–385）が**低ディテール**
 - [ ] 背景に文字・数字・記号が**含まれていない**
+- [ ] 人物・モンスターが**含まれていない**
 - [ ] 既存ゲームの意匠に**似ていない**
-- [ ] `docs/preview-*.png` を再生成して実際の重なりを目視確認済み
+- [ ] `npm run assets` で `docs/preview-*.png` を再生成し、UIとの重なりを目視確認済み
 
 ---
 
-## 7. 実装側の統合作業（画像を入れる前に必須）
+## 7. 実装側の統合作業（対応済み）
 
-⚠ **現状のままPNGを置いても、`npm run assets` を実行した瞬間に上書き消滅します。**
-`tools/generate-assets.mjs` の以下の行が背景を毎回コード生成で書き出しているためです。
+**この節の統合作業は完了しています。** 生成した画像をそのまま流し込めます。
 
-```js
-// tools/generate-assets.mjs:541
-Object.keys(PALETTES).forEach((theme) => {
-  writePng(path.join(ASSET_ROOT, 'backgrounds', `${theme}.png`), drawWorld(theme))
-})
+対応内容：
+
+1. `tools/generate-assets.mjs` の背景書き出しループを**既定で無効化**しました。
+   `npm run assets` は背景PNGを上書きしません。
+   コード描画の背景へ戻す場合のみ `npm run assets -- --with-backgrounds` を使います。
+2. 元画像置き場として `art/backgrounds-src/` を用意しました（パッケージ対象外）。
+3. `preview()` は `assets/bip-6/images/backgrounds/*.png` の**実ファイルを読み込む**ように変更しました。
+   プレビューと実機表示が一致します。ファイルが無い／寸法が違う場合は
+   警告を出して `drawWorld()` にフォールバックします。
+4. `drawWorld()` と `PALETTES` はフォールバック兼パレット基準として**残してあります**。
+5. 正規化ツール `tools/normalize-background.mjs` と `npm run normalize` を追加しました。
+
+### 差し替え手順
+
+```sh
+# 1. 生成した元画像をテーマ名で置く
+#    art/backgrounds-src/clear_day.png ... unknown.png（10枚）
+
+# 2. 正規化して assets/ へ出力（寸法・色数・輝度を検証）
+npm run normalize
+
+# 3. プレビューを再生成してUIとの重なりを目視確認
+npm run assets
+
+# 4. docs/preview-390x450.png / -night / -rain を確認
 ```
 
-差し替えにあたって以下の対応が必要です。
+1枚だけ試す場合：
 
-1. **上記の背景書き出しループを削除**（またはフラグで無効化）し、背景はコード生成の管轄外にする
-2. Image Gen由来の元データは `art/backgrounds-src/` などに保管し、後処理済みPNGを
-   `assets/bip-6/images/backgrounds/` へ配置するフローにする
-3. `preview()` は現在 `drawWorld(theme)` の**戻り値を直接blit**しているため、
-   実ファイル（`assets/bip-6/images/backgrounds/*.png`）を**読み込んでblitする**よう変更する
-   （でないとプレビューと実機表示が乖離します）
-4. `drawWorld()` と `PALETTES` は不要になるが、**当面は残す**ことを推奨
-   （生成画像が実機で不満な場合のフォールバック、およびパレット基準表として）
+```sh
+node tools/normalize-background.mjs art/backgrounds-src/clear_day.png \
+  assets/bip-6/images/backgrounds/clear_day.png
+npm run assets
+```
+
+差し替え後、`assets/bip-6/images/backgrounds/*.png`（正規化済み）は必ずコミットしてください。
+元画像をコミットするかどうかの判断は `art/backgrounds-src/README.md` を参照。
 
 ---
 
