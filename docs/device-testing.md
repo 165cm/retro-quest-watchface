@@ -131,8 +131,31 @@ git branch --show-current
 npm install
 ```
 
-初回は1〜2分かかります。`node_modules` フォルダが作られますが、触る必要はありません。
+初回は1〜3分かかります。`node_modules` フォルダが作られますが、触る必要はありません。
 警告（`npm warn deprecated ...`）がたくさん出ますが、**エラーでなければ問題ありません**。
+
+最後に脆弱性の件数と、npmからの提案が表示されます。
+
+```
+46 vulnerabilities (3 low, 7 moderate, 34 high, 2 critical)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+```
+
+> ### ⚠️ `npm audit fix --force` は実行しないでください
+>
+> **Zeus CLI が動かなくなり、ビルドできなくなります。**
+>
+> これらの警告は Zeus CLI 1.9.3 が内部で抱えている古い依存に起因するもので、
+> 本プロジェクトのコードが原因ではありません。`--force` は依存を破壊的に
+> 更新するため、CLIの互換性が壊れます。
+>
+> `npm audit fix`（`--force` なし）も、`package.json` の `overrides` で
+> 意図的に固定しているバージョンを動かす可能性があるため避けてください。
+>
+> 文字盤は端末上で動くもので、ここで警告が出ている依存は
+> **開発時のビルドツールのみ**が使うものです。成果物には含まれません。
 
 ### 1-8. アセットを生成してテストする
 
