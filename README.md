@@ -82,7 +82,8 @@ tools/generate-assets.mjs オリジナルPNG生成、プレビュー合成
 tools/normalize-background.mjs 背景元画像の寸法・グリッド・減色の正規化と検証
 art/backgrounds-src/     背景の元画像置き場（パッケージ対象外）
 assets/bip-6/images/     パッケージ対象アセット
-docs/background-image-gen-brief.md 背景画像の生成指示書
+docs/background-image-gen-brief.md 背景画像の生成指示書（制約の根拠）
+docs/background-prompts.md 背景画像の生成プロンプト集（10枚・コピペ用）
 docs/device-testing.md   実機確認手順とチェックリスト
 tests/                   バッテリー、天候、コピー、背景プレビューのテスト
 ```

@@ -32,7 +32,7 @@ const TIME_BAND = Object.freeze({
 
 function parseArgs(argv) {
   const positional = []
-  const options = { grid: 1, colors: 64 }
+  const options = { grid: 1, colors: 64, fit: 'cover' }
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i]
     if (arg === '--grid' || arg === '--colors') {
@@ -41,6 +41,13 @@ function parseArgs(argv) {
         throw new Error(`${arg} には1以上の整数を指定してください`)
       }
       options[arg === '--grid' ? 'grid' : 'colors'] = value
+      i += 1
+    } else if (arg === '--fit') {
+      const value = argv[i + 1]
+      if (value !== 'cover' && value !== 'stretch') {
+        throw new Error("--fit には cover か stretch を指定してください")
+      }
+      options.fit = value
       i += 1
     } else {
       positional.push(arg)
@@ -52,17 +59,37 @@ function parseArgs(argv) {
   return { positional, options }
 }
 
+// 366:430 と縦横比が違う元画像は、引き伸ばすと絵が潰れる。
+// 中央を基準に、目標比と同じ矩形を切り出す範囲を返す。
+function coverRect(srcW, srcH) {
+  const targetAspect = WIDTH / HEIGHT
+  const srcAspect = srcW / srcH
+  if (Math.abs(srcAspect - targetAspect) < 0.002) {
+    return { x: 0, y: 0, w: srcW, h: srcH, cropped: false }
+  }
+  if (srcAspect > targetAspect) {
+    const w = Math.max(1, Math.round(srcH * targetAspect))
+    return { x: Math.round((srcW - w) / 2), y: 0, w, h: srcH, cropped: true }
+  }
+  const h = Math.max(1, Math.round(srcW / targetAspect))
+  return { x: 0, y: Math.round((srcH - h) / 2), w: srcW, h, cropped: true }
+}
+
 // 元画像を grid 単位のブロックへボックス平均する。
-function downsample(src, grid) {
+function downsample(src, grid, fit) {
+  const area =
+    fit === 'stretch'
+      ? { x: 0, y: 0, w: src.width, h: src.height, cropped: false }
+      : coverRect(src.width, src.height)
   const blockW = WIDTH / grid
   const blockH = HEIGHT / grid
   const blocks = []
   for (let by = 0; by < blockH; by += 1) {
     for (let bx = 0; bx < blockW; bx += 1) {
-      const x0 = Math.floor((bx / blockW) * src.width)
-      const x1 = Math.max(x0 + 1, Math.floor(((bx + 1) / blockW) * src.width))
-      const y0 = Math.floor((by / blockH) * src.height)
-      const y1 = Math.max(y0 + 1, Math.floor(((by + 1) / blockH) * src.height))
+      const x0 = area.x + Math.floor((bx / blockW) * area.w)
+      const x1 = Math.max(x0 + 1, area.x + Math.floor(((bx + 1) / blockW) * area.w))
+      const y0 = area.y + Math.floor((by / blockH) * area.h)
+      const y1 = Math.max(y0 + 1, area.y + Math.floor(((by + 1) / blockH) * area.h))
       let r = 0
       let g = 0
       let b = 0
@@ -79,7 +106,7 @@ function downsample(src, grid) {
       blocks.push([Math.round(r / count), Math.round(g / count), Math.round(b / count)])
     }
   }
-  return { blocks, blockW, blockH }
+  return { blocks, blockW, blockH, area }
 }
 
 // 出現頻度上位の色を代表色として取り出す。
@@ -123,9 +150,9 @@ function nearestColor(palette, [r, g, b]) {
   return best
 }
 
-function normalize(inputFile, outputFile, { grid, colors }) {
+function normalize(inputFile, outputFile, { grid, colors, fit }) {
   const src = PNG.sync.read(fs.readFileSync(inputFile))
-  const { blocks, blockW } = downsample(src, grid)
+  const { blocks, blockW, area } = downsample(src, grid, fit)
   const palette = buildPalette(blocks, colors)
   const out = new PNG({ width: WIDTH, height: HEIGHT })
 
@@ -146,7 +173,7 @@ function normalize(inputFile, outputFile, { grid, colors }) {
 
   fs.mkdirSync(path.dirname(outputFile), { recursive: true })
   fs.writeFileSync(outputFile, PNG.sync.write(out, { colorType: 6 }))
-  return { out, sourceSize: [src.width, src.height] }
+  return { out, sourceSize: [src.width, src.height], area }
 }
 
 function report(label, out, grid) {
@@ -183,6 +210,24 @@ function report(label, out, grid) {
   return ok
 }
 
+// 切り出し・引き伸ばしは黙って行わず、必ず何をしたか出す。
+function describeResample([srcW, srcH], area, fit) {
+  if (srcW === WIDTH && srcH === HEIGHT) return
+  if (area.cropped) {
+    console.log(
+      `  ${srcW}x${srcH} → 中央 ${area.w}x${area.h} を切り出して ${WIDTH}x${HEIGHT} へ（--fit cover）`,
+    )
+    return
+  }
+  if (fit === 'stretch' && Math.abs(srcW / srcH - WIDTH / HEIGHT) >= 0.002) {
+    console.warn(
+      `  ⚠ ${srcW}x${srcH} を縦横比を無視して引き伸ばしました（--fit stretch）。絵が潰れます`,
+    )
+    return
+  }
+  console.log(`  ${srcW}x${srcH} → ${WIDTH}x${HEIGHT} へリサンプル`)
+}
+
 function main() {
   const { positional, options } = parseArgs(process.argv.slice(2))
   if (positional.length === 1) {
@@ -194,10 +239,8 @@ function main() {
   if (positional.length >= 2) {
     const [input, output] = positional
     if (!fs.existsSync(input)) throw new Error(`入力が見つかりません: ${input}`)
-    const { out, sourceSize } = normalize(input, output, options)
-    if (sourceSize[0] !== WIDTH || sourceSize[1] !== HEIGHT) {
-      console.log(`  元画像 ${sourceSize[0]}x${sourceSize[1]} → ${WIDTH}x${HEIGHT} へリサンプル`)
-    }
+    const { out, sourceSize, area } = normalize(input, output, options)
+    describeResample(sourceSize, area, options.fit)
     if (!report(path.basename(output), out, options.grid)) warnings += 1
   } else {
     if (!fs.existsSync(SRC_ROOT)) {
@@ -210,8 +253,13 @@ function main() {
       throw new Error(`${path.relative(ROOT, SRC_ROOT)} にPNGがありません。`)
     }
     for (const file of files.sort()) {
-      const { out } = normalize(path.join(SRC_ROOT, file), path.join(DEST_ROOT, file), options)
+      const { out, sourceSize, area } = normalize(
+        path.join(SRC_ROOT, file),
+        path.join(DEST_ROOT, file),
+        options,
+      )
       if (!report(file, out, options.grid)) warnings += 1
+      describeResample(sourceSize, area, options.fit)
     }
     console.log(`\n${files.length}枚を ${path.relative(ROOT, DEST_ROOT)} へ出力しました。`)
   }
