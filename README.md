@@ -28,22 +28,13 @@ Zeus CLI 1.9.3の公開パッケージには、ESM専用の推移依存をCommon
 
 ## 開発・ビルド
 
-```sh
-# Zepp OS Simulatorへ接続して開発
-npm run dev
-
-# .zabをdist/へ生成
-npm run build
-
-# 純粋ロジックのテスト
-npm run check
-
-# 数字・記号アセットとプレビューを再生成（背景は対象外）
-npm run assets
-
-# art/backgrounds-src/ の背景元画像を正規化してassets/へ出力
-npm run normalize
-```
+| コマンド | 内容 |
+|---|---|
+| `npm run dev` | Zepp OS Simulatorへ接続して開発 |
+| `npm run build` | `.zab`を`dist/`へ生成 |
+| `npm run check` | 純粋ロジックのテスト |
+| `npm run assets` | 数字・記号・天候アイコンとプレビューを再生成（背景は対象外） |
+| `npm run normalize` | `art/backgrounds-src/`の背景元画像を正規化して`assets/`へ出力 |
 
 `npm run assets`は**背景PNGを書き換えません**。背景は`assets/bip-6/images/backgrounds/`にある
 実ファイルを正とし、プレビューもそこから読み込みます。

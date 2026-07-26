@@ -255,16 +255,22 @@ Image Genの出力はそのままでは**必ず**アンチエイリアスと色�
 
 手順3〜5は `tools/normalize-background.mjs` に実装済みです（`pngjs`は既にdevDependenciesにあります）。
 
+`art/backgrounds-src/` の全PNGをまとめて変換する場合:
+
 ```sh
-# 単体
-node tools/normalize-background.mjs art/backgrounds-src/clear_day.png \
-  assets/bip-6/images/backgrounds/clear_day.png
-
-# グリッドと色数を指定（既定は --grid 1 --colors 64）
-node tools/normalize-background.mjs in.png out.png --grid 2 --colors 32
-
-# 10枚まとめて（art/backgrounds-src/ の全PNGを変換）
 npm run normalize
+```
+
+1枚だけ指定する場合:
+
+```sh
+node tools/normalize-background.mjs art/backgrounds-src/clear_day.png assets/bip-6/images/backgrounds/clear_day.png
+```
+
+オプション（既定は `--grid 1 --colors 64 --fit cover`）:
+
+```sh
+node tools/normalize-background.mjs in.png out.png --grid 2 --colors 32 --fit stretch
 ```
 
 実行すると1枚ごとに検証結果が出力されます。
@@ -325,24 +331,23 @@ snow.png: 366x430, grid 1, 色数 62, 時刻バンド 平均輝度 160 / 明部 
 
 ### 差し替え手順
 
+1. 生成した元画像をテーマ名で `art/backgrounds-src/` へ置く
+   （`clear_day.png` 〜 `unknown.png` の10枚）
+2. 正規化して `assets/` へ出力する（寸法・色数・輝度を検証）
+3. プレビューを再生成してUIとの重なりを目視確認する
+4. `docs/preview-390x450.png` / `-night` / `-rain` を開いて確認する
+
+2〜3で実行するコマンドはこの2行です。
+
 ```sh
-# 1. 生成した元画像をテーマ名で置く
-#    art/backgrounds-src/clear_day.png ... unknown.png（10枚）
-
-# 2. 正規化して assets/ へ出力（寸法・色数・輝度を検証）
 npm run normalize
-
-# 3. プレビューを再生成してUIとの重なりを目視確認
 npm run assets
-
-# 4. docs/preview-390x450.png / -night / -rain を確認
 ```
 
 1枚だけ試す場合：
 
 ```sh
-node tools/normalize-background.mjs art/backgrounds-src/clear_day.png \
-  assets/bip-6/images/backgrounds/clear_day.png
+node tools/normalize-background.mjs art/backgrounds-src/clear_day.png assets/bip-6/images/backgrounds/clear_day.png
 npm run assets
 ```
 
