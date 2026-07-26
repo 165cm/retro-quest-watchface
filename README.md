@@ -58,6 +58,9 @@ Simulatorを起動してから`npm run dev`を実行し、390×450のBip 6を選
 3. ZeppアプリのDeveloper ModeにあるScanでQRコードを読み取ります。
 4. 通常表示、AOD、12/24時間、摂氏/華氏、天候同期、設定変更を実機で確認します。
 
+**手順の詳細とチェックリストは[実機確認手順](docs/device-testing.md)にまとめてあります。**
+背景10種を端末上で切り替えて確認する方法もそちらに記載しています。
+
 詳細は公式の[Zepp App Developer Mode](https://docs.zepp.com/docs/v2/guides/tools/zepp-app/)と[Zeus CLI](https://docs.zepp.com/docs/guides/tools/cli/overview/)を参照してください。`preview`にはZepp開発者アカウントへのログインと接続済みBip 6が必要です。
 
 ## 構成
@@ -70,6 +73,7 @@ watchface/theme.js       色・文字サイズ
 watchface/weather.js     天候コード、昼夜、フォールバック
 watchface/battery.js     クランプ、10分割HP、状態色
 watchface/copy.js        6種類のマイクロコピー
+watchface/debug-theme.js 背景プレビュー（Off / 巡回 / 固定）の解決ロジック
 watchface/aod.js         AOD専用描画
 watchface/time-sprites.js 可変幅を抑えた画像数字描画
 setting/index.js         Zeppアプリ内プリセット設定
@@ -79,7 +83,8 @@ tools/normalize-background.mjs 背景元画像の寸法・グリッド・減色�
 art/backgrounds-src/     背景の元画像置き場（パッケージ対象外）
 assets/bip-6/images/     パッケージ対象アセット
 docs/background-image-gen-brief.md 背景画像の生成指示書
-tests/                   バッテリー、天候、コピーのテスト
+docs/device-testing.md   実機確認手順とチェックリスト
+tests/                   バッテリー、天候、コピー、背景プレビューのテスト
 ```
 
 ## 表示と更新
@@ -93,7 +98,9 @@ tests/                   バッテリー、天候、コピーのテスト
 - AOD: 黒背景に時刻、日付、低輝度HPのみ。秒、天候、装飾、コピーは非表示
 - 設定: Settings Storage → Side Service → ZML/BLE → Watchface。受信値は端末ローカルへキャッシュ
 
-分更新、バッテリー変更、文字盤への復帰時だけ必要な表示を更新します。秒タイマーとアニメーションは使用しません。
+分更新、バッテリー変更、文字盤への復帰時だけ必要な表示を更新します。通常動作では秒タイマーとアニメーションを使用しません。
+
+例外は設定の`Background preview`を`Cycle`にしたときだけで、この場合3秒間隔の`setInterval`が動きます。文字盤が画面から外れると停止し、初期値の`Off`では作成されません。
 
 ## 天候コード変換
 
@@ -114,7 +121,9 @@ tests/                   バッテリー、天候、コピーのテスト
 
 ## 設定項目
 
-現在はMessage presetのみです。
+Zeppアプリの文字盤設定に2つのセクションがあります。
+
+### Message preset
 
 - `TACTIC / SAFETY FIRST`（初期値）
 - `MODE / TAKE IT EASY`
@@ -122,6 +131,19 @@ tests/                   バッテリー、天候、コピーのテスト
 - `MODE / STAY SHARP`
 - `FOCUS / KEEP MOVING`
 - `TODAY / NO RUSH`
+
+### Background preview（デバッグ）
+
+実際の天気を待たずに背景と天候アイコンを確認するための機能です。
+
+- `Off — follow real weather`（初期値）— 通常動作
+- `Cycle all themes (every 3s)` — 全10テーマを3秒ごとに巡回（30秒で一周）
+- 各テーマ名 — そのテーマに固定
+
+巡回は文字盤が画面に出ている間だけ動作し、消灯・他画面遷移で停止します。
+**Off以外を選ぶと実際の天気を無視する**ため、確認後はOffへ戻してください。
+
+使い方と確認手順は[実機確認手順](docs/device-testing.md)を参照してください。
 
 自由入力、温度ラベル切替、Thin Bar HPは将来拡張です。
 
@@ -147,7 +169,8 @@ tests/                   バッテリー、天候、コピーのテスト
 
 ## 既知の制限
 
-- 実機Bip 6とZepp OS Simulatorはこの作業環境に接続されていないため、ZABビルドまで確認済み、実機表示とSettings AppのBLE反映は未確認です。
+- 実機Bip 6とZepp OS Simulatorはこの作業環境に接続されていないため、実機表示とSettings AppのBLE反映は未確認です。
+- 現在の作業環境では`zeus build`が起動時のデバイス一覧取得でネットワークに到達できず、**ZABビルドは未確認**です。Node構文チェックと純粋ロジックのテスト（15件）までは通っています。ビルド確認はネットワークのある環境で実施してください。
 - 現在気温はファームウェアの`WEATHER_CURRENT`へ直接バインドするため、JavaScript側から値を単体テストできません。
 - 温度単位はシステム設定へ追従しますが、表示を簡潔にするため摂氏・華氏とも単位画像は`°`です。
 - AODの焼き付き対策は発光面積10%未満を意図した固定レイアウトです。端末固有のピクセルシフトはファームウェア動作を実機確認してください。

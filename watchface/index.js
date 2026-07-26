@@ -13,6 +13,12 @@ import {
   normalizeBattery,
 } from './battery.js'
 import { getTodayWeather, isNightAt, resolveWeatherTheme } from './weather.js'
+import {
+  CYCLE_INTERVAL_MS,
+  isCycleMode,
+  normalizeDebugIndex,
+  resolveDisplayTheme,
+} from './debug-theme.js'
 import { createTimeSprites } from './time-sprites.js'
 import { createAodView } from './aod.js'
 
@@ -119,6 +125,10 @@ WatchFace(
     copyLabel: null,
     copyText: null,
     presetIndex: 0,
+    weatherTheme: 'clear_day',
+    debugIndex: 0,
+    debugTick: 0,
+    debugTimer: null,
     batteryCallback: null,
     minuteCallback: null,
   },
@@ -128,6 +138,9 @@ WatchFace(
     this.state.battery = new Battery()
     this.state.weather = hmSensor.createSensor(hmSensor.id.WEATHER)
     this.state.presetIndex = hmFS.SysProGetInt('pixel_wayfarer_preset') || 0
+    this.state.debugIndex = normalizeDebugIndex(
+      hmFS.SysProGetInt('pixel_wayfarer_debug_theme') || 0,
+    )
   },
 
   build() {
@@ -137,6 +150,8 @@ WatchFace(
     this.updateBattery()
     this.updateWeather()
     this.loadMessagePreset()
+    this.loadDebugTheme()
+    this.startCycleTimer()
 
     this.state.minuteCallback = () => {
       this.updateTimeAndDate()
@@ -151,8 +166,10 @@ WatchFace(
         this.updateTimeAndDate()
         this.updateBattery()
         this.updateWeather()
+        this.startCycleTimer()
       },
-      pause_call: () => {},
+      // 文字盤が見えていない間は巡回タイマーを止める。
+      pause_call: () => this.stopCycleTimer(),
     })
   },
 
@@ -398,7 +415,17 @@ WatchFace(
       weather.sunrise,
       weather.sunset,
     )
-    const theme = resolveWeatherTheme(weather.code, night)
+    this.state.weatherTheme = resolveWeatherTheme(weather.code, night)
+    this.applyTheme()
+  },
+
+  // 背景と天候アイコンを描き替える。デバッグ指定があればそちらを優先する。
+  applyTheme() {
+    const theme = resolveDisplayTheme(
+      this.state.debugIndex,
+      this.state.weatherTheme,
+      this.state.debugTick,
+    )
     this.state.background.setProperty(
       ui.prop.SRC,
       `images/backgrounds/${theme}.png`,
@@ -407,6 +434,42 @@ WatchFace(
       ui.prop.SRC,
       `images/weather/${theme}.png`,
     )
+  },
+
+  // 巡回モードのときだけタイマーを動かす。通常表示では秒タイマーを持たない。
+  // アプリスコープの setInterval を使う（@zos/timer の createSysTimer は
+  // 息屏中も動くシステム定時器なので、文字盤のデバッグ用途には使わない）。
+  startCycleTimer() {
+    this.stopCycleTimer()
+    if (!isCycleMode(this.state.debugIndex)) return
+    this.state.debugTimer = setInterval(() => {
+      this.state.debugTick += 1
+      this.applyTheme()
+    }, CYCLE_INTERVAL_MS)
+  },
+
+  stopCycleTimer() {
+    if (this.state.debugTimer !== null) {
+      clearInterval(this.state.debugTimer)
+      this.state.debugTimer = null
+    }
+  },
+
+  applyDebugTheme(value) {
+    const next = normalizeDebugIndex(value)
+    if (next !== this.state.debugIndex) this.state.debugTick = 0
+    this.state.debugIndex = next
+    hmFS.SysProSetInt('pixel_wayfarer_debug_theme', next)
+    this.applyTheme()
+    this.startCycleTimer()
+  },
+
+  loadDebugTheme() {
+    this.request({ method: 'GET_DEBUG_THEME' })
+      .then(({ debugIndex }) => this.applyDebugTheme(debugIndex))
+      .catch(() => {
+        logger.log('Using cached debug theme')
+      })
   },
 
   applyMessagePreset(value) {
@@ -430,8 +493,12 @@ WatchFace(
   },
 
   onCall(data) {
-    if (data && data.type === 'MESSAGE_PRESET_CHANGED') {
+    if (!data) return
+    if (data.type === 'MESSAGE_PRESET_CHANGED') {
       this.applyMessagePreset(data.presetIndex)
+    }
+    if (data.type === 'DEBUG_THEME_CHANGED') {
+      this.applyDebugTheme(data.debugIndex)
     }
   },
 
@@ -439,6 +506,7 @@ WatchFace(
     if (this.state.battery && this.state.batteryCallback) {
       this.state.battery.offChange(this.state.batteryCallback)
     }
+    this.stopCycleTimer()
     logger.log('watchface destroyed')
   },
   }),
