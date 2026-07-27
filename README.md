@@ -1,6 +1,6 @@
 # Pixel Wayfarer Face
 
-Amazfit Bip 6専用の、16-bit RPG風Zepp OS文字盤です。時刻の視認性を最優先し、天候背景、最低・現在・最高気温、英語マイクロコピー、バッテリーを表す10分割HPゲージ、AODを表示します。
+Amazfit Bip 6専用の、16-bit RPG風Zepp OS文字盤です。天候で切り替わる背景を主役に据え、中央に時刻とマイクロコピーをひとかたまりで配置。上段に日付とバッテリーを表す10分割HPゲージ、下段に最低・現在・最高気温と歩数を並べます。AOD対応。
 
 ![390×450 preview](docs/preview-390x450.png)
 
@@ -71,6 +71,7 @@ watchface/theme.js       色・文字サイズ
 watchface/weather.js     天候コード、昼夜、フォールバック
 watchface/battery.js     クランプ、10分割HP、状態色
 watchface/copy.js        6種類のマイクロコピー
+watchface/steps.js       歩数の正規化と桁区切り
 watchface/debug-theme.js 背景プレビュー（Off / 巡回 / 固定）の解決ロジック
 watchface/aod.js         AOD専用描画
 watchface/time-sprites.js 可変幅を抑えた画像数字描画
@@ -83,7 +84,7 @@ assets/bip-6/images/     パッケージ対象アセット
 docs/background-image-gen-brief.md 背景画像の生成指示書（制約の根拠）
 docs/background-prompts.md 背景画像の生成プロンプト集（10枚・コピペ用）
 docs/device-testing.md   実機確認手順とチェックリスト
-tests/                   バッテリー、天候、コピー、背景プレビューのテスト
+tests/                   バッテリー、天候、コピー、歩数、背景プレビューのテスト
 ```
 
 ## 表示と更新
@@ -91,9 +92,11 @@ tests/                   バッテリー、天候、コピー、背景プレビ�
 - 時刻: システムの12/24時間設定に追従。分をゼロ埋めし、12時間制ではAM/PMを表示
 - 日付: `M/D DDD`形式、英語大文字曜日
 - 気温: `WEATHER_LOW`、`WEATHER_CURRENT`、`WEATHER_HIGH`をファームウェアの文字盤データ型へ直接バインド
+- 歩数: `Step.getCurrent()`。3桁ごとに区切って表示（権限 `data:user.hd.step`）
 - バッテリー: `Battery.getCurrent()`を0〜100へクランプし、`ceil(percent / 10)`で10分割
 - 天候: 公式Weatherセンサーの当日`index`で背景を選択
 - 昼夜: 当日の日の出・日の入りを優先し、欠損時は06:00〜17:59を昼と判定
+- レイアウト: 上段（天候アイコン・日付・HP）と下段（気温・歩数）にだけ薄い暗幕を敷き、中央は開けて背景を見せる
 - AOD: 黒背景に時刻、日付、低輝度HPのみ。秒、天候、装飾、コピーは非表示
 - 設定: Settings Storage → Side Service → ZML/BLE → Watchface。受信値は端末ローカルへキャッシュ
 
@@ -124,12 +127,15 @@ Zeppアプリの文字盤設定に2つのセクションがあります。
 
 ### Message preset
 
-- `TACTIC / SAFETY FIRST`（初期値）
-- `MODE / TAKE IT EASY`
-- `FOCUS / ONE STEP AT A TIME`
-- `MODE / STAY SHARP`
-- `FOCUS / KEEP MOVING`
-- `TODAY / NO RUSH`
+時刻の下にサブタイトルとして表示する文言です。**文字盤に出るのは本文のみ**で、
+`TACTIC`などのラベルは設定画面でプリセットを見分けるための分類名です。
+
+- `SAFETY FIRST`（初期値）
+- `TAKE IT EASY`
+- `ONE STEP AT A TIME`
+- `STAY SHARP`
+- `KEEP MOVING`
+- `NO RUSH`
 
 ### Background preview（デバッグ）
 

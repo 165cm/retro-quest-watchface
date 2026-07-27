@@ -48,6 +48,7 @@ const GLYPHS = {
   '-': ['00000', '00000', '00000', '11111', '00000', '00000', '00000'],
   '/': ['00001', '00010', '00010', '00100', '01000', '01000', '10000'],
   '%': ['11001', '11010', '00100', '01000', '10110', '00110', '00000'],
+  ',': ['00000', '00000', '00000', '00000', '00110', '00110', '01100'],
   '°': ['01100', '10010', '10010', '01100', '00000', '00000', '00000'],
 }
 
@@ -449,6 +450,32 @@ function iconBolt(png, x, y) {
   line(png, x + 10, y + 7, x + 3, y + 15, ICON_COLORS.bolt, 3)
 }
 
+// 歩数用の足あとアイコン。22×22。
+function drawStepsIcon() {
+  const png = image(22, 22, '#00000000')
+  drawPattern(
+    png,
+    [
+      '01110000000',
+      '11111000000',
+      '11111000000',
+      '11111000000',
+      '01111000000',
+      '00110000000',
+      '00000011100',
+      '00000111110',
+      '00000111110',
+      '00000111110',
+      '00000011110',
+    ],
+    0,
+    0,
+    2,
+    { 1: '#F4F3E8' },
+  )
+  return png
+}
+
 function drawWeatherIcon(theme) {
   const png = image(ICON_SIZE, ICON_SIZE, '#00000000')
   switch (theme) {
@@ -600,77 +627,65 @@ function loadBackground(theme) {
 }
 
 // 実機のdrawNormalView()と同じ座標で合成する。watchface/layout.js を変えたらここも合わせる。
-function preview(theme = 'clear_day') {
+// 実機のdrawNormalView()と同じ座標で合成する。watchface/layout.js を変えたらここも合わせる。
+function preview(theme = 'clear_day', { hour = '10', minute = '09', amPm = 'AM' } = {}) {
   const png = image(390, 450, '#031426')
   blit(png, loadBackground(theme), 12, 10)
 
-  // 最上段: 薄い暗幕 + 天候アイコン + 日付 + HP
-  overlayRect(png, 12, 12, 366, 66, '#031426', 100)
-  blit(png, drawWeatherIcon(theme), 20, 22)
-  drawText(png, '7/24 FRI', 62, 30, 3, '#F4F3E8', 2)
-  drawText(png, 'HP', 208, 30, 3, '#F4F3E8', 3)
+  // 上段: 薄い暗幕 + 天候アイコン + 日付 + HP
+  overlayRect(png, 12, 12, 366, 62, '#031426', 120)
+  blit(png, drawWeatherIcon(theme), 24, 20)
+  drawText(png, '7/24 FRI', 60, 27, 3, '#F4F3E8', 2)
+  drawText(png, 'HP', 206, 27, 3, '#F4F3E8', 3)
   for (let i = 0; i < 10; i += 1) {
-    const x = 242 + i * 13
-    rect(png, x, 30, 11, 16, '#A9B0B8')
-    rect(png, x + 2, 32, 7, 12, i < 7 ? '#62B84A' : '#183047')
+    const x = 236 + i * 13
+    rect(png, x, 27, 11, 16, '#A9B0B8')
+    rect(png, x + 2, 29, 7, 12, i < 7 ? '#62B84A' : '#183047')
   }
-  drawText(png, '68%', 321, 54, 3, '#F4F3E8', 2)
+  drawText(png, '68%', 321, 51, 3, '#F4F3E8', 2)
 
-  // 時刻: 覆いなしで背景に直接。影 + 太い縁取りで視認性を確保。
-  // 座標は watchface/time-sprites.js の中央寄せ計算と一致させる。
+  // 時刻: 覆いなしで背景に直接。AM/PM込みで中央寄せ。
   const digitW = 52
   const digitH = 72
   const colonW = 18
   const gap = 6
-  const timeY = 96
-  const totalW = 4 * digitW + colonW + 4 * gap
-  let cursor = Math.round((390 - totalW) / 2)
-  const glyphInsetX = Math.floor((digitW - 5 * 9) / 2)
-  const glyphInsetY = Math.floor((digitH - 7 * 9) / 2)
-  ;[1, 0].forEach((digit) => {
-    drawGlyph(png, digit, cursor + glyphInsetX + 4, timeY + glyphInsetY + 4, 9, '#010912')
-    drawGlyphOutlined(png, digit, cursor + glyphInsetX, timeY + glyphInsetY, 9, '#F4F3E8', '#031426', 3)
+  const timeY = 150
+  const amPmW = 46
+  const amPmGap = 8
+  const reserveRight = amPm ? amPmW + amPmGap : 0
+  const hourDigits = [...hour]
+  const minuteDigits = [...minute]
+  const totalW = (hourDigits.length + 2) * digitW + colonW + (hourDigits.length + 2) * gap
+  let cursor = Math.round((390 - totalW - reserveRight) / 2)
+  const insetX = Math.floor((digitW - 5 * 9) / 2)
+  const insetY = Math.floor((digitH - 7 * 9) / 2)
+  const putDigit = (d) => {
+    drawGlyph(png, Number(d), cursor + insetX + 4, timeY + insetY + 4, 9, '#010912')
+    drawGlyphOutlined(png, Number(d), cursor + insetX, timeY + insetY, 9, '#F4F3E8', '#031426', 3)
     cursor += digitW + gap
-  })
+  }
+  hourDigits.forEach(putDigit)
   rect(png, cursor + Math.floor((colonW - 9) / 2), timeY + Math.floor(digitH * 0.32), 9, 9, '#F4F3E8')
   rect(png, cursor + Math.floor((colonW - 9) / 2), timeY + Math.floor(digitH * 0.64), 9, 9, '#F4F3E8')
   cursor += colonW + gap
-  ;[0, 9].forEach((digit) => {
-    drawGlyph(png, digit, cursor + glyphInsetX + 4, timeY + glyphInsetY + 4, 9, '#010912')
-    drawGlyphOutlined(png, digit, cursor + glyphInsetX, timeY + glyphInsetY, 9, '#F4F3E8', '#031426', 3)
-    cursor += digitW + gap
-  })
-  drawText(png, 'AM', 324, 148, 3, '#A9B0B8', 3)
+  minuteDigits.forEach(putDigit)
+  const timeEndX = cursor - gap
+  if (amPm) drawText(png, amPm, timeEndX + amPmGap, timeY + 46, 3, '#F4F3E8', 3)
 
-  // TACTICウィンドウ: タブと本文の塗りを隣接させ、枠線は辺ごとに描いて継ぎ目を開ける。
-  overlayRect(png, 20, 192, 124, 32, '#061B31', 185)
-  overlayRect(png, 20, 224, 350, 64, '#061B31', 185)
-  rect(png, 20, 192, 124, 2, '#F4F3E8')
-  rect(png, 20, 192, 2, 32, '#F4F3E8')
-  rect(png, 142, 192, 2, 32, '#F4F3E8')
-  rect(png, 142, 224, 228, 2, '#F4F3E8')
-  rect(png, 20, 224, 2, 64, '#F4F3E8')
-  rect(png, 368, 224, 2, 64, '#F4F3E8')
-  rect(png, 20, 286, 350, 2, '#F4F3E8')
-  cornerGemsAt(png, 20, 192, 350, 96)
-  drawText(png, 'TACTIC', 45, 201, 2, '#A9B0B8', 2)
-  drawText(png, 'SAFETY FIRST', 92, 243, 3, '#F4F3E8', 3)
+  // コピー: 枠は持たせず、薄い暗幕のみ
+  overlayRect(png, 12, 228, 366, 40, '#031426', 90)
+  drawText(png, 'SAFETY FIRST', 92, 238, 3, '#F4F3E8', 3)
 
-  // 気温: L / NOW / H の3列
-  overlayRect(png, 20, 314, 350, 96, '#061B31', 185)
-  rect(png, 20, 314, 350, 2, '#F4F3E8')
-  rect(png, 20, 314, 2, 96, '#F4F3E8')
-  rect(png, 368, 314, 2, 96, '#F4F3E8')
-  rect(png, 20, 408, 350, 2, '#F4F3E8')
-  cornerGemsAt(png, 20, 314, 350, 96)
-  rect(png, 136, 316, 2, 92, '#F4F3E8')
-  rect(png, 252, 316, 2, 92, '#F4F3E8')
-  drawText(png, 'L', 74, 330, 2, '#69A7E8', 2)
-  drawText(png, 'NOW', 177, 330, 2, '#F4F3E8', 2)
-  drawText(png, 'H', 306, 330, 2, '#E98A4A', 2)
-  drawText(png, '24°', 46, 358, 4, '#69A7E8', 3)
-  drawText(png, '29°', 162, 358, 4, '#F4F3E8', 3)
-  drawText(png, '32°', 278, 358, 4, '#E98A4A', 3)
+  // 下段: 気温3列 + 歩数
+  overlayRect(png, 12, 366, 366, 62, '#031426', 150)
+  drawText(png, 'L', 55, 376, 2, '#69A7E8', 2)
+  drawText(png, 'NOW', 114, 376, 2, '#F4F3E8', 2)
+  drawText(png, 'H', 199, 376, 2, '#E98A4A', 2)
+  drawText(png, '23°', 36, 400, 3, '#69A7E8', 2)
+  drawText(png, '24°', 108, 400, 3, '#F4F3E8', 2)
+  drawText(png, '30°', 180, 400, 3, '#E98A4A', 2)
+  blit(png, drawStepsIcon(), 252, 399)
+  drawText(png, '3,548', 280, 400, 3, '#F4F3E8', 2)
 
   return png
 }
@@ -682,9 +697,11 @@ generateDigitSet('time', 52, 72, 9, '#F4F3E8', '#031426', {
   colonW: 18,
 })
 generateDigitSet('aod', 32, 49, 6, '#B8B8B8', '#000000')
-generateDigitSet('temp-low', 22, 35, 4, '#69A7E8')
-generateDigitSet('temp-now', 22, 35, 4, '#F4F3E8')
-generateDigitSet('temp-high', 22, 35, 4, '#E98A4A')
+generateDigitSet('temp-low', 16, 26, 3, '#69A7E8')
+generateDigitSet('temp-now', 16, 26, 3, '#F4F3E8')
+generateDigitSet('temp-high', 16, 26, 3, '#E98A4A')
+
+writePng(path.join(ASSET_ROOT, 'steps.png'), drawStepsIcon())
 
 Object.keys(PALETTES).forEach((theme) => {
   writePng(path.join(ASSET_ROOT, 'weather', `${theme}.png`), drawWeatherIcon(theme))

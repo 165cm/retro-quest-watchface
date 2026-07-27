@@ -1,5 +1,5 @@
 import ui from '@zos/ui'
-import { Battery, Time, TIME_HOUR_FORMAT_12 } from '@zos/sensor'
+import { Battery, Step, Time, TIME_HOUR_FORMAT_12 } from '@zos/sensor'
 import { log } from '@zos/utils'
 import { BasePage } from '@zeppos/zml/base-page'
 import { LAYOUT, SCREEN } from './layout.js'
@@ -13,6 +13,7 @@ import {
   normalizeBattery,
 } from './battery.js'
 import { getTodayWeather, isNightAt, resolveWeatherTheme } from './weather.js'
+import { formatSteps } from './steps.js'
 import {
   CYCLE_INTERVAL_MS,
   isCycleMode,
@@ -49,44 +50,13 @@ function digitArray(path) {
   return Array.from({ length: 10 }, (_, index) => `${path}/${index}.png`)
 }
 
-const PANEL_ALPHA = 185
-
-function panelFill(rect) {
+// 文字を読ませるための薄い暗幕。枠は持たせず、背景は透けたままにする。
+function scrim(rect, alpha) {
   return ui.createWidget(ui.widget.FILL_RECT, {
     ...rect,
-    color: COLORS.PANEL_NAVY,
-    alpha: PANEL_ALPHA,
+    color: COLORS.BACKGROUND_NAVY,
+    alpha,
     show_level: ui.show_level.ONLY_NORMAL,
-  })
-}
-
-function panelEdge(x, y, w, h) {
-  return ui.createWidget(ui.widget.FILL_RECT, {
-    x,
-    y,
-    w,
-    h,
-    color: COLORS.PANEL_EDGE,
-    show_level: ui.show_level.ONLY_NORMAL,
-  })
-}
-
-// RPGのウィンドウ装飾。四隅に金色のドットを置いて情報カード感を和らげる。
-function cornerGems(rect, gem = 4) {
-  ;[
-    [rect.x - 1, rect.y - 1],
-    [rect.x + rect.w - gem + 1, rect.y - 1],
-    [rect.x - 1, rect.y + rect.h - gem + 1],
-    [rect.x + rect.w - gem + 1, rect.y + rect.h - gem + 1],
-  ].forEach(([gx, gy]) => {
-    ui.createWidget(ui.widget.FILL_RECT, {
-      x: gx,
-      y: gy,
-      w: gem,
-      h: gem,
-      color: COLORS.PANEL_ACCENT_GOLD,
-      show_level: ui.show_level.ONLY_NORMAL,
-    })
   })
 }
 
@@ -122,8 +92,9 @@ WatchFace(
     hpSegments: [],
     hpPercent: null,
     aod: null,
-    copyLabel: null,
     copyText: null,
+    step: null,
+    steps: null,
     presetIndex: 0,
     weatherTheme: 'clear_day',
     debugIndex: 0,
@@ -131,11 +102,13 @@ WatchFace(
     debugTimer: null,
     batteryCallback: null,
     minuteCallback: null,
+    stepCallback: null,
   },
 
   onInit() {
     this.state.time = new Time()
     this.state.battery = new Battery()
+    this.state.step = new Step()
     this.state.weather = hmSensor.createSensor(hmSensor.id.WEATHER)
     this.state.presetIndex = hmFS.SysProGetInt('pixel_wayfarer_preset') || 0
     this.state.debugIndex = normalizeDebugIndex(
@@ -148,6 +121,7 @@ WatchFace(
     this.state.aod = createAodView()
     this.updateTimeAndDate()
     this.updateBattery()
+    this.updateSteps()
     this.updateWeather()
     this.loadMessagePreset()
     this.loadDebugTheme()
@@ -158,13 +132,16 @@ WatchFace(
       this.updateWeather()
     }
     this.state.batteryCallback = () => this.updateBattery()
+    this.state.stepCallback = () => this.updateSteps()
     this.state.time.onPerMinute(this.state.minuteCallback)
     this.state.battery.onChange(this.state.batteryCallback)
+    this.state.step.onChange(this.state.stepCallback)
 
     ui.createWidget(ui.widget.WIDGET_DELEGATE, {
       resume_call: () => {
         this.updateTimeAndDate()
         this.updateBattery()
+        this.updateSteps()
         this.updateWeather()
         this.startCycleTimer()
       },
@@ -190,20 +167,13 @@ WatchFace(
     })
 
     this.drawTopBar()
-    this.drawTime()
-    this.drawCopyWindow()
-    this.drawTemperature()
+    this.drawTimeGroup()
+    this.drawBottomBar()
   },
 
-  // 天候アイコン、日付、HPゲージを一列に収める。
+  // 天候アイコン、日付、HPゲージ。背景の明るさに左右されないよう薄い暗幕を敷く。
   drawTopBar() {
-    ui.createWidget(ui.widget.FILL_RECT, {
-      ...LAYOUT.topBar,
-      color: COLORS.BACKGROUND_NAVY,
-      alpha: 100,
-      radius: 2,
-      show_level: ui.show_level.ONLY_NORMAL,
-    })
+    scrim(LAYOUT.topBar, 120)
 
     this.state.weatherIcon = ui.createWidget(ui.widget.IMG, {
       ...LAYOUT.weatherIcon,
@@ -261,7 +231,9 @@ WatchFace(
     )
   },
 
-  drawTime() {
+  // 時刻とコピーをひとかたまりにする。時刻が主役、コピーはサブタイトル。
+  // 時刻は覆いなしで背景に直接乗せ、数字側の縁取りと影で視認性を確保する。
+  drawTimeGroup() {
     this.state.mainTime = createTimeSprites({
       y: LAYOUT.time.y,
       digitPath: 'images/digits/time',
@@ -272,45 +244,21 @@ WatchFace(
       showLevel: ui.show_level.ONLY_NORMAL,
     })
     this.state.amPm = textWidget(
-      LAYOUT.amPm,
+      {
+        x: 0,
+        y: LAYOUT.time.y + LAYOUT.amPm.offsetY,
+        w: LAYOUT.amPm.w,
+        h: LAYOUT.amPm.h,
+      },
       '',
       TYPE.amPm,
-      COLORS.TEXT_MUTED,
+      COLORS.TEXT_PRIMARY,
       ui.align.LEFT,
       ui.show_level.ONLY_NORMAL,
     )
-  },
 
-  // ラベルをタブとして本文ボックスの上に載せる。塗りは重ねず隣接させ、枠線は辺ごとに
-  // 描いてタブ下辺と本文上辺の継ぎ目を開ける。半透明なので塗りで消すと線が透けてしまう。
-  drawCopyWindow() {
-    const panel = LAYOUT.copyPanel
-    const tab = LAYOUT.copyTab
-
-    panelFill(tab)
-    panelFill(panel)
-
-    // タブ: 上・左・右のみ（下辺は本文ボックスへ開ける）
-    panelEdge(tab.x, tab.y, tab.w, 2)
-    panelEdge(tab.x, tab.y, 2, tab.h)
-    panelEdge(tab.x + tab.w - 2, tab.y, 2, tab.h)
-    // 本文ボックス: 上辺はタブの右端から始める
-    panelEdge(tab.x + tab.w - 2, panel.y, panel.x + panel.w - tab.x - tab.w + 2, 2)
-    panelEdge(panel.x, panel.y, 2, panel.h)
-    panelEdge(panel.x + panel.w - 2, panel.y, 2, panel.h)
-    panelEdge(panel.x, panel.y + panel.h - 2, panel.w, 2)
-
-    cornerGems({ x: tab.x, y: tab.y, w: panel.w, h: panel.y + panel.h - tab.y })
-
+    scrim(LAYOUT.copyScrim, 90)
     const preset = getCopyPreset(this.state.presetIndex)
-    this.state.copyLabel = textWidget(
-      tab,
-      preset.label,
-      TYPE.copyLabel,
-      COLORS.TEXT_MUTED,
-      ui.align.CENTER_H,
-      ui.show_level.ONLY_NORMAL,
-    )
     this.state.copyText = textWidget(
       LAYOUT.copyText,
       preset.text,
@@ -321,18 +269,11 @@ WatchFace(
     )
   },
 
-  // L / NOW / H の3列。値はファームウェアの文字盤データ型へ直接バインドする。
-  drawTemperature() {
+  // 気温3列と歩数。上段と同じ文字サイズで、画面下端に収める。
+  drawBottomBar() {
+    scrim(LAYOUT.bottomBar, 150)
+
     const temp = LAYOUT.temperature
-
-    panelFill(temp.box)
-    panelEdge(temp.box.x, temp.box.y, temp.box.w, 2)
-    panelEdge(temp.box.x, temp.box.y, 2, temp.box.h)
-    panelEdge(temp.box.x + temp.box.w - 2, temp.box.y, 2, temp.box.h)
-    panelEdge(temp.box.x, temp.box.y + temp.box.h - 2, temp.box.w, 2)
-    cornerGems(temp.box)
-    temp.dividerXs.forEach((x) => panelEdge(x, temp.dividerY, 2, temp.dividerH))
-
     const columns = [
       { label: 'L', color: COLORS.LOW_BLUE, type: ui.data_type.WEATHER_LOW, path: 'temp-low' },
       { label: 'NOW', color: COLORS.TEXT_PRIMARY, type: ui.data_type.WEATHER_CURRENT, path: 'temp-now' },
@@ -341,7 +282,7 @@ WatchFace(
     columns.forEach((column, index) => {
       const geometry = temp.columns[index]
       textWidget(
-        { x: geometry.labelX, y: temp.labelY, w: geometry.w, h: temp.labelH },
+        { x: geometry.x, y: temp.labelY, w: geometry.w, h: temp.labelH },
         column.label,
         TYPE.tempLabel,
         column.color,
@@ -349,15 +290,28 @@ WatchFace(
         ui.show_level.ONLY_NORMAL,
       )
       temperatureWidget(
-        { x: geometry.valueX, y: temp.valueY, w: geometry.w, h: temp.valueH },
+        { x: geometry.x, y: temp.valueY, w: geometry.w, h: temp.valueH },
         column.type,
         `images/digits/${column.path}`,
         `images/digits/${column.path}/degree.png`,
         ui.show_level.ONLY_NORMAL,
       )
     })
-  },
 
+    ui.createWidget(ui.widget.IMG, {
+      ...LAYOUT.steps.icon,
+      src: 'images/steps.png',
+      show_level: ui.show_level.ONLY_NORMAL,
+    })
+    this.state.steps = textWidget(
+      LAYOUT.steps.text,
+      '0',
+      TYPE.steps,
+      COLORS.TEXT_PRIMARY,
+      ui.align.LEFT,
+      ui.show_level.ONLY_NORMAL,
+    )
+  },
   updateTimeAndDate() {
     const time = this.state.time
     const rawHour = time.getHours()
@@ -365,16 +319,29 @@ WatchFace(
     const displayHour = is12Hour ? time.getFormatHour() : rawHour
     const hourText = String(displayHour)
     const minuteText = String(time.getMinutes()).padStart(2, '0')
-    this.state.mainTime.update(hourText, minuteText)
+
+    // 12時間表示のときはAM/PMの分だけ右に幅を予約し、「11:10PM」全体を中央へ寄せる。
+    const amPm = is12Hour ? (rawHour < 12 ? 'AM' : 'PM') : ''
+    const reserveRight = amPm ? LAYOUT.amPm.w + LAYOUT.amPm.gap : 0
+    const timeEndX = this.state.mainTime.update(hourText, minuteText, reserveRight)
     this.state.aod.time.update(hourText, minuteText)
 
-    const amPm = is12Hour ? (rawHour < 12 ? 'AM' : 'PM') : ''
+    this.state.amPm.setProperty(ui.prop.MORE, {
+      x: timeEndX + LAYOUT.amPm.gap,
+      y: LAYOUT.time.y + LAYOUT.amPm.offsetY,
+      w: LAYOUT.amPm.w,
+      h: LAYOUT.amPm.h,
+    })
     this.state.amPm.setProperty(ui.prop.TEXT, amPm)
 
     const weekday = WEEKDAYS[time.getDay() - 1] || '---'
     const dateText = `${time.getMonth()}/${time.getDate()} ${weekday}`
     this.state.date.setProperty(ui.prop.TEXT, dateText)
     this.state.aod.date.setProperty(ui.prop.TEXT, dateText)
+  },
+
+  updateSteps() {
+    this.state.steps.setProperty(ui.prop.TEXT, formatSteps(this.state.step.getCurrent()))
   },
 
   updateBattery() {
@@ -476,9 +443,6 @@ WatchFace(
     const preset = getCopyPreset(value)
     this.state.presetIndex = Number(value) || 0
     hmFS.SysProSetInt('pixel_wayfarer_preset', this.state.presetIndex)
-    if (this.state.copyLabel) {
-      this.state.copyLabel.setProperty(ui.prop.TEXT, preset.label)
-    }
     if (this.state.copyText) {
       this.state.copyText.setProperty(ui.prop.TEXT, preset.text)
     }
@@ -505,6 +469,9 @@ WatchFace(
   onDestroy() {
     if (this.state.battery && this.state.batteryCallback) {
       this.state.battery.offChange(this.state.batteryCallback)
+    }
+    if (this.state.step && this.state.stepCallback) {
+      this.state.step.offChange(this.state.stepCallback)
     }
     this.stopCycleTimer()
     logger.log('watchface destroyed')

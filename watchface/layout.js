@@ -1,52 +1,55 @@
 export const SCREEN = Object.freeze({
   width: 390,
   height: 450,
-  safe: 12,
+  // 端末の縁で見切れないよう、内容は左右24pxを空ける。
+  safe: 24,
 })
 
-// 上から順に: 天候アイコン＋日付＋HP / 時刻 / TACTICウィンドウ / 気温3分割ボックス。
+const CONTENT_X = 24
+const CONTENT_W = SCREEN.width - CONTENT_X * 2
+
+// 上段（天候アイコン・日付・HP）と下段（気温・歩数）だけに薄い暗幕を敷き、
+// 中央は開けて背景を見せる。時刻とコピーがひとかたまりの主役。
 export const LAYOUT = Object.freeze({
   background: { x: 12, y: 10, w: 366, h: 430 },
 
-  // 最上段。背景の明るさに影響されないよう薄い暗幕を敷く。
-  topBar: { x: 12, y: 12, w: 366, h: 66 },
-  weatherIcon: { x: 20, y: 22, w: 34, h: 34 },
-  date: { x: 62, y: 22, w: 140, h: 34 },
+  topBar: { x: 12, y: 12, w: 366, h: 62 },
+  weatherIcon: { x: CONTENT_X, y: 20, w: 30, h: 30 },
+  date: { x: 60, y: 20, w: 142, h: 30 },
   hp: {
-    label: { x: 208, y: 22, w: 32, h: 34 },
-    gaugeX: 242,
-    gaugeY: 30,
+    label: { x: 206, y: 20, w: 28, h: 30 },
+    gaugeX: 236,
+    gaugeY: 27,
     segmentW: 11,
     segmentH: 16,
     gap: 2,
-    percent: { x: 300, y: 52, w: 70, h: 24 },
+    percent: { x: 296, y: 48, w: 70, h: 22 },
   },
 
-  // 時刻は覆いなしで背景に直接乗る。数字側の縁取りと影で視認性を確保する。
-  time: { y: 96, digitW: 52, digitH: 72, colonW: 18, gap: 6 },
-  amPm: { x: 324, y: 140, w: 50, h: 28 },
+  // 時刻は覆いなしで背景に直接。AM/PM込みで中央寄せするため、
+  // 12時間表示のときだけ右側に幅を予約する。
+  time: { y: 150, digitW: 52, digitH: 72, colonW: 18, gap: 6 },
+  amPm: { w: 46, h: 28, gap: 8, offsetY: 40 },
 
-  // ラベルはタブとして本文ボックスの上に載せる。両者は隣接させ、
-  // 枠線を辺ごとに描いて境目を開けることで1枚のウィンドウに見せる。
-  copyTab: { x: 20, y: 192, w: 124, h: 32 },
-  copyPanel: { x: 20, y: 224, w: 350, h: 64 },
-  copyText: { x: 30, y: 226, w: 330, h: 60 },
+  // コピーは時刻のサブタイトル。枠は持たせず、薄い暗幕だけ敷く。
+  copyScrim: { x: 12, y: 228, w: 366, h: 40 },
+  copyText: { x: CONTENT_X, y: 230, w: CONTENT_W, h: 36 },
 
-  // 気温は L / NOW / H の3列。列幅は等分で、区切り線で仕切る。
+  bottomBar: { x: 12, y: 366, w: 366, h: 62 },
   temperature: {
-    box: { x: 20, y: 314, w: 350, h: 96 },
-    dividerY: 316,
-    dividerH: 92,
-    dividerXs: [136, 252],
+    labelY: 372,
+    labelH: 22,
+    valueY: 396,
+    valueH: 26,
     columns: [
-      { labelX: 22, valueX: 22, w: 114 },
-      { labelX: 138, valueX: 138, w: 114 },
-      { labelX: 254, valueX: 254, w: 114 },
+      { x: CONTENT_X, w: 72 },
+      { x: CONTENT_X + 72, w: 72 },
+      { x: CONTENT_X + 144, w: 72 },
     ],
-    labelY: 324,
-    labelH: 24,
-    valueY: 354,
-    valueH: 35,
+  },
+  steps: {
+    icon: { x: 252, y: 399, w: 22, h: 22 },
+    text: { x: 280, y: 396, w: 86, h: 26 },
   },
 
   aod: {

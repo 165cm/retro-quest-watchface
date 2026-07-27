@@ -17,6 +17,10 @@
 img2img が使えない場合は各プロンプトを単独で使えますが、
 **山の稜線・川の流路・城の位置が10枚で揃っているか**を必ず目視確認してください。
 
+> **座標は 2026-07-27 のレイアウト刷新に追従済みです。**
+> 大きなパネルを廃したため、**高さ15%〜33%と49%〜83%が完全に見える見せ場**になりました。
+> 可読性のため中〜暗に保つ帯は **33%〜49%** です（以前の20%〜37%から移動）。
+
 ### 2. 出力サイズ
 
 - **縦長**で、できるだけ**大きく**（長辺1024px以上）生成してください
@@ -61,12 +65,12 @@ npm run assets
 
 | ルール | 理由 |
 |---|---|
-| 高さ20%〜37%を中〜暗トーンに保つ | ここに白い巨大な時刻数字が**覆いなしで**乗る。明るいと読めない |
+| **高さ33%〜49%を中〜暗トーンに保つ** | ここに白い巨大な時刻数字が**覆いなしで**乗る。明るいと読めない |
+| 高さ15%〜33%と49%〜83%に見せ場を置く | **完全に見える2つの帯**。ここが絵の主役 |
 | 太陽・月を描かない | 最上段の天候アイコンと二重になる |
-| 空は上部16%だけ、平坦に | ここは日付とHPゲージが乗る |
-| 城は右側（幅70%〜100%） | UIパネルの隙間から見える位置 |
+| 空は上部15%だけ、平坦に | ここは日付とHPゲージが乗る |
+| 城は右側（幅70%〜100%） | 時刻の右マージンと開放部で大きく見える |
 | 文字・数字・記号を入れない | 実際のUI文字と衝突する |
-| 細密より大きな面 | 画面の大半が半透明パネルの下に隠れる |
 
 ---
 
@@ -81,20 +85,18 @@ Vivid saturated blue sky, lush emerald forest and meadow. The most colorful and
 inviting image of the set.
 
 Vertical layout, as fractions of image height:
-- 0%-16%: plain blue sky. Flat horizontal color bands blended only with checkerboard
-  dithering. Keep this area simple and low-contrast.
-- 20%-37%: CRITICAL - this horizontal strip must stay MID-TONE TO DARK in value.
-  Only medium or darker blues, greens and greys here. Nothing lighter than a medium
-  grey. No white, no bright snow, no bright clouds.
-- 35%-46%: the horizon. A range of distant mountains with modest snow caps, rendered
-  pale, desaturated and shifted toward blue by aerial perspective. Peaks must NOT rise
-  above 37% of the image height.
-- 46%-80%: dense dark green coniferous pine forest over rolling hills, and a river
-  winding down through a valley catching pale highlights. On the RIGHT side, between
-  70% and 100% of the image width, on a hill: a small original stone castle with a
-  flagged tower, clearly readable in silhouette.
-- 80%-100%: foreground meadow of lush sunlit green grass with patches of lighter and
-  darker green suggesting undulation, and a narrow winding dirt path.
+- 0%-15%: vivid saturated blue sky. Flat horizontal bands blended only with checkerboard dithering.
+  This strip sits behind the top status row, so keep it plain and low-contrast.
+- 15%-33%: FULLY VISIBLE - the primary showcase. A range of distant mountains,
+  crisp white snow caps, softened by aerial perspective. Put your best detail here.
+- 33%-49%: CRITICAL READABILITY BAND - must stay MID-TONE TO DARK in value.
+  The huge white clock digits sit directly on top of this strip with no panel behind
+  them. Use the shadowed mid-ground valley here. Nothing lighter than a medium grey,
+  no bright snow caps, no bright clouds, no bright water.
+- 49%-83%: FULLY VISIBLE - the second showcase. dense dark green coniferous pine forest, and a river winding
+  down through a valley. On the RIGHT side, between 70% and 100% of the image width,
+  on a hill: a small original stone castle with a flagged tower, clearly readable in silhouette.
+- 83%-100%: foreground of lush sunlit emerald meadow.
 
 Rendering rules, strict:
 - Hard-edged pixel art. NO anti-aliasing, NO blur, NO soft edges, NO smooth gradients.
@@ -127,20 +129,18 @@ Softer daylight, slightly muted greens, with subtle shade patches cast across th
 meadow. Chunky white cumulus clouds with dithered highlights on top and grey undersides.
 
 Vertical layout, as fractions of image height:
-- 0%-16%: hazy blue sky containing the cumulus clouds. Flat horizontal bands blended
-  only with checkerboard dithering. All clouds must stay INSIDE this top band.
-- 20%-37%: CRITICAL - this horizontal strip must stay MID-TONE TO DARK in value.
-  Only medium or darker blues, greens and greys here. Nothing lighter than a medium
-  grey. Absolutely NO clouds and NO bright snow inside this strip.
-- 35%-46%: the horizon. A range of distant mountains with modest snow caps, rendered
-  pale, desaturated and shifted toward blue by aerial perspective. Peaks must NOT rise
-  above 37% of the image height.
-- 46%-80%: dense coniferous pine forest over rolling hills, slightly muted in color,
-  and a river winding down through a valley. On the RIGHT side, between 70% and 100%
-  of the image width, on a hill: a small original stone castle with a flagged tower,
-  clearly readable in silhouette.
-- 80%-100%: foreground meadow of green grass with patches of lighter and darker green,
-  some in cloud shadow, and a narrow winding dirt path.
+- 0%-15%: hazy blue sky containing chunky white cumulus clouds. Flat horizontal bands blended only with checkerboard dithering.
+  This strip sits behind the top status row, so keep it plain and low-contrast.
+- 15%-33%: FULLY VISIBLE - the primary showcase. A range of distant mountains,
+  modest snow caps, softened by aerial perspective. Put your best detail here.
+- 33%-49%: CRITICAL READABILITY BAND - must stay MID-TONE TO DARK in value.
+  The huge white clock digits sit directly on top of this strip with no panel behind
+  them. Use the shadowed mid-ground valley here. Nothing lighter than a medium grey,
+  no bright snow caps, no bright clouds, no bright water.
+- 49%-83%: FULLY VISIBLE - the second showcase. dense coniferous pine forest, slightly muted in color, and a river winding
+  down through a valley. On the RIGHT side, between 70% and 100% of the image width,
+  on a hill: a small original stone castle with a flagged tower, clearly readable in silhouette.
+- 83%-100%: foreground of green meadow with patches in cloud shadow.
 
 Rendering rules, strict:
 - Hard-edged pixel art. NO anti-aliasing, NO blur, NO soft edges, NO smooth gradients.
@@ -173,20 +173,18 @@ low contrast, no visible sun. Heavy grey-blue cloud cover. Desaturated muted gre
 and subdued mountains. A quiet, still, slightly melancholy mood.
 
 Vertical layout, as fractions of image height:
-- 0%-16%: solid overcast grey-blue cloud cover filling the sky. Flat horizontal bands
-  blended only with checkerboard dithering. Keep it low-contrast, no bright white.
-- 20%-37%: CRITICAL - this horizontal strip must stay MID-TONE TO DARK in value.
-  Only medium or darker greys, blues and greens here. Nothing lighter than a medium
-  grey.
-- 35%-46%: the horizon. A range of distant mountains, subdued and low in contrast,
-  desaturated and blue-grey from aerial perspective. Peaks must NOT rise above 37% of
-  the image height.
-- 46%-80%: dense coniferous pine forest over rolling hills in muted desaturated green,
-  and a river winding down through a valley reflecting the grey sky. On the RIGHT side,
-  between 70% and 100% of the image width, on a hill: a small original stone castle
-  with a flagged tower, clearly readable in silhouette.
-- 80%-100%: foreground meadow of dull green grass under flat diffuse light, with a
-  narrow winding dirt path.
+- 0%-15%: solid overcast grey-blue cloud cover. Flat horizontal bands blended only with checkerboard dithering.
+  This strip sits behind the top status row, so keep it plain and low-contrast.
+- 15%-33%: FULLY VISIBLE - the primary showcase. A range of distant mountains,
+  subdued low-contrast peaks, softened by aerial perspective. Put your best detail here.
+- 33%-49%: CRITICAL READABILITY BAND - must stay MID-TONE TO DARK in value.
+  The huge white clock digits sit directly on top of this strip with no panel behind
+  them. Use the shadowed mid-ground valley here. Nothing lighter than a medium grey,
+  no bright snow caps, no bright clouds, no bright water.
+- 49%-83%: FULLY VISIBLE - the second showcase. coniferous pine forest in muted desaturated green, and a river winding
+  down through a valley. On the RIGHT side, between 70% and 100% of the image width,
+  on a hill: a small original stone castle with a flagged tower, clearly readable in silhouette.
+- 83%-100%: foreground of dull green meadow under flat diffuse light.
 
 Rendering rules, strict:
 - Hard-edged pixel art. NO anti-aliasing, NO blur, NO soft edges, NO smooth gradients.
@@ -219,21 +217,18 @@ storm clouds. The castle windows glow warm amber against the gloom. Wet darkened
 ground, and a swollen river.
 
 Vertical layout, as fractions of image height:
-- 0%-16%: dark low storm clouds. Flat horizontal bands blended only with checkerboard
-  dithering. Keep it dark and low-contrast.
-- 20%-37%: CRITICAL - this horizontal strip must stay MID-TONE TO DARK in value.
-  Only darker blues and greys here. Nothing lighter than a medium grey. The rain
-  streaks may cross this strip but must remain thin.
-- 35%-46%: the horizon. A range of distant mountains, dark and hazy behind the rain,
-  desaturated blue-grey. Peaks must NOT rise above 37% of the image height.
-- 46%-80%: dark rain-soaked coniferous pine forest, and a swollen river winding down
-  through a valley. On the RIGHT side, between 70% and 100% of the image width, on a
-  hill: a small original stone castle with a flagged tower, its windows glowing warm
-  amber, clearly readable in silhouette.
-- 80%-100%: foreground meadow of dark wet green grass, and a muddy winding path.
-
-Weather effect: thin diagonal rain streaks in pale blue, evenly distributed over the
-entire image, all falling in the same direction.
+- 0%-15%: dark low storm clouds. Flat horizontal bands blended only with checkerboard dithering.
+  This strip sits behind the top status row, so keep it plain and low-contrast.
+- 15%-33%: FULLY VISIBLE - the primary showcase. A range of distant mountains,
+  dark hazy peaks behind the rain, softened by aerial perspective. Put your best detail here.
+- 33%-49%: CRITICAL READABILITY BAND - must stay MID-TONE TO DARK in value.
+  The huge white clock digits sit directly on top of this strip with no panel behind
+  them. Use the shadowed mid-ground valley here. Nothing lighter than a medium grey,
+  no bright snow caps, no bright clouds, no bright water.
+- 49%-83%: FULLY VISIBLE - the second showcase. dark rain-soaked coniferous pine forest, and a river winding
+  down through a valley. On the RIGHT side, between 70% and 100% of the image width,
+  on a hill: a small original stone castle with a flagged tower, its windows glowing warm amber, clearly readable in silhouette.
+- 83%-100%: foreground of dark wet green meadow with a muddy path.
 
 Rendering rules, strict:
 - Hard-edged pixel art. NO anti-aliasing, NO blur, NO soft edges, NO smooth gradients.
@@ -265,23 +260,18 @@ and one bright jagged yellow lightning bolt striking down from the clouds, faint
 illuminating the mountain peaks. The castle windows glow warm amber.
 
 Vertical layout, as fractions of image height:
-- 0%-16%: bruised near-black storm clouds, with ONE bright jagged yellow lightning
-  bolt striking downward. The lightning must stay INSIDE this top band. Flat horizontal
-  bands blended only with checkerboard dithering.
-- 20%-37%: CRITICAL - this horizontal strip must stay MID-TONE TO DARK in value.
-  Only very dark navy, blues and greys here. Nothing lighter than a medium grey.
-  NO lightning and NO bright flash inside this strip. The rain streaks may cross it but
-  must remain thin.
-- 35%-46%: the horizon. A range of distant mountain peaks, very dark, faintly rimmed
-  by the lightning flash. Peaks must NOT rise above 37% of the image height.
-- 46%-80%: near-black coniferous pine forest, and a river winding down through a
-  valley catching a cold pale glint. On the RIGHT side, between 70% and 100% of the
-  image width, on a hill: a small original stone castle with a flagged tower, its
-  windows glowing warm amber, clearly readable in silhouette.
-- 80%-100%: foreground meadow of very dark wet grass, and a muddy winding path.
-
-Weather effect: thin diagonal rain streaks in pale blue, evenly distributed over the
-entire image, all falling in the same direction.
+- 0%-15%: bruised near-black storm clouds with ONE bright jagged yellow lightning bolt. Flat horizontal bands blended only with checkerboard dithering.
+  This strip sits behind the top status row, so keep it plain and low-contrast.
+- 15%-33%: FULLY VISIBLE - the primary showcase. A range of distant mountains,
+  very dark peaks faintly rimmed by the lightning flash, softened by aerial perspective. Put your best detail here.
+- 33%-49%: CRITICAL READABILITY BAND - must stay MID-TONE TO DARK in value.
+  The huge white clock digits sit directly on top of this strip with no panel behind
+  them. Use the shadowed mid-ground valley here. Nothing lighter than a medium grey,
+  no bright snow caps, no bright clouds, no bright water.
+- 49%-83%: FULLY VISIBLE - the second showcase. near-black coniferous pine forest, and a river winding
+  down through a valley. On the RIGHT side, between 70% and 100% of the image width,
+  on a hill: a small original stone castle with a flagged tower, its windows glowing warm amber, clearly readable in silhouette.
+- 83%-100%: foreground of very dark wet grass.
 
 Rendering rules, strict:
 - Hard-edged pixel art. NO anti-aliasing, NO blur, NO soft edges, NO smooth gradients.
@@ -312,24 +302,18 @@ blue-grey, hushed and still. Snow blanketing the meadow and the forest canopy, p
 trees dusted white, a pale half-frozen river. Small white snowflake pixels drifting.
 
 Vertical layout, as fractions of image height:
-- 0%-16%: cold pale blue-grey overcast snow sky. Flat horizontal bands blended only
-  with checkerboard dithering. Keep it low-contrast.
-- 20%-37%: THIS IS THE MOST IMPORTANT CONSTRAINT FOR THIS IMAGE. This horizontal
-  strip must stay MID-TONE TO DARK in value. Use the DARK slate-blue flanks of the
-  mountains and dark evergreen here. Do NOT put bright white snow, snow caps, bright
-  sky or bright clouds anywhere inside this strip. Nothing lighter than a medium grey.
-  Snowflakes may cross it but must be sparse and tiny.
-- 35%-46%: the horizon. Distant mountains, pale and desaturated blue-grey. Their bright
-  white snow caps must sit BELOW 37% of the image height, never above it.
-- 46%-80%: coniferous pine forest with dark green boughs dusted in white snow, and a
-  pale half-frozen river winding down a valley. On the RIGHT side, between 70% and 100%
-  of the image width, on a hill: a small original stone castle with a flagged tower and
-  a snow-covered roof, clearly readable in silhouette.
-- 80%-100%: foreground meadow blanketed in clean white snow, with a faint winding path
-  and soft blue shadows in the drifts. This bottom band is where the bright snow
-  belongs.
-
-Weather effect: small white snowflake pixels scattered evenly, sparse rather than dense.
+- 0%-15%: cold pale blue-grey overcast snow sky. Flat horizontal bands blended only with checkerboard dithering.
+  This strip sits behind the top status row, so keep it plain and low-contrast.
+- 15%-33%: FULLY VISIBLE - the primary showcase. A range of distant mountains,
+  pale desaturated peaks whose bright white snow caps belong HERE, softened by aerial perspective. Put your best detail here.
+- 33%-49%: CRITICAL READABILITY BAND - must stay MID-TONE TO DARK in value.
+  The huge white clock digits sit directly on top of this strip with no panel behind
+  them. Use the shadowed mid-ground valley here. Nothing lighter than a medium grey,
+  no bright snow caps, no bright clouds, no bright water.
+- 49%-83%: FULLY VISIBLE - the second showcase. coniferous pine forest with dark green boughs dusted in white, and a river winding
+  down through a valley. On the RIGHT side, between 70% and 100% of the image width,
+  on a hill: a small original stone castle with a flagged tower and a snow-covered roof, clearly readable in silhouette.
+- 83%-100%: foreground of clean white snow blanket with soft blue shadows.
 
 Rendering rules, strict:
 - Hard-edged pixel art. NO anti-aliasing, NO blur, NO soft edges, NO smooth gradients.
@@ -362,23 +346,18 @@ the mountains and the forest at several heights. Very low contrast, distant peak
 barely visible, depth almost erased.
 
 Vertical layout, as fractions of image height:
-- 0%-16%: featureless pale grey-green haze instead of sky. Flat horizontal bands
-  blended only with checkerboard dithering.
-- 20%-37%: CRITICAL - this horizontal strip must stay MID-TONE TO DARK in value.
-  Only medium or darker grey-greens here. Nothing lighter than a medium grey. Keep the
-  fog bands crossing this strip on the darker, denser side.
-- 35%-46%: the horizon. Distant mountains almost dissolved into the fog, only their
-  faintest outlines suggested. Peaks must NOT rise above 37% of the image height.
-- 46%-80%: coniferous pine forest fading into grey with distance, its silhouettes
-  layered and softened by fog bands. A river winding down a valley, dull and pale.
-  On the RIGHT side, between 70% and 100% of the image width, on a hill: a small
-  original stone castle with a flagged tower, half-veiled in fog but still readable
-  in silhouette.
-- 80%-100%: foreground meadow of muted grey-green grass, the clearest part of the
-  image, with a narrow winding path disappearing into the murk.
-
-Weather effect: several horizontal translucent fog bands at different heights,
-rendered as dithered pale bands, not as blur.
+- 0%-15%: featureless pale grey-green haze instead of sky. Flat horizontal bands blended only with checkerboard dithering.
+  This strip sits behind the top status row, so keep it plain and low-contrast.
+- 15%-33%: FULLY VISIBLE - the primary showcase. A range of distant mountains,
+  peaks almost dissolved into the fog, softened by aerial perspective. Put your best detail here.
+- 33%-49%: CRITICAL READABILITY BAND - must stay MID-TONE TO DARK in value.
+  The huge white clock digits sit directly on top of this strip with no panel behind
+  them. Use the shadowed mid-ground valley here. Nothing lighter than a medium grey,
+  no bright snow caps, no bright clouds, no bright water.
+- 49%-83%: FULLY VISIBLE - the second showcase. coniferous pine forest fading into grey, layered by fog bands, and a river winding
+  down through a valley. On the RIGHT side, between 70% and 100% of the image width,
+  on a hill: a small original stone castle with a flagged tower, half-veiled in fog, clearly readable in silhouette.
+- 83%-100%: foreground of muted grey-green meadow, the clearest part of the image.
 
 Rendering rules, strict:
 - Hard-edged pixel art. NO anti-aliasing, NO blur, NO soft edges, NO smooth gradients.
@@ -411,21 +390,18 @@ warm amber and two small braziers flank its gate, the only warm lights in a cold
 landscape. Deep dark forest silhouette, and a river catching pale highlights.
 
 Vertical layout, as fractions of image height:
-- 0%-16%: deep dark navy night sky with scattered small white star pixels of varying
-  brightness. Flat horizontal bands blended only with checkerboard dithering.
-  NO moon anywhere.
-- 20%-37%: CRITICAL - this horizontal strip must stay MID-TONE TO DARK in value.
-  Only very dark navy and near-black here. Nothing lighter than a medium grey.
-  A few tiny stars are acceptable; no bright masses.
-- 35%-46%: the horizon. Distant mountains as dark blue-grey shapes, their snow caps
-  only faintly catching starlight. Peaks must NOT rise above 37% of the image height.
-- 46%-80%: near-black coniferous pine forest as a deep silhouette, and a river winding
-  down a valley catching cold pale highlights. On the RIGHT side, between 70% and 100%
-  of the image width, on a hill: a small original stone castle with a flagged tower,
-  its windows glowing warm amber, with two small warm braziers flanking the gate,
-  clearly readable in silhouette.
-- 80%-100%: foreground meadow of very dark blue-green grass under starlight, with a
-  narrow winding path.
+- 0%-15%: deep dark navy sky with scattered small white stars. Flat horizontal bands blended only with checkerboard dithering.
+  This strip sits behind the top status row, so keep it plain and low-contrast.
+- 15%-33%: FULLY VISIBLE - the primary showcase. A range of distant mountains,
+  dark blue-grey peaks faintly catching starlight, softened by aerial perspective. Put your best detail here.
+- 33%-49%: CRITICAL READABILITY BAND - must stay MID-TONE TO DARK in value.
+  The huge white clock digits sit directly on top of this strip with no panel behind
+  them. Use the shadowed mid-ground valley here. Nothing lighter than a medium grey,
+  no bright snow caps, no bright clouds, no bright water.
+- 49%-83%: FULLY VISIBLE - the second showcase. near-black coniferous pine forest silhouette, and a river winding
+  down through a valley. On the RIGHT side, between 70% and 100% of the image width,
+  on a hill: a small original stone castle with a flagged tower, windows glowing warm amber, two small braziers flanking the gate, clearly readable in silhouette.
+- 83%-100%: foreground of very dark blue-green grass under starlight.
 
 Rendering rules, strict:
 - Hard-edged pixel art. NO anti-aliasing, NO blur, NO soft edges, NO smooth gradients.
@@ -458,20 +434,18 @@ showing through gaps. The castle windows glow warm amber with braziers at the ga
 Very dark forest silhouette.
 
 Vertical layout, as fractions of image height:
-- 0%-16%: dark slate-blue night sky mostly covered by drifting dark grey clouds, with
-  a few small white stars visible in the gaps. Flat horizontal bands blended only with
-  checkerboard dithering. NO moon anywhere.
-- 20%-37%: CRITICAL - this horizontal strip must stay MID-TONE TO DARK in value.
-  Only dark slate blues and near-black here. Nothing lighter than a medium grey.
-  No cloud highlights inside this strip.
-- 35%-46%: the horizon. Distant mountains as dark slate-blue shapes, low in contrast.
-  Peaks must NOT rise above 37% of the image height.
-- 46%-80%: very dark coniferous pine forest as a heavy silhouette, and a river winding
-  down a valley with a dull pale sheen. On the RIGHT side, between 70% and 100% of the
-  image width, on a hill: a small original stone castle with a flagged tower, its
-  windows glowing warm amber, with two small warm braziers flanking the gate, clearly
-  readable in silhouette.
-- 80%-100%: foreground meadow of very dark blue-green grass, with a narrow winding path.
+- 0%-15%: dark slate-blue sky mostly covered by drifting dark grey clouds. Flat horizontal bands blended only with checkerboard dithering.
+  This strip sits behind the top status row, so keep it plain and low-contrast.
+- 15%-33%: FULLY VISIBLE - the primary showcase. A range of distant mountains,
+  dark slate-blue peaks, low in contrast, softened by aerial perspective. Put your best detail here.
+- 33%-49%: CRITICAL READABILITY BAND - must stay MID-TONE TO DARK in value.
+  The huge white clock digits sit directly on top of this strip with no panel behind
+  them. Use the shadowed mid-ground valley here. Nothing lighter than a medium grey,
+  no bright snow caps, no bright clouds, no bright water.
+- 49%-83%: FULLY VISIBLE - the second showcase. very dark coniferous pine forest silhouette, and a river winding
+  down through a valley. On the RIGHT side, between 70% and 100% of the image width,
+  on a hill: a small original stone castle with a flagged tower, windows glowing warm amber, braziers at the gate, clearly readable in silhouette.
+- 83%-100%: foreground of very dark blue-green grass.
 
 Rendering rules, strict:
 - Hard-edged pixel art. NO anti-aliasing, NO blur, NO soft edges, NO smooth gradients.
@@ -504,17 +478,18 @@ must not suggest any particular weather. No sun, no moon, no rain, no snow, no f
 lightning, no dramatic lighting of any kind.
 
 Vertical layout, as fractions of image height:
-- 0%-16%: neutral blue-grey twilight sky, plain and even. Flat horizontal bands blended
-  only with checkerboard dithering.
-- 20%-37%: CRITICAL - this horizontal strip must stay MID-TONE TO DARK in value.
-  Only medium or darker blue-greys and greens here. Nothing lighter than a medium grey.
-- 35%-46%: the horizon. A range of distant mountains in balanced blue-grey, moderate
-  contrast, with restrained snow caps. Peaks must NOT rise above 37% of the image height.
-- 46%-80%: coniferous pine forest over rolling hills in muted green, and a river winding
-  down through a valley. On the RIGHT side, between 70% and 100% of the image width, on
-  a hill: a small original stone castle with a flagged tower, clearly readable in
-  silhouette.
-- 80%-100%: foreground meadow of muted green grass, with a narrow winding dirt path.
+- 0%-15%: neutral blue-grey twilight sky, plain and even. Flat horizontal bands blended only with checkerboard dithering.
+  This strip sits behind the top status row, so keep it plain and low-contrast.
+- 15%-33%: FULLY VISIBLE - the primary showcase. A range of distant mountains,
+  balanced blue-grey peaks with restrained snow caps, softened by aerial perspective. Put your best detail here.
+- 33%-49%: CRITICAL READABILITY BAND - must stay MID-TONE TO DARK in value.
+  The huge white clock digits sit directly on top of this strip with no panel behind
+  them. Use the shadowed mid-ground valley here. Nothing lighter than a medium grey,
+  no bright snow caps, no bright clouds, no bright water.
+- 49%-83%: FULLY VISIBLE - the second showcase. coniferous pine forest in muted green, and a river winding
+  down through a valley. On the RIGHT side, between 70% and 100% of the image width,
+  on a hill: a small original stone castle with a flagged tower, clearly readable in silhouette.
+- 83%-100%: foreground of muted green meadow with a narrow dirt path.
 
 Rendering rules, strict:
 - Hard-edged pixel art. NO anti-aliasing, NO blur, NO soft edges, NO smooth gradients.
