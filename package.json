@@ -7,6 +7,7 @@
   "scripts": {
     "assets": "node tools/generate-assets.mjs",
     "normalize": "node tools/normalize-background.mjs",
+    "safe-area": "node tools/check-safe-area.mjs",
     "check": "node --test tests/*.test.mjs",
     "build": "zeus build",
     "dev": "zeus dev",

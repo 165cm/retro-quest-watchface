@@ -35,6 +35,7 @@ Zeus CLI 1.9.3の公開パッケージには、ESM専用の推移依存をCommon
 | `npm run check` | 純粋ロジックのテスト |
 | `npm run assets` | 数字・記号・天候アイコンとプレビューを再生成（背景は対象外） |
 | `npm run normalize` | `art/backgrounds-src/`の背景元画像を正規化して`assets/`へ出力 |
+| `npm run safe-area` | 角丸ディスプレイの隅にUIがはみ出していないか検査 |
 
 `npm run assets`は**背景PNGを書き換えません**。背景は`assets/bip-6/images/backgrounds/`にある
 実ファイルを正とし、プレビューもそこから読み込みます。
@@ -79,6 +80,7 @@ setting/index.js         Zeppアプリ内プリセット設定
 app-side/index.js        Settings StorageとBLE同期
 tools/generate-assets.mjs オリジナルPNG生成、プレビュー合成
 tools/normalize-background.mjs 背景元画像の寸法・グリッド・減色の正規化と検証
+tools/check-safe-area.mjs 角丸ディスプレイに対する座標の検査
 art/backgrounds-src/     背景の元画像置き場（パッケージ対象外）
 assets/bip-6/images/     パッケージ対象アセット
 docs/background-image-gen-brief.md 背景画像の生成指示書（制約の根拠）
@@ -196,6 +198,7 @@ Zeppアプリの文字盤設定に2つのセクションがあります。
 - 現在気温はファームウェアの`WEATHER_CURRENT`へ直接バインドするため、JavaScript側から値を単体テストできません。
 - 温度単位はシステム設定へ追従しますが、表示を簡潔にするため摂氏・華氏とも単位画像は`°`です。
 - AODの焼き付き対策は発光面積10%未満を意図した固定レイアウトです。端末固有のピクセルシフトはファームウェア動作を実機確認してください。
+- Bip 6は角丸ディスプレイですが、Zepp OSの`getDeviceInfo()`は角丸半径を返しません。`npm run safe-area`は実測に基づく想定値（既定90px）で検査するもので、端末の実寸とは一致しない可能性があります。
 - `appId`は開発用の仮値です。ストア提出前にZepp Consoleで割り当てられた値へ置き換えてください。
 - Zeus CLIの推移依存に既知の監査警告があります。`npm audit fix --force`はCLI互換性を壊すため自動適用していません。
 
