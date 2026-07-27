@@ -16,6 +16,17 @@ const DEST_ROOT = path.join(ROOT, 'assets', 'bip-6', 'images', 'backgrounds')
 const WIDTH = 366
 const HEIGHT = 430
 
+// ドット絵はPNGの適応行フィルタと相性が悪い。同色の連続を壊してしまい、
+// かえって圧縮率が落ちる。フィルタ無し + 既定のdeflate戦略にすると
+// 同じ画素のまま容量が3分の1以下になる（可逆・画素は完全一致）。
+// pngjsは渡されたオプションへ内部で書き込むため、毎回コピーを渡すこと。
+const PNG_WRITE_OPTIONS = Object.freeze({
+  colorType: 6,
+  deflateLevel: 9,
+  deflateStrategy: 0,
+  filterType: 0,
+})
+
 // 時刻数字が覆いなしで直接乗る領域（背景ローカル座標 = 画面座標 - (12, 10)）。
 // ここが明るいと白文字が読めない。watchface/layout.js の time を変えたら追従させる。
 //
@@ -172,7 +183,7 @@ function normalize(inputFile, outputFile, { grid, colors, fit }) {
   })
 
   fs.mkdirSync(path.dirname(outputFile), { recursive: true })
-  fs.writeFileSync(outputFile, PNG.sync.write(out, { colorType: 6 }))
+  fs.writeFileSync(outputFile, PNG.sync.write(out, { ...PNG_WRITE_OPTIONS }))
   return { out, sourceSize: [src.width, src.height], area }
 }
 

@@ -194,9 +194,20 @@ function polygon(png, points, fill) {
   }
 }
 
+// ドット絵はPNGの適応行フィルタと相性が悪い。同色の連続を壊してしまい、
+// かえって圧縮率が落ちる。フィルタ無し + 既定のdeflate戦略にすると
+// 同じ画素のまま容量が大きく減る（可逆・画素は完全一致）。
+// pngjsは渡されたオプションへ内部で書き込むため、毎回コピーを渡すこと。
+const PNG_WRITE_OPTIONS = Object.freeze({
+  colorType: 6,
+  deflateLevel: 9,
+  deflateStrategy: 0,
+  filterType: 0,
+})
+
 function writePng(file, png) {
   fs.mkdirSync(path.dirname(file), { recursive: true })
-  fs.writeFileSync(file, PNG.sync.write(png, { colorType: 6 }))
+  fs.writeFileSync(file, PNG.sync.write(png, { ...PNG_WRITE_OPTIONS }))
 }
 
 function drawGlyph(png, glyph, x, y, scale, fill) {
