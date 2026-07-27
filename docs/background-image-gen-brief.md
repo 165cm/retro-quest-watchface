@@ -45,63 +45,54 @@ Pixel Wayfarer Face（Amazfit Bip 6 / 390×450）の**天候別背景10枚**をI
 ```
 x=0                                                              x=366
 y=0    ┌──────────────────────────────────────────────────────────┐
-y=2    │ ▒ トップバー（天候アイコン/日付/HP）  背景の可視率 53%    │
-y=64   ├──────────────────────────────────────────────────────────┤
+       │ ★ 完全可視（36px）                                       │
+y=36   ├──────────────────────────────────────────────────────────┤
+       │ ▓ 上の窓（天候アイコン/日付/HP）  背景の可視率 22%        │
+y=82   ├──────────────────────────────────────────────────────────┤
        │                                                          │
-       │ ★ 完全可視（76px）── ここが最大の見せ場                  │
+       │ ★ 完全可視（68px）── 見せ場その1                         │
        │                                                          │
-y=140  ├──────┬────────────────────────────────────────┬──────────┤
-       │ ★可視│ 時刻数字が直接乗る（覆いなし）           │ ★可視    │
-       │ x0–31│ x31–335                                │ x335–366 │
-y=212  ├──────┴────────────────────────────────────────┴──────────┤
-y=218  │ ▒ コピー（サブタイトル）  背景の可視率 65%                │
-y=258  ├──────────────────────────────────────────────────────────┤
+y=150  ├──────┬────────────────────────────────────┬──────────────┤
+       │ ★可視│ 時刻数字が直接乗る（覆いなし）      │ ★可視        │
+       │ x0–58│ x58–360                            │ x360–366     │
+y=222  ├──────┴────────────────────────────────────┴──────────────┤
        │                                                          │
-       │ ★ 完全可視（98px）── 2つめの見せ場                       │
+       │ ★ 完全可視（76px）── 見せ場その2                         │
        │                                                          │
-y=356  ├──────────────────────────────────────────────────────────┤
-       │ ▒ 気温3列 + 歩数  背景の可視率 41%                        │
-y=418  ├──────────────────────────────────────────────────────────┤
-       │ ★ 完全可視（12px）                                       │
+y=298  ├──────────────────────────────────────────────────────────┤
+       │ ▓ 下の窓（コピー/気温/歩数）  背景の可視率 22%            │
+y=394  ├──────────────────────────────────────────────────────────┤
+       │ ★ 完全可視（36px）                                       │
 y=430  └──────────────────────────────────────────────────────────┘
 ```
 
 ### このレイアウトの性質（重要）
 
-**大きなパネルを廃し、背景が主役として見えるレイアウトです。**
-覆いがあるのは上下の帯とコピーの薄い暗幕だけで、
-**y64–140 と y258–356 の合計174pxは完全に開いています。**
+**UIは上下2枚の「窓」に集約されています。**（黒地 + 白い2pxの直角枠）
+窓の外は一切覆いがなく、**完全に見える帯が合計216px**あります。
 
 したがって：
 
-- **地平線は y 150–210 あたり**に置いてください。時刻の左右マージンに稜線が覗きます。
-- **中景（森・川・城）は y 258–356 に主役を置いてください。** ここが最も広く見えます。
-- **城は右側（x 280–366）**。時刻の右マージンとその下の開放部で大きく見えます。
-- **前景の草地は y 356 以降**。下段の暗幕越しでも41%見えます。
-- 細部を描き込む価値のある構図です（以前の版と違い、隠れる面積が小さくなりました）。
+- **地平線は y 150–220 あたり**に置いてください。時刻の左右マージンに稜線が覗きます。
+- **見せ場は y 82–150 と y 222–298**。ここが最も広く、何にも覆われません。
+- **城は右側（x 280–366）**。時刻の右マージンと y222–298 の開放部に入ります。
+- **前景の草地は y 298 以降**。窓越しでも22%見えます。
+- 窓の可視率22%は「うっすら透ける」程度です。窓の下に細部を描いても伝わりません。
 
 ### ゾーン別の描き込み方針
 
-- **▒ トップバー（y 2–64 / 可視率53%）**
-  天候アイコン・日付・HPゲージが乗ります。
-  → **太陽・月をここに描かないでください。** 天候アイコンと二重になります。
-  → 空として成立させつつ、**平坦で低コントラスト**に保ってください。
-  → 夜は星を散らすのは可（小さな点なので文字を邪魔しません）。
+- **▓ 上下の窓（可視率22%）**
+  黒地に白枠の窓が乗ります。**細部は伝わらないので、大きな面だけ通してください。**
+  → 上の窓（y36–82）には**太陽・月を描かないでください。** 天候アイコンと二重になります。
 
-- **時刻バンド（y 140–212 / x 31–335）**
-  半透明の覆いが**一切ありません**。白（`#F4F3E8`）の巨大数字が黒縁取り＋影付きで直接乗ります。
+- **時刻バンド（y 150–222 / x 58–360）**
+  覆いが**一切ありません**。白の巨大数字が黒縁取り＋影付きで直接乗ります。
   → **明部（輝度200超）が面積の5%以下**（`npm run normalize` が自動判定）。
   → **白い雪冠・明るい雲をこの矩形に入れないこと。**
-  → 左右マージン（x 0–31 / x 335–366）は完全可視。稜線や城を覗かせる好位置です。
 
-- **▒ コピー（y 218–258 / 可視率65%）**
-  時刻のサブタイトルが乗ります。65%透けるので、**なだらかな面**を通してください。
-
-- **▒ 下段（y 356–418 / 可視率41%）**
-  気温3列と歩数が乗ります。前景の草地が透けて見える想定です。
-
-- **★ 完全可視（y 64–140 / 212–218 / 258–356 / 418–430）**
-  合計約190px。**ここに絵の見せ場を集中させてください。**
+- **★ 完全可視（y 0–36 / 82–150 / 222–298 / 394–430）**
+  合計216px。**ここに絵の見せ場を集中させてください。**
+  特に y82–150 と y222–298 は、それぞれ68px・76pxのまとまった帯です。
 
 ---
 
@@ -165,7 +156,7 @@ y=430  └───────────────────────�
 | unknown | `#142436` `#203448` `#30475A` `#425C6A` | `#657680` | `#435966` | `#293F4B` | `#1D3D3A` | `#3D5545` | `#496D7A` |
 
 **UI側で使用中のため、背景で大面積に使ってはいけない色：**
-`#F4F3E8`（文字）/ `#69A7E8`（最低気温）/ `#E98A4A`（最高気温）/ `#62B84A`（HP緑）/ `#C9A85C`（枠の金）
+`#F4F3E8`（文字と窓枠）/ `#7CC6F5`（最低気温）/ `#F2A03A`（最高気温）/ `#4FA83E`（HP緑）
 
 ### 権利上の禁止事項
 既存ゲームのロゴ・キャラクター・UI・タイルセット・フォントに**似せないこと**。
@@ -183,14 +174,14 @@ Detailed pixel art landscape in the style of a classic 16-bit Japanese RPG overw
 Sweeping pastoral fantasy vista seen from a hilltop.
 
 Composition (vertical, portrait):
-- 0-15%: sky only, flat horizontal bands blended with checkerboard dithering.
+- 0-19%: sky only, flat horizontal bands blended with checkerboard dithering.
   Keep it plain and low-contrast. NO sun and NO moon anywhere.
-- 15-33%: FULLY VISIBLE. Distant snow-capped mountains softened by aerial
+- 19-35%: FULLY VISIBLE. Distant snow-capped mountains softened by aerial
   perspective. This is the primary showcase — put your best detail here.
-- 33-49%: CRITICAL. Must stay mid-tone to dark; the clock digits sit directly on it.
-- 49-83%: FULLY VISIBLE. Pine forest, a river winding down a valley, and on the
+- 35-52%: CRITICAL. Must stay mid-tone to dark; the clock digits sit directly on it.
+- 52-69%: FULLY VISIBLE. Pine forest, a river winding down a valley, and on the
   RIGHT side (70-100% width) a small original stone castle with a flagged tower.
-- 83-100%: foreground meadow with a winding dirt path.
+- 69-100%: foreground meadow with a winding dirt path.
 
 Style rules (strict):
 - Hard-edged pixel art at native 1:1 pixel scale. NO anti-aliasing, NO blurring,
@@ -208,14 +199,14 @@ Absolute exclusions:
 - Do NOT imitate any existing game's logo, characters, tilesets or specific artwork.
 
 Readability constraint (critical):
-- The horizontal band from 33% to 49% of the image height must be MID-TO-DARK only.
+- The horizontal band from 35% to 52% of the image height must be MID-TO-DARK only.
   Nothing brighter than mid-grey there. No bright snow caps, no bright clouds,
   no sun, no high-contrast detail inside that band.
 - Most of the image will be covered by translucent UI panels, so favor large calm
   shapes and broad tonal areas over fine intricate detail.
 ```
 
-> 「Readability constraint」は§2の**時刻バンド（y 140–212 = 高さの33〜49%）**に対応します。
+> 「Readability constraint」は§2の**時刻バンド（y 150–222 = 高さの35〜52%）**に対応します。
 > ここが明るいと白い時刻数字が埋もれます。生成時に効きにくい場合は、
 > 後処理で該当帯を暗く落とす方が確実です（§6の輝度チェック参照）。
 
@@ -223,12 +214,12 @@ Readability constraint (critical):
 
 | ファイル | 追加プロンプト |
 |---|---|
-| `clear_day` | `Bright clear midday, no sun visible. Vivid saturated blue sky band at the very top. Lush sunlit emerald meadow and forest. Snow caps on the distant peaks, placed in the fully visible 15-33% band. The most colorful and inviting of the set — this is the master image.` |
+| `clear_day` | `Bright clear midday, no sun visible. Vivid saturated blue sky band at the very top. Lush sunlit emerald meadow and forest. Snow caps on the distant peaks, placed in the fully visible 19-35% band. The most colorful and inviting of the set — this is the master image.` |
 | `partly_cloudy_day` | `Softer daylight, slightly hazier blue sky. More and larger cumulus clouds drifting across the upper area, casting subtle shade patches on the meadow. Slightly muted greens.` |
 | `cloudy_day` | `Fully overcast grey-blue daylight. Flat diffuse light, low contrast, no visible sun. Heavy grey cloud cover filling the upper band. Desaturated muted greens, subdued mountains.` |
 | `rain` | `Overcast rainy scene, dark blue-grey and moody. Diagonal light-blue rain streaks evenly scattered across the whole image. Dark low storm clouds. The castle windows glow warm amber against the gloom. Wet darkened meadow, swollen river.` |
 | `thunder` | `Violent night thunderstorm, very dark navy. Diagonal rain streaks. One bright jagged yellow lightning bolt striking down from the clouds in the upper middle area, faintly illuminating the peaks. Bruised dark storm clouds. Castle windows glow amber.` |
-| `snow` | `Cold quiet snowfall, pale blue-grey. White snowflake pixels scattered evenly. Snow blanketing the meadow, forest canopy and mountains. Pine trees dusted white. Pale frozen river. IMPORTANT: keep the 33-49% height band mid-to-dark — do not let bright snow fill it.` |
+| `snow` | `Cold quiet snowfall, pale blue-grey. White snowflake pixels scattered evenly. Snow blanketing the meadow, forest canopy and mountains. Pine trees dusted white. Pale frozen river. IMPORTANT: keep the 35-52% height band mid-to-dark — do not let bright snow fill it.` |
 | `fog` | `Thick fog, desaturated grey-green. Horizontal translucent fog bands sweeping across the mountains and forest at several heights. Very low contrast, distant peaks barely visible, depth flattened, mysterious.` |
 | `clear_night` | `Clear night, deep dark navy sky, NO moon. Scattered small white star pixels in the sky band. The castle windows glow warm amber, with two small braziers flanking its gate. Deep dark forest silhouette, river catching pale highlights.` |
 | `cloudy_night` | `Overcast night, dark slate blue, NO moon. Drifting dark grey clouds, few visible stars. Castle windows glow amber with braziers at the gate. Very dark forest silhouette.` |
@@ -281,7 +272,7 @@ snow.png: 366x430, grid 1, 色数 62, 時刻バンド 平均輝度 160 / 明部 
 リファレンスのような繊細な階調は失われます。**このスタイルでは `--grid 1`（既定）を使ってください。**
 
 **注意2：** 時刻バンドの警告が出た場合、プロンプトの再試行より
-**該当帯（ローカル y140–212）を後処理で暗く落とす**方が確実です。
+**該当帯（ローカル y150–222）を後処理で暗く落とす**方が確実です。
 `snow` と `partly_cloudy_day` は明部が増えやすいので注意してください。
 
 ---
@@ -292,7 +283,7 @@ snow.png: 366x430, grid 1, 色数 62, 時刻バンド 平均輝度 160 / 明部 
 
 - [ ] 10ファイルすべて **366×430 px**、PNG（RGBA）
 - [ ] 1枚あたり **64色以内**
-- [ ] 時刻バンド（y 140–212 / x 31–335）の**明部（輝度200超）が面積の5%以下**
+- [ ] 時刻バンド（y 150–222 / x 58–360）の**明部（輝度200超）が面積の5%以下**
       ※ 星や雪の粒のような小さな明点は許容されます。判定は面積比です。
 
 目視で確認する項目：
@@ -301,7 +292,7 @@ snow.png: 366x430, grid 1, 色数 62, 時刻バンド 平均輝度 160 / 明部 
 - [ ] 階調が**バンディング＋ディザ**で表現されている（滑らかな連続グラデでない）
 - [ ] **空気遠近法**が効いていて奥行きが感じられる
 - [ ] 10枚の**構図が一致**（山の稜線・川・城の位置が揃っている）
-- [ ] 半透明領域（y 2–64 / 218–258 / 356–418）が**低ディテール**
+- [ ] 窓の下（y 36–82 / 298–394）が**低ディテール**
 - [ ] 背景に文字・数字・記号が**含まれていない**
 - [ ] 人物・モンスターが**含まれていない**
 - [ ] 既存ゲームの意匠に**似ていない**

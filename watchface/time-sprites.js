@@ -40,14 +40,15 @@ export function createTimeSprites({
     digitW,
     colonW,
     gap,
-    // reserveRight にAM/PMの幅を渡すと、それも含めた全体を中央へ寄せる。
+    // 数字列そのものを画面中央へ寄せる。AM/PMの幅は含めない。
+    // 含めると12h/24hの切替や桁数で時刻の中心が動き、下の行と軸がズレる。
     // 戻り値は数字列の右端。AM/PMの配置に使う。
-    update(hourText, minuteText, reserveRight = 0) {
+    update(hourText, minuteText) {
       const hasLeadingHour = hourText.length === 2
       const items = hasLeadingHour ? 5 : 4
       const width =
         (hasLeadingHour ? 4 : 3) * digitW + colonW + (items - 1) * gap
-      let x = Math.round((SCREEN.width - width - reserveRight) / 2)
+      let x = Math.round((SCREEN.width - width) / 2)
       digits[0].setProperty(ui.prop.VISIBLE, hasLeadingHour)
 
       const hourDigits = hasLeadingHour ? hourText : `0${hourText}`

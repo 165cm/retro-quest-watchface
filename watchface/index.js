@@ -7,7 +7,6 @@ import { COLORS, TYPE } from './theme.js'
 import { getCopyPreset } from './copy.js'
 import {
   TOTAL_SEGMENTS,
-  formatBatteryPercent,
   getBatteryColorKey,
   getFilledSegments,
   normalizeBattery,
@@ -50,12 +49,22 @@ function digitArray(path) {
   return Array.from({ length: 10 }, (_, index) => `${path}/${index}.png`)
 }
 
-// 文字を読ませるための薄い暗幕。枠は持たせず、背景は透けたままにする。
-function scrim(rect, alpha) {
-  return ui.createWidget(ui.widget.FILL_RECT, {
+// ドラクエ様式の窓。黒地に白い2pxの直角枠、それだけ。
+// 背景は完全に隠さず透かすが、透過率は上下で揃えて材質を一つに見せる。
+const WINDOW_ALPHA = 200
+
+function questWindow(rect) {
+  ui.createWidget(ui.widget.FILL_RECT, {
     ...rect,
-    color: COLORS.BACKGROUND_NAVY,
-    alpha,
+    color: COLORS.WINDOW,
+    alpha: WINDOW_ALPHA,
+    show_level: ui.show_level.ONLY_NORMAL,
+  })
+  ui.createWidget(ui.widget.STROKE_RECT, {
+    ...rect,
+    color: COLORS.TEXT_PRIMARY,
+    line_width: 2,
+    radius: 0,
     show_level: ui.show_level.ONLY_NORMAL,
   })
 }
@@ -90,7 +99,6 @@ WatchFace(
     amPm: null,
     date: null,
     hpSegments: [],
-    hpPercent: null,
     aod: null,
     copyText: null,
     step: null,
@@ -166,14 +174,15 @@ WatchFace(
       show_level: ui.show_level.ONLY_NORMAL,
     })
 
-    this.drawTopBar()
-    this.drawTimeGroup()
-    this.drawBottomBar()
+    this.drawTopWindow()
+    this.drawTime()
+    this.drawBottomWindow()
   },
 
-  // 天候アイコン、日付、HPゲージ。背景の明るさに左右されないよう薄い暗幕を敷く。
-  drawTopBar() {
-    scrim(LAYOUT.topBar, 120)
+  // 上の窓: 天候アイコン・日付・HPゲージを1行に。
+  // パーセント表示はゲージと同じ値の二重表示なので通常表示では持たない。
+  drawTopWindow() {
+    questWindow(LAYOUT.topWindow)
 
     this.state.weatherIcon = ui.createWidget(ui.widget.IMG, {
       ...LAYOUT.weatherIcon,
@@ -190,14 +199,6 @@ WatchFace(
       ui.show_level.ONLY_NORMAL,
     )
 
-    textWidget(
-      LAYOUT.hp.label,
-      'HP',
-      TYPE.hp,
-      COLORS.TEXT_PRIMARY,
-      ui.align.LEFT,
-      ui.show_level.ONLY_NORMAL,
-    )
     for (let i = 0; i < TOTAL_SEGMENTS; i += 1) {
       const x = LAYOUT.hp.gaugeX + i * (LAYOUT.hp.segmentW + LAYOUT.hp.gap)
       ui.createWidget(ui.widget.STROKE_RECT, {
@@ -205,7 +206,7 @@ WatchFace(
         y: LAYOUT.hp.gaugeY,
         w: LAYOUT.hp.segmentW,
         h: LAYOUT.hp.segmentH,
-        color: COLORS.TEXT_MUTED,
+        color: COLORS.TEXT_PRIMARY,
         line_width: 1,
         radius: 0,
         show_level: ui.show_level.ONLY_NORMAL,
@@ -221,19 +222,10 @@ WatchFace(
         }),
       )
     }
-    this.state.hpPercent = textWidget(
-      LAYOUT.hp.percent,
-      '--%',
-      TYPE.hpPercent,
-      COLORS.TEXT_PRIMARY,
-      ui.align.RIGHT,
-      ui.show_level.ONLY_NORMAL,
-    )
   },
 
-  // 時刻とコピーをひとかたまりにする。時刻が主役、コピーはサブタイトル。
-  // 時刻は覆いなしで背景に直接乗せ、数字側の縁取りと影で視認性を確保する。
-  drawTimeGroup() {
+  // 時刻は窓を持たず背景へ直接。数字側の縁取りと影で視認性を確保する。
+  drawTime() {
     this.state.mainTime = createTimeSprites({
       y: LAYOUT.time.y,
       digitPath: 'images/digits/time',
@@ -243,35 +235,41 @@ WatchFace(
       gap: LAYOUT.time.gap,
       showLevel: ui.show_level.ONLY_NORMAL,
     })
-    this.state.amPm = textWidget(
-      {
-        x: 0,
-        y: LAYOUT.time.y + LAYOUT.amPm.offsetY,
-        w: LAYOUT.amPm.w,
-        h: LAYOUT.amPm.h,
-      },
-      '',
-      TYPE.amPm,
-      COLORS.TEXT_PRIMARY,
-      ui.align.LEFT,
-      ui.show_level.ONLY_NORMAL,
-    )
+    this.state.amPm = ui.createWidget(ui.widget.IMG, {
+      x: 0,
+      y: LAYOUT.time.y + LAYOUT.amPm.offsetY,
+      w: LAYOUT.amPm.w,
+      h: LAYOUT.amPm.h,
+      src: 'images/ampm/am.png',
+      show_level: ui.show_level.ONLY_NORMAL,
+    })
+  },
 
-    scrim(LAYOUT.copyScrim, 90)
+  // 下の窓: ▶カーソル付きのコピー、区切り線、気温3列、歩数。
+  drawBottomWindow() {
+    questWindow(LAYOUT.bottomWindow)
+
+    ui.createWidget(ui.widget.IMG, {
+      ...LAYOUT.copyCursor,
+      src: 'images/cursor.png',
+      show_level: ui.show_level.ONLY_NORMAL,
+    })
     const preset = getCopyPreset(this.state.presetIndex)
     this.state.copyText = textWidget(
       LAYOUT.copyText,
       preset.text,
       TYPE.copyText,
       COLORS.TEXT_PRIMARY,
-      ui.align.CENTER_H,
+      ui.align.LEFT,
       ui.show_level.ONLY_NORMAL,
     )
-  },
 
-  // 気温3列と歩数。上段と同じ文字サイズで、画面下端に収める。
-  drawBottomBar() {
-    scrim(LAYOUT.bottomBar, 150)
+    ui.createWidget(ui.widget.FILL_RECT, {
+      ...LAYOUT.divider,
+      color: COLORS.TEXT_PRIMARY,
+      alpha: 90,
+      show_level: ui.show_level.ONLY_NORMAL,
+    })
 
     const temp = LAYOUT.temperature
     const columns = [
@@ -312,6 +310,7 @@ WatchFace(
       ui.show_level.ONLY_NORMAL,
     )
   },
+
   updateTimeAndDate() {
     const time = this.state.time
     const rawHour = time.getHours()
@@ -320,10 +319,9 @@ WatchFace(
     const hourText = String(displayHour)
     const minuteText = String(time.getMinutes()).padStart(2, '0')
 
-    // 12時間表示のときはAM/PMの分だけ右に幅を予約し、「11:10PM」全体を中央へ寄せる。
-    const amPm = is12Hour ? (rawHour < 12 ? 'AM' : 'PM') : ''
-    const reserveRight = amPm ? LAYOUT.amPm.w + LAYOUT.amPm.gap : 0
-    const timeEndX = this.state.mainTime.update(hourText, minuteText, reserveRight)
+    // 数字列そのものを中央へ寄せる。AM/PMの幅を計算へ含めると、
+    // 12h/24hの切替や桁数で時刻の中心が動いてしまう。
+    const timeEndX = this.state.mainTime.update(hourText, minuteText)
     this.state.aod.time.update(hourText, minuteText)
 
     this.state.amPm.setProperty(ui.prop.MORE, {
@@ -331,8 +329,12 @@ WatchFace(
       y: LAYOUT.time.y + LAYOUT.amPm.offsetY,
       w: LAYOUT.amPm.w,
       h: LAYOUT.amPm.h,
+      src: is12Hour
+        ? rawHour < 12
+          ? 'images/ampm/am.png'
+          : 'images/ampm/pm.png'
+        : 'images/ampm/blank.png',
     })
-    this.state.amPm.setProperty(ui.prop.TEXT, amPm)
 
     const weekday = WEEKDAYS[time.getDay() - 1] || '---'
     const dateText = `${time.getMonth()}/${time.getDate()} ${weekday}`
@@ -365,12 +367,9 @@ WatchFace(
         y: LAYOUT.aod.hpGaugeY,
         w: LAYOUT.aod.segmentW,
         h: LAYOUT.aod.segmentH,
-        color: index < filled ? COLORS.AOD_TEXT : COLORS.HP_EMPTY,
+        color: index < filled ? COLORS.AOD_TEXT : COLORS.AOD_EMPTY,
       })
     })
-    const percent = formatBatteryPercent(value)
-    this.state.hpPercent.setProperty(ui.prop.TEXT, percent)
-    this.state.aod.percent.setProperty(ui.prop.TEXT, percent)
   },
 
   updateWeather() {

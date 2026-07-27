@@ -2,12 +2,13 @@
 //
 // Bip 6は角丸なので、矩形の画面いっぱいに座標を置くと四隅で内容が欠ける。
 // Zepp OSのgetDeviceInfo()はwidth/height/screenShapeしか返さず角丸半径を公開していないため、
-// 半径は実測に基づく想定値を使う。既定は保守的に大きめを取っている。
+// 半径は実機で欠けた事実から逆算した想定値を使う。90pxでは実機の欠けを説明できず、
+// 実効半径は100〜105pxと見積もられるため、既定を105にしている。
 //
-//   node tools/check-safe-area.mjs [--radius 90]
+//   node tools/check-safe-area.mjs [--radius 105]
 import { LAYOUT, SCREEN } from '../watchface/layout.js'
 
-const DEFAULT_RADIUS = 90
+const DEFAULT_RADIUS = 105
 
 function parseRadius(argv) {
   const index = argv.indexOf('--radius')
@@ -75,7 +76,7 @@ collectRects(LAYOUT, '', rects)
 
 // 画面いっぱいに敷く装飾は、角が丸く欠けても情報が失われないため許容する。
 // 検査したいのは文字やアイコンなど「欠けたら困る中身」の方。
-const FULL_BLEED = new Set(['background', 'topBar', 'bottomBar', 'copyScrim'])
+const FULL_BLEED = new Set(['background'])
 
 console.log(`角丸半径 ${radius}px を想定して ${SCREEN.width}x${SCREEN.height} を検査します\n`)
 

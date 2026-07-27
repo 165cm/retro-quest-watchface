@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { PNG } from 'pngjs'
+import { LAYOUT } from '../watchface/layout.js'
 
 const ROOT = process.cwd()
 const ASSET_ROOT = path.join(ROOT, 'assets', 'bip-6', 'images')
@@ -50,6 +51,245 @@ const GLYPHS = {
   '%': ['11001', '11010', '00100', '01000', '10110', '00110', '00000'],
   ',': ['00000', '00000', '00000', '00000', '00110', '00110', '01100'],
   '°': ['01100', '10010', '10010', '01100', '00000', '00000', '00000'],
+}
+
+// 時刻専用の字形。22×30グリッドに2pxモジュールで描く。
+// 5×7を9倍する方式は、縁取り(3px)がモジュール(9px)と噛み合わず
+// 「ドット絵でも滑らかでもない」中間状態になっていた。
+// 背景の絵は1〜2px単位でディザリングされているので、字形も同じ密度に寄せる。
+// 0は閉じたカウンター（スラッシュゼロは等幅端末の記号でRPGの語彙ではない）。
+// 1は左にフラグを付けて他の数字と字幅を揃える。
+const TIME_GLYPHS = {
+  0: [
+    '0000111111110000',
+    '0001111111111000',
+    '0011111111111100',
+    '0111110000111110',
+    '0111100000011110',
+    '1111000000001111',
+    '1111000000001111',
+    '1111000000001111',
+    '1111000000001111',
+    '1111000000001111',
+    '1111000000001111',
+    '1111000000001111',
+    '1111000000001111',
+    '1111000000001111',
+    '1111000000001111',
+    '1111000000001111',
+    '0111100000011110',
+    '0111110000111110',
+    '0011111111111100',
+    '0001111111111000',
+    '0000111111110000',
+  ],
+  1: [
+    '0000001111110000',
+    '0000011111110000',
+    '0001111111110000',
+    '0011111111110000',
+    '0011110011110000',
+    '0011000011110000',
+    '0000000011110000',
+    '0000000011110000',
+    '0000000011110000',
+    '0000000011110000',
+    '0000000011110000',
+    '0000000011110000',
+    '0000000011110000',
+    '0000000011110000',
+    '0000000011110000',
+    '0000000011110000',
+    '0000000011110000',
+    '0000000011110000',
+    '0011111111111100',
+    '0011111111111100',
+    '0011111111111100',
+  ],
+  2: [
+    '0000111111110000',
+    '0011111111111100',
+    '0111111111111110',
+    '1111000000011111',
+    '1110000000001111',
+    '0000000000001111',
+    '0000000000001111',
+    '0000000000011110',
+    '0000000000111100',
+    '0000000001111000',
+    '0000000011110000',
+    '0000000111100000',
+    '0000001111000000',
+    '0000011110000000',
+    '0000111100000000',
+    '0001111000000000',
+    '0011110000000000',
+    '0111100000000000',
+    '1111111111111111',
+    '1111111111111111',
+    '1111111111111111',
+  ],
+  3: [
+    '0011111111111100',
+    '0111111111111110',
+    '1111111111111111',
+    '0000000000011110',
+    '0000000000111100',
+    '0000000001111000',
+    '0000000011110000',
+    '0000011111100000',
+    '0000011111110000',
+    '0000000000111100',
+    '0000000000011110',
+    '0000000000001111',
+    '0000000000001111',
+    '0000000000001111',
+    '1110000000001111',
+    '1111000000011111',
+    '0111111111111110',
+    '0011111111111100',
+    '0000111111110000',
+    '0000000000000000',
+    '0000000000000000',
+  ],
+  4: [
+    '0000000011111000',
+    '0000000111111000',
+    '0000001111111000',
+    '0000011110111000',
+    '0000111100111000',
+    '0001111000111000',
+    '0011110000111000',
+    '0111100000111000',
+    '1111000000111000',
+    '1111000000111000',
+    '1111111111111111',
+    '1111111111111111',
+    '1111111111111111',
+    '0000000000111000',
+    '0000000000111000',
+    '0000000000111000',
+    '0000000000111000',
+    '0000000000111000',
+    '0000000000111000',
+    '0000000000000000',
+    '0000000000000000',
+  ],
+  5: [
+    '1111111111111100',
+    '1111111111111100',
+    '1111111111111100',
+    '1111000000000000',
+    '1111000000000000',
+    '1111000000000000',
+    '1111000000000000',
+    '1111111111100000',
+    '1111111111111000',
+    '1111111111111100',
+    '0000000000111110',
+    '0000000000011110',
+    '0000000000001111',
+    '0000000000001111',
+    '1110000000001111',
+    '1111000000011111',
+    '0111111111111110',
+    '0011111111111100',
+    '0000111111110000',
+    '0000000000000000',
+    '0000000000000000',
+  ],
+  6: [
+    '0000011111111000',
+    '0001111111111100',
+    '0011111111111110',
+    '0111110000011110',
+    '0111100000001110',
+    '1111000000000000',
+    '1111000000000000',
+    '1111011111110000',
+    '1111111111111000',
+    '1111111111111100',
+    '1111100000111110',
+    '1111000000011110',
+    '1111000000001111',
+    '1111000000001111',
+    '0111100000011110',
+    '0111110000111110',
+    '0011111111111100',
+    '0001111111111000',
+    '0000111111100000',
+    '0000000000000000',
+    '0000000000000000',
+  ],
+  7: [
+    '1111111111111111',
+    '1111111111111111',
+    '1111111111111111',
+    '0000000000011110',
+    '0000000000111100',
+    '0000000001111000',
+    '0000000011110000',
+    '0000000111100000',
+    '0000001111000000',
+    '0000011110000000',
+    '0000111100000000',
+    '0000111100000000',
+    '0001111000000000',
+    '0001111000000000',
+    '0011110000000000',
+    '0011110000000000',
+    '0011110000000000',
+    '0011110000000000',
+    '0011110000000000',
+    '0000000000000000',
+    '0000000000000000',
+  ],
+  8: [
+    '0000111111110000',
+    '0011111111111100',
+    '0111111111111110',
+    '1111000000001111',
+    '1111000000001111',
+    '1111000000001111',
+    '0111100000011110',
+    '0011111111111100',
+    '0001111111111000',
+    '0011111111111100',
+    '0111100000011110',
+    '1111000000001111',
+    '1111000000001111',
+    '1111000000001111',
+    '1111000000001111',
+    '0111100000011110',
+    '0111111111111110',
+    '0011111111111100',
+    '0000111111110000',
+    '0000000000000000',
+    '0000000000000000',
+  ],
+  9: [
+    '0000111111100000',
+    '0001111111111000',
+    '0011111111111100',
+    '0111100000111110',
+    '1111000000011110',
+    '1111000000001111',
+    '1111000000001111',
+    '0111100000111111',
+    '0011111111111111',
+    '0001111111111111',
+    '0000011111101111',
+    '0000000000001111',
+    '0000000000001111',
+    '0111000000011110',
+    '0111100000111110',
+    '0011111111111100',
+    '0001111111111000',
+    '0000111111100000',
+    '0000000000000000',
+    '0000000000000000',
+    '0000000000000000',
+  ],
 }
 
 function color(hex) {
@@ -264,8 +504,120 @@ function drawPattern(png, rows, x, y, scale, palette) {
   })
 }
 
+// 任意のビットマップ行配列を、モジュール単位で縁取り・影つきに描く。
+// 縁取りのずらし幅を1pxではなくモジュール単位にするのが要点。
+// 1px刻みでずらすと、縁がグリッドから外れて汚れる（旧実装の不具合）。
+function drawRowsOutlined(png, rows, x, y, scale, fill, outline, shadow) {
+  const put = (rowSet, ox, oy, color) => {
+    rowSet.forEach((row, ry) => {
+      ;[...row].forEach((pixel, rx) => {
+        if (pixel === '1') {
+          rect(png, x + ox + rx * scale, y + oy + ry * scale, scale, scale, color)
+        }
+      })
+    })
+  }
+  if (shadow) put(rows, scale * 2, scale * 2, shadow)
+  for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    put(rows, ox * scale, oy * scale, outline)
+  }
+  put(rows, 0, 0, fill)
+}
+
+function rowsWidth(rows) {
+  return rows[0].length
+}
+
+// 時刻の数字。2pxモジュール、1モジュールの縁取り、2モジュールの影。
+function generateTimeDigits(name, cellW, cellH, scale, fill, outline, shadow, colonW) {
+  const directory = path.join(ASSET_ROOT, 'digits', name)
+  for (let digit = 0; digit <= 9; digit += 1) {
+    const rows = TIME_GLYPHS[digit]
+    const png = image(cellW, cellH, '#00000000')
+    const inkW = rowsWidth(rows) * scale
+    const inkH = rows.length * scale
+    const x = Math.round((cellW - inkW - scale * 2) / 2)
+    const y = Math.round((cellH - inkH - scale * 2) / 2)
+    drawRowsOutlined(png, rows, x, y, scale, fill, outline, shadow)
+    writePng(path.join(directory, `${digit}.png`), png)
+  }
+
+  const colonRows = []
+  for (let i = 0; i < 21; i += 1) {
+    colonRows.push(i >= 5 && i <= 8 ? '1111' : i >= 12 && i <= 15 ? '1111' : '0000')
+  }
+  const colon = image(colonW, cellH, '#00000000')
+  const cx = Math.round((colonW - 4 * scale - scale * 2) / 2)
+  const cy = Math.round((cellH - 21 * scale - scale * 2) / 2)
+  drawRowsOutlined(colon, colonRows, cx, cy, scale, fill, outline, shadow)
+  writePng(path.join(directory, 'colon.png'), colon)
+
+  const negative = image(Math.max(scale * 8, 16), cellH, '#00000000')
+  const negRows = Array.from({ length: 21 }, (_, i) => (i >= 9 && i <= 11 ? '111111' : '000000'))
+  drawRowsOutlined(negative, negRows, scale, cy, scale, fill, outline, shadow)
+  writePng(path.join(directory, 'negative.png'), negative)
+
+  const degreeRows = [
+    '011110',
+    '111111',
+    '110011',
+    '110011',
+    '111111',
+    '011110',
+  ]
+  const degree = image(scale * 10, cellH, '#00000000')
+  drawRowsOutlined(degree, degreeRows, scale, cy, scale, fill, outline, shadow)
+  writePng(path.join(directory, 'degree.png'), degree)
+}
+
+// AM/PM。時刻と同じ縁取り体系で書き出し、システムフォントとの混在をなくす。
+// 字形は既存の5×7から組む（自前で描き起こすと字として読めなくなる）。
+function generateAmPm(scale, fill, outline, shadow, cellW, cellH) {
+  const directory = path.join(ASSET_ROOT, 'ampm')
+  for (const name of ['am', 'pm']) {
+    const png = image(cellW, cellH, '#00000000')
+    const letters = [...name.toUpperCase()]
+    const glyphW = 5 * scale
+    const spacing = scale
+    const inkW = letters.length * glyphW + (letters.length - 1) * spacing
+    let x = Math.round((cellW - inkW) / 2)
+    const y = Math.round((cellH - 7 * scale) / 2)
+    for (const letter of letters) {
+      drawRowsOutlined(png, GLYPHS[letter], x, y, scale, fill, outline, shadow)
+      x += glyphW + spacing
+    }
+    writePng(path.join(directory, `${name}.png`), png)
+  }
+  // 24時間表示のとき差し替える透明画像。ウィジェットを作り直さずに消せる。
+  writePng(path.join(directory, 'blank.png'), image(cellW, cellH, '#00000000'))
+}
+
+// ▶カーソル。ドラクエUIで最も認識率の高い記号。
+function drawCursor() {
+  const png = image(14, 18, '#00000000')
+  drawPattern(
+    png,
+    [
+      '1000000',
+      '1100000',
+      '1110000',
+      '1111000',
+      '1111100',
+      '1111110',
+      '1111100',
+      '1111000',
+      '1110000',
+    ],
+    0,
+    0,
+    2,
+    { 1: '#F4F3E8' },
+  )
+  return png
+}
+
 function generateDigitSet(name, width, height, scale, fill, outline = null, options = {}) {
-  const { thickness = 2, shadow = null, shadowOffset = 3, colonW = null } = options
+  const { thickness = 1, shadow = null, shadowOffset = 3, colonW = null } = options
   const directory = path.join(ASSET_ROOT, 'digits', name)
   for (let digit = 0; digit <= 9; digit += 1) {
     const png = image(width, height, '#00000000')
@@ -628,80 +980,111 @@ function loadBackground(theme) {
 
 // 実機のdrawNormalView()と同じ座標で合成する。watchface/layout.js を変えたらここも合わせる。
 // 実機のdrawNormalView()と同じ座標で合成する。watchface/layout.js を変えたらここも合わせる。
-function preview(theme = 'clear_day', { hour = '10', minute = '09', amPm = 'AM' } = {}) {
+// 実機と同じ座標で合成する。座標は watchface/layout.js を読み、
+// 数字・アイコン類は生成済みの実スプライトを貼るので、実装とずれない。
+// ただし日付・コピー・気温ラベル・歩数は実機ではシステムフォントで描かれる。
+// ここではビットマップ字形で近似しているため、字幅は実機と完全一致しない。
+function loadAsset(relative) {
+  return PNG.sync.read(fs.readFileSync(path.join(ASSET_ROOT, relative)))
+}
+
+function previewWindow(png, rect) {
+  overlayRect(png, rect.x, rect.y, rect.w, rect.h, '#000000', 200)
+  rect2(png, rect.x, rect.y, rect.w, 2, '#F4F3E8')
+  rect2(png, rect.x, rect.y + rect.h - 2, rect.w, 2, '#F4F3E8')
+  rect2(png, rect.x, rect.y, 2, rect.h, '#F4F3E8')
+  rect2(png, rect.x + rect.w - 2, rect.y, 2, rect.h, '#F4F3E8')
+}
+
+const rect2 = rect
+
+function preview(theme = 'clear_day', { hour = '10', minute = '09', amPm = 'am' } = {}) {
   const png = image(390, 450, '#031426')
-  blit(png, loadBackground(theme), 12, 10)
+  blit(png, loadBackground(theme), LAYOUT.background.x, LAYOUT.background.y)
 
-  // 上段: 薄い暗幕 + 天候アイコン + 日付 + HP
-  overlayRect(png, 12, 12, 366, 62, '#031426', 120)
-  blit(png, drawWeatherIcon(theme), 24, 20)
-  drawText(png, '7/24 FRI', 60, 27, 3, '#F4F3E8', 2)
-  drawText(png, 'HP', 206, 27, 3, '#F4F3E8', 3)
+  // 上の窓
+  previewWindow(png, LAYOUT.topWindow)
+  blit(png, drawWeatherIcon(theme), LAYOUT.weatherIcon.x, LAYOUT.weatherIcon.y)
+  drawText(png, '7/24 FRI', LAYOUT.date.x, LAYOUT.date.y + 5, 3, '#F4F3E8', 2)
   for (let i = 0; i < 10; i += 1) {
-    const x = 236 + i * 13
-    rect(png, x, 27, 11, 16, '#A9B0B8')
-    rect(png, x + 2, 29, 7, 12, i < 7 ? '#62B84A' : '#183047')
+    const x = LAYOUT.hp.gaugeX + i * (LAYOUT.hp.segmentW + LAYOUT.hp.gap)
+    rect(png, x, LAYOUT.hp.gaugeY, LAYOUT.hp.segmentW, LAYOUT.hp.segmentH, '#F4F3E8')
+    rect(
+      png,
+      x + 2,
+      LAYOUT.hp.gaugeY + 2,
+      LAYOUT.hp.segmentW - 4,
+      LAYOUT.hp.segmentH - 4,
+      i < 7 ? '#4FA83E' : '#1A1A1A',
+    )
   }
-  drawText(png, '68%', 321, 51, 3, '#F4F3E8', 2)
 
-  // 時刻: 覆いなしで背景に直接。AM/PM込みで中央寄せ。
-  const digitW = 52
-  const digitH = 72
-  const colonW = 18
-  const gap = 6
-  const timeY = 150
-  const amPmW = 46
-  const amPmGap = 8
-  const reserveRight = amPm ? amPmW + amPmGap : 0
-  const hourDigits = [...hour]
-  const minuteDigits = [...minute]
-  const totalW = (hourDigits.length + 2) * digitW + colonW + (hourDigits.length + 2) * gap
-  let cursor = Math.round((390 - totalW - reserveRight) / 2)
-  const insetX = Math.floor((digitW - 5 * 9) / 2)
-  const insetY = Math.floor((digitH - 7 * 9) / 2)
-  const putDigit = (d) => {
-    drawGlyph(png, Number(d), cursor + insetX + 4, timeY + insetY + 4, 9, '#010912')
-    drawGlyphOutlined(png, Number(d), cursor + insetX, timeY + insetY, 9, '#F4F3E8', '#031426', 3)
-    cursor += digitW + gap
+  // 時刻: 実スプライトを貼る。中央寄せの式も実装と同じ。
+  const t = LAYOUT.time
+  const digits = [...hour.padStart(2, ' ')].concat([...minute])
+  const hasLeading = hour.length === 2
+  const items = hasLeading ? 5 : 4
+  const width = (hasLeading ? 4 : 3) * t.digitW + t.colonW + (items - 1) * t.gap
+  let cursor = Math.round((390 - width) / 2)
+  const place = (sprite, w) => {
+    blit(png, sprite, cursor, t.y)
+    cursor += w + t.gap
   }
-  hourDigits.forEach(putDigit)
-  rect(png, cursor + Math.floor((colonW - 9) / 2), timeY + Math.floor(digitH * 0.32), 9, 9, '#F4F3E8')
-  rect(png, cursor + Math.floor((colonW - 9) / 2), timeY + Math.floor(digitH * 0.64), 9, 9, '#F4F3E8')
-  cursor += colonW + gap
-  minuteDigits.forEach(putDigit)
-  const timeEndX = cursor - gap
-  if (amPm) drawText(png, amPm, timeEndX + amPmGap, timeY + 46, 3, '#F4F3E8', 3)
+  if (hasLeading) place(loadAsset(`digits/time/${hour[0]}.png`), t.digitW)
+  place(loadAsset(`digits/time/${hour[hour.length - 1]}.png`), t.digitW)
+  place(loadAsset('digits/time/colon.png'), t.colonW)
+  place(loadAsset(`digits/time/${minute[0]}.png`), t.digitW)
+  place(loadAsset(`digits/time/${minute[1]}.png`), t.digitW)
+  const timeEndX = cursor - t.gap
+  if (amPm) {
+    blit(png, loadAsset(`ampm/${amPm}.png`), timeEndX + LAYOUT.amPm.gap, t.y + LAYOUT.amPm.offsetY)
+  }
 
-  // コピー: 枠は持たせず、薄い暗幕のみ
-  overlayRect(png, 12, 228, 366, 40, '#031426', 90)
-  drawText(png, 'SAFETY FIRST', 92, 238, 3, '#F4F3E8', 3)
+  // 下の窓
+  previewWindow(png, LAYOUT.bottomWindow)
+  blit(png, drawCursor(), LAYOUT.copyCursor.x, LAYOUT.copyCursor.y)
+  drawText(png, 'SAFETY FIRST', LAYOUT.copyText.x, LAYOUT.copyText.y + 4, 3, '#F4F3E8', 3)
+  overlayRect(png, LAYOUT.divider.x, LAYOUT.divider.y, LAYOUT.divider.w, LAYOUT.divider.h, '#F4F3E8', 90)
 
-  // 下段: 気温3列 + 歩数
-  overlayRect(png, 12, 366, 366, 62, '#031426', 150)
-  drawText(png, 'L', 55, 376, 2, '#69A7E8', 2)
-  drawText(png, 'NOW', 114, 376, 2, '#F4F3E8', 2)
-  drawText(png, 'H', 199, 376, 2, '#E98A4A', 2)
-  drawText(png, '23°', 36, 400, 3, '#69A7E8', 2)
-  drawText(png, '24°', 108, 400, 3, '#F4F3E8', 2)
-  drawText(png, '30°', 180, 400, 3, '#E98A4A', 2)
-  blit(png, drawStepsIcon(), 252, 399)
-  drawText(png, '3,548', 280, 400, 3, '#F4F3E8', 2)
+  const temp = LAYOUT.temperature
+  const labels = [
+    ['L', '#7CC6F5', 'temp-low', '23'],
+    ['NOW', '#F4F3E8', 'temp-now', '24'],
+    ['H', '#F2A03A', 'temp-high', '30'],
+  ]
+  labels.forEach(([label, color, dir, value], index) => {
+    const column = temp.columns[index]
+    const labelW = label.length * 13 - 3
+    drawText(png, label, column.x + (column.w - labelW) / 2, temp.labelY + 3, 2, color, 2)
+    const digitSprites = [...value].map((d) => loadAsset(`digits/${dir}/${d}.png`))
+    const degree = loadAsset(`digits/${dir}/degree.png`)
+    const totalW = digitSprites.reduce((sum, sp) => sum + sp.width + 2, 0) + degree.width
+    let vx = Math.round(column.x + (column.w - totalW) / 2)
+    for (const sprite of digitSprites) {
+      blit(png, sprite, vx, temp.valueY)
+      vx += sprite.width + 2
+    }
+    blit(png, degree, vx, temp.valueY)
+  })
+
+  blit(png, drawStepsIcon(), LAYOUT.steps.icon.x, LAYOUT.steps.icon.y)
+  drawText(png, '3,548', LAYOUT.steps.text.x, LAYOUT.steps.text.y + 6, 2, '#F4F3E8', 2)
 
   return png
 }
 
-generateDigitSet('time', 52, 72, 9, '#F4F3E8', '#031426', {
-  thickness: 3,
-  shadow: '#010912',
-  shadowOffset: 4,
-  colonW: 18,
-})
+generateTimeDigits('time', 52, 72, 2, '#F4F3E8', '#000000', '#000000', 18)
+generateAmPm(3, '#F4F3E8', '#000000', null, 44, 30)
 generateDigitSet('aod', 32, 49, 6, '#B8B8B8', '#000000')
-generateDigitSet('temp-low', 16, 26, 3, '#69A7E8')
-generateDigitSet('temp-now', 16, 26, 3, '#F4F3E8')
-generateDigitSet('temp-high', 16, 26, 3, '#E98A4A')
+
+// 気温は縁取りが無く、明るい背景で色付き数字が読めなかった。
+// 時刻と同じく暗色の縁取りを焼き込んで、背景に依存しないようにする。
+generateDigitSet('temp-low', 20, 26, 3, '#7CC6F5', '#031426', { thickness: 1 })
+generateDigitSet('temp-now', 20, 26, 3, '#F4F3E8', '#031426', { thickness: 1 })
+generateDigitSet('temp-high', 20, 26, 3, '#F2A03A', '#031426', { thickness: 1 })
 
 writePng(path.join(ASSET_ROOT, 'steps.png'), drawStepsIcon())
+writePng(path.join(ASSET_ROOT, 'cursor.png'), drawCursor())
 
 Object.keys(PALETTES).forEach((theme) => {
   writePng(path.join(ASSET_ROOT, 'weather', `${theme}.png`), drawWeatherIcon(theme))
