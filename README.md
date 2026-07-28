@@ -85,6 +85,9 @@ art/backgrounds-src/     背景の元画像置き場（パッケージ対象外�
 assets/bip-6/images/     パッケージ対象アセット
 docs/background-image-gen-brief.md 背景画像の生成指示書（制約の根拠）
 docs/background-prompts.md 背景画像の生成プロンプト集（10枚・コピペ用）
+docs/battle-face-design.md 戦闘画面デザイン仕様とモンスター生成プロンプト
+art/monster-digits-src/  モンスター字形の元画像置き場（パッケージ対象外）
+art/boss-src/            中ボスの元画像置き場（パッケージ対象外）
 docs/device-testing.md   実機確認手順とチェックリスト
 tests/                   バッテリー、天候、コピー、歩数、背景プレビューのテスト
 ```
