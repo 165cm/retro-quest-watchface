@@ -12,7 +12,7 @@ export const BOSS_NAMES = Object.freeze([
   'MEADOW SPROUT',
   'SUNLIT LIZARD',
   'SAND SCORPION',
-  'MIRROR SLIME',
+  'MIRROR SHARD',
   'STORM CROW',
   'IRON SENTRY',
   'NOON GUARDIAN',

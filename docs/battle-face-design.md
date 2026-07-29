@@ -203,7 +203,7 @@ Do not imitate any existing game's monster designs.
 | 6 | `a meadow sprout, a cheerful green plant creature with two broad leaves for arms and a bud head` |
 | 7 | `a sunlit lizard, an orange scaled reptile standing upright with a broad frill around its neck` |
 | 8 | `a sand scorpion, a tan armored scorpion with raised claws and a curled stinger tail` |
-| 9 | `a mirror slime, a rounded translucent blob of pale cyan with a reflective highlight and two dot eyes` |
+| 9 | `a mirror shard, a floating cracked hexagonal shard of mirror-glass with two smaller shards orbiting it, angular faceted edges, silver and pale violet, faceless — deliberately not a rounded blob, droplet, or teardrop` |
 | 10 | `a storm crow, a large dark bird with ragged wings spread and crackling energy at its wingtips` |
 | 11 | `an iron sentry, a boxy armored guardian of dark steel with a single horizontal visor slit` |
 | 12 | `a noon guardian, a radiant golden lion-like beast with a flowing mane, the most imposing of the set` |
