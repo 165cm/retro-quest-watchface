@@ -11,7 +11,8 @@
     "check": "node --test tests/*.test.mjs",
     "build": "zeus build",
     "dev": "zeus dev",
-    "preview": "zeus preview"
+    "preview": "zeus preview",
+    "sprites": "node tools/check-sprites.mjs art/monster-digits-src --expect 104x144 --names 0-9 && node tools/check-sprites.mjs art/boss-src --expect 260x220 --names 00-12"
   },
   "license": "MIT",
   "dependencies": {

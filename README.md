@@ -36,6 +36,7 @@ Zeus CLI 1.9.3の公開パッケージには、ESM専用の推移依存をCommon
 | `npm run assets` | 数字・記号・天候アイコンとプレビューを再生成（背景は対象外） |
 | `npm run normalize` | `art/backgrounds-src/`の背景元画像を正規化して`assets/`へ出力 |
 | `npm run safe-area` | 角丸ディスプレイの隅にUIがはみ出していないか検査（既定半径105px） |
+| `npm run sprites` | モンスター字形・中ボスの透過／寸法／にじみ／余白を検査 |
 
 `npm run assets`は**背景PNGを書き換えません**。背景は`assets/bip-6/images/backgrounds/`にある
 実ファイルを正とし、プレビューもそこから読み込みます。
@@ -81,6 +82,7 @@ app-side/index.js        Settings StorageとBLE同期
 tools/generate-assets.mjs オリジナルPNG生成、プレビュー合成
 tools/normalize-background.mjs 背景元画像の寸法・グリッド・減色の正規化と検証
 tools/check-safe-area.mjs 角丸ディスプレイに対する座標の検査
+tools/check-sprites.mjs  透過スプライトの検査
 art/backgrounds-src/     背景の元画像置き場（パッケージ対象外）
 assets/bip-6/images/     パッケージ対象アセット
 docs/background-image-gen-brief.md 背景画像の生成指示書（制約の根拠）
