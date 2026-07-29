@@ -22,7 +22,7 @@ export const COLORS = Object.freeze({
 export const TYPE = Object.freeze({
   date: 24,
   steps: 24,
-  copyText: 24,
+  encounter: 24,
   tempLabel: 20,
   aodDate: 24,
 })

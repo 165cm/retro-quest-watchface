@@ -28,15 +28,18 @@ export const LAYOUT = Object.freeze({
     gap: 2,
   },
 
+  // 中ボスは時ごとに入れ替わる。背景の完全可視ゾーンに立たせるため透過PNG。
+  boss: { x: 130, y: 104, w: 130, h: 110 },
+
   // 時刻は窓を持たず背景へ直接乗せる。数字列そのものを画面中央へ寄せ、
   // AM/PMはその右へ続ける。12h/24hや桁数で中心が動かないようにするため、
   // AM/PMの幅は中央寄せの計算に含めない。
-  time: { y: 160, digitW: 52, digitH: 72, colonW: 18, gap: 6 },
+  time: { y: 226, digitW: 52, digitH: 72, colonW: 18, gap: 6 },
   amPm: { w: 44, h: 30, gap: 8, offsetY: 40 },
 
   bottomWindow: { x: WINDOW_X, y: 308, w: WINDOW_W, h: 96 },
   copyCursor: { x: 48, y: 322, w: 14, h: 18 },
-  copyText: { x: 70, y: 316, w: 272, h: 28 },
+  encounterText: { x: 70, y: 316, w: 272, h: 28 },
   divider: { x: INNER_X, y: 352, w: INNER_W, h: 1 },
   temperature: {
     labelY: 358,

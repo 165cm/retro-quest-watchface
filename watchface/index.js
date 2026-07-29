@@ -4,7 +4,7 @@ import { log } from '@zos/utils'
 import { BasePage } from '@zeppos/zml/base-page'
 import { LAYOUT, SCREEN } from './layout.js'
 import { COLORS, TYPE } from './theme.js'
-import { getCopyPreset } from './copy.js'
+import { getBossName, getBossSprite } from './boss.js'
 import {
   TOTAL_SEGMENTS,
   getBatteryColorKey,
@@ -100,10 +100,10 @@ WatchFace(
     date: null,
     hpSegments: [],
     aod: null,
-    copyText: null,
+    encounter: null,
+    boss: null,
     step: null,
     steps: null,
-    presetIndex: 0,
     weatherTheme: 'clear_day',
     debugIndex: 0,
     debugTick: 0,
@@ -118,7 +118,6 @@ WatchFace(
     this.state.battery = new Battery()
     this.state.step = new Step()
     this.state.weather = hmSensor.createSensor(hmSensor.id.WEATHER)
-    this.state.presetIndex = hmFS.SysProGetInt('pixel_wayfarer_preset') || 0
     this.state.debugIndex = normalizeDebugIndex(
       hmFS.SysProGetInt('pixel_wayfarer_debug_theme') || 0,
     )
@@ -131,7 +130,6 @@ WatchFace(
     this.updateBattery()
     this.updateSteps()
     this.updateWeather()
-    this.loadMessagePreset()
     this.loadDebugTheme()
     this.startCycleTimer()
 
@@ -175,6 +173,7 @@ WatchFace(
     })
 
     this.drawTopWindow()
+    this.drawBoss()
     this.drawTime()
     this.drawBottomWindow()
   },
@@ -224,11 +223,20 @@ WatchFace(
     }
   },
 
-  // 時刻は窓を持たず背景へ直接。数字側の縁取りと影で視認性を確保する。
+  // 中ボス。時ごとに入れ替わる「今の時間の敵」。
+  drawBoss() {
+    this.state.boss = ui.createWidget(ui.widget.IMG, {
+      ...LAYOUT.boss,
+      src: 'images/boss/00.png',
+      show_level: ui.show_level.ONLY_NORMAL,
+    })
+  },
+
+  // 時刻は窓を持たず背景へ直接。数字はモンスター字形で、縁取りと影を焼いてある。
   drawTime() {
     this.state.mainTime = createTimeSprites({
       y: LAYOUT.time.y,
-      digitPath: 'images/digits/time',
+      digitPath: 'images/digits/monster',
       digitW: LAYOUT.time.digitW,
       digitH: LAYOUT.time.digitH,
       colonW: LAYOUT.time.colonW,
@@ -254,11 +262,10 @@ WatchFace(
       src: 'images/cursor.png',
       show_level: ui.show_level.ONLY_NORMAL,
     })
-    const preset = getCopyPreset(this.state.presetIndex)
-    this.state.copyText = textWidget(
-      LAYOUT.copyText,
-      preset.text,
-      TYPE.copyText,
+    this.state.encounter = textWidget(
+      LAYOUT.encounterText,
+      '',
+      TYPE.encounter,
       COLORS.TEXT_PRIMARY,
       ui.align.LEFT,
       ui.show_level.ONLY_NORMAL,
@@ -335,6 +342,16 @@ WatchFace(
           : 'images/ampm/pm.png'
         : 'images/ampm/blank.png',
     })
+
+    // 中ボスは表示時刻の「時」で決まる。24時間制の午後は午前と同じ敵になる。
+    this.state.boss.setProperty(
+      ui.prop.SRC,
+      `images/boss/${getBossSprite(displayHour)}.png`,
+    )
+    this.state.encounter.setProperty(
+      ui.prop.TEXT,
+      `${getBossName(displayHour)} APPEARS!`,
+    )
 
     const weekday = WEEKDAYS[time.getDay() - 1] || '---'
     const dateText = `${time.getMonth()}/${time.getDate()} ${weekday}`
@@ -438,28 +455,8 @@ WatchFace(
       })
   },
 
-  applyMessagePreset(value) {
-    const preset = getCopyPreset(value)
-    this.state.presetIndex = Number(value) || 0
-    hmFS.SysProSetInt('pixel_wayfarer_preset', this.state.presetIndex)
-    if (this.state.copyText) {
-      this.state.copyText.setProperty(ui.prop.TEXT, preset.text)
-    }
-  },
-
-  loadMessagePreset() {
-    this.request({ method: 'GET_MESSAGE_PRESET' })
-      .then(({ presetIndex }) => this.applyMessagePreset(presetIndex))
-      .catch(() => {
-        logger.log('Using cached message preset')
-      })
-  },
-
   onCall(data) {
     if (!data) return
-    if (data.type === 'MESSAGE_PRESET_CHANGED') {
-      this.applyMessagePreset(data.presetIndex)
-    }
     if (data.type === 'DEBUG_THEME_CHANGED') {
       this.applyDebugTheme(data.debugIndex)
     }

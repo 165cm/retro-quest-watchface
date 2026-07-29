@@ -998,7 +998,7 @@ function previewWindow(png, rect) {
 
 const rect2 = rect
 
-function preview(theme = 'clear_day', { hour = '10', minute = '09', amPm = 'am' } = {}) {
+function preview(theme = 'clear_day', { hour = '10', minute = '09', amPm = 'am', bossId = '10', encounter = 'STORM CROW APPEARS!' } = {}) {
   const png = image(390, 450, '#031426')
   blit(png, loadBackground(theme), LAYOUT.background.x, LAYOUT.background.y)
 
@@ -1019,6 +1019,12 @@ function preview(theme = 'clear_day', { hour = '10', minute = '09', amPm = 'am' 
     )
   }
 
+  // 中ボス（時で入れ替わる）
+  const bossFile = path.join(ASSET_ROOT, 'boss', `${bossId}.png`)
+  if (fs.existsSync(bossFile)) {
+    blit(png, PNG.sync.read(fs.readFileSync(bossFile)), LAYOUT.boss.x, LAYOUT.boss.y)
+  }
+
   // 時刻: 実スプライトを貼る。中央寄せの式も実装と同じ。
   const t = LAYOUT.time
   const digits = [...hour.padStart(2, ' ')].concat([...minute])
@@ -1030,11 +1036,11 @@ function preview(theme = 'clear_day', { hour = '10', minute = '09', amPm = 'am' 
     blit(png, sprite, cursor, t.y)
     cursor += w + t.gap
   }
-  if (hasLeading) place(loadAsset(`digits/time/${hour[0]}.png`), t.digitW)
-  place(loadAsset(`digits/time/${hour[hour.length - 1]}.png`), t.digitW)
+  if (hasLeading) place(loadAsset(`digits/monster/${hour[0]}.png`), t.digitW)
+  place(loadAsset(`digits/monster/${hour[hour.length - 1]}.png`), t.digitW)
   place(loadAsset('digits/time/colon.png'), t.colonW)
-  place(loadAsset(`digits/time/${minute[0]}.png`), t.digitW)
-  place(loadAsset(`digits/time/${minute[1]}.png`), t.digitW)
+  place(loadAsset(`digits/monster/${minute[0]}.png`), t.digitW)
+  place(loadAsset(`digits/monster/${minute[1]}.png`), t.digitW)
   const timeEndX = cursor - t.gap
   if (amPm) {
     blit(png, loadAsset(`ampm/${amPm}.png`), timeEndX + LAYOUT.amPm.gap, t.y + LAYOUT.amPm.offsetY)
@@ -1043,7 +1049,7 @@ function preview(theme = 'clear_day', { hour = '10', minute = '09', amPm = 'am' 
   // 下の窓
   previewWindow(png, LAYOUT.bottomWindow)
   blit(png, drawCursor(), LAYOUT.copyCursor.x, LAYOUT.copyCursor.y)
-  drawText(png, 'SAFETY FIRST', LAYOUT.copyText.x, LAYOUT.copyText.y + 4, 3, '#F4F3E8', 3)
+  drawText(png, encounter, LAYOUT.encounterText.x, LAYOUT.encounterText.y + 6, 2, '#F4F3E8', 2)
   overlayRect(png, LAYOUT.divider.x, LAYOUT.divider.y, LAYOUT.divider.w, LAYOUT.divider.h, '#F4F3E8', 90)
 
   const temp = LAYOUT.temperature

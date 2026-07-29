@@ -1,4 +1,3 @@
-import { COPY_PRESETS, normalizePresetIndex } from '../watchface/copy.js'
 import {
   DEBUG_CYCLE,
   DEBUG_MODES,
@@ -6,7 +5,6 @@ import {
   normalizeDebugIndex,
 } from '../watchface/debug-theme.js'
 
-const PRESET_KEY = 'messagePreset'
 const DEBUG_KEY = 'debugTheme'
 
 const DEBUG_LABELS = {
@@ -63,16 +61,7 @@ function optionButton({ label, selected, onClick }) {
 
 AppSettingsPage({
   build(props) {
-    const selectedPreset = normalizePresetIndex(props.settingsStorage.getItem(PRESET_KEY))
     const selectedDebug = normalizeDebugIndex(props.settingsStorage.getItem(DEBUG_KEY))
-
-    const presetButtons = COPY_PRESETS.map((preset, index) =>
-      optionButton({
-        label: `${preset.label} — ${preset.text}`,
-        selected: index === selectedPreset,
-        onClick: () => props.settingsStorage.setItem(PRESET_KEY, String(index)),
-      }),
-    )
 
     const debugButtons = DEBUG_MODES.map((mode, index) =>
       optionButton({
@@ -90,9 +79,7 @@ AppSettingsPage({
         },
       },
       [
-        sectionTitle('Message preset', '0'),
-        ...presetButtons,
-        sectionTitle('Background preview (debug)', '24px'),
+        sectionTitle('Background preview (debug)', '0'),
         note(
           'Forces a background and weather icon so every theme can be checked on the watch. ' +
             'Cycle advances through all 10 themes every 3 seconds; it runs only while the ' +
