@@ -1107,8 +1107,15 @@ if (process.argv.includes('--with-backgrounds')) {
 
 const fullPreview = preview('clear_day')
 writePng(path.join(DOCS_ROOT, 'preview-390x450.png'), fullPreview)
-writePng(path.join(DOCS_ROOT, 'preview-rain-390x450.png'), preview('rain'))
-writePng(path.join(DOCS_ROOT, 'preview-night-390x450.png'), preview('clear_night'))
+// プレビューごとに別の中ボスを出す。3枚並べたときに時刻連動が伝わる。
+writePng(
+  path.join(DOCS_ROOT, 'preview-rain-390x450.png'),
+  preview('rain', { hour: '09', minute: '32', amPm: 'am', bossId: '09', encounter: 'MIRROR SHARD APPEARS!' }),
+)
+writePng(
+  path.join(DOCS_ROOT, 'preview-night-390x450.png'),
+  preview('clear_night', { hour: '02', minute: '47', amPm: 'am', bossId: '02', encounter: 'CAVE CRAWLER APPEARS!' }),
+)
 
 const thumbnail = image(266, 307, '#031426')
 for (let y = 0; y < thumbnail.height; y += 1) {
