@@ -2,13 +2,16 @@
 // 透過・寸法・アンチエイリアス・余白は、実機に載せてからでは直しにくい。
 //
 //   node tools/check-sprites.mjs art/monster-digits-src --expect 104x144 --names 0-9
-//   node tools/check-sprites.mjs art/boss-src --expect 260x220 --names 00-12
+//   node tools/check-sprites.mjs art/boss-src --expect 260x220 --names 00-12 --allow-edge bottom
+//
+// --allow-edge は「その辺に絵が接していてよい」ことを示す。中ボスは足元を
+// 下辺へ接地させる仕様なので、下辺だけは接触を正常として扱う。
 import fs from 'node:fs'
 import path from 'node:path'
 import { PNG } from 'pngjs'
 
 function parseArgs(argv) {
-  const options = { dir: null, expect: null, names: null }
+  const options = { dir: null, expect: null, names: null, allowEdge: new Set() }
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === '--expect') {
       const match = /^(\d+)x(\d+)$/.exec(argv[i + 1] || '')
@@ -24,6 +27,16 @@ function parseArgs(argv) {
       options.names = []
       for (let n = from; n <= to; n += 1) {
         options.names.push(`${String(n).padStart(width, '0')}.png`)
+      }
+      i += 1
+    } else if (argv[i] === '--allow-edge') {
+      const value = argv[i + 1] || ''
+      const valid = new Set(['top', 'bottom', 'left', 'right'])
+      for (const side of value.split(',')) {
+        if (!valid.has(side)) {
+          throw new Error('--allow-edge は top/bottom/left/right をカンマ区切りで指定してください')
+        }
+        options.allowEdge.add(side)
       }
       i += 1
     } else if (!options.dir) {
@@ -119,10 +132,10 @@ for (const name of expected) {
   }
   if (info.box) {
     const touches = []
-    if (info.box.minX === 0) touches.push('左')
-    if (info.box.minY === 0) touches.push('上')
-    if (info.box.maxX === info.width - 1) touches.push('右')
-    if (info.box.maxY === info.height - 1) touches.push('下')
+    if (info.box.minX === 0 && !options.allowEdge.has('left')) touches.push('左')
+    if (info.box.minY === 0 && !options.allowEdge.has('top')) touches.push('上')
+    if (info.box.maxX === info.width - 1 && !options.allowEdge.has('right')) touches.push('右')
+    if (info.box.maxY === info.height - 1 && !options.allowEdge.has('bottom')) touches.push('下')
     if (touches.length > 0) issues.push(`絵が端に接している（${touches.join('・')}）`)
     boxes.push({ name, ...info.box, width: info.width, height: info.height })
   } else {
