@@ -35,8 +35,8 @@ const PNG_WRITE_OPTIONS = Object.freeze({
 const TIME_BAND = Object.freeze({
   x0: 58,
   x1: 360,
-  y0: 150,
-  y1: 222,
+  y0: 170,
+  y1: 242,
   brightLuma: 200,
   maxBrightRatio: 0.05,
 })

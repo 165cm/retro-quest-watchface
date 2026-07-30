@@ -1,11 +1,10 @@
-// モンスター字形・中ボスのスプライトを検査する。
+// モンスター字形のスプライトを検査する。
 // 透過・寸法・アンチエイリアス・余白は、実機に載せてからでは直しにくい。
 //
 //   node tools/check-sprites.mjs art/monster-digits-src --expect 104x144 --names 0-9
-//   node tools/check-sprites.mjs art/boss-src --expect 260x220 --names 00-12 --allow-edge bottom
 //
-// --allow-edge は「その辺に絵が接していてよい」ことを示す。中ボスは足元を
-// 下辺へ接地させる仕様なので、下辺だけは接触を正常として扱う。
+// --allow-edge は「その辺に絵が接していてよい」ことを示す。接地を仕様とする
+// スプライトを追加した場合に、その辺だけ接触を正常として扱うためのもの。
 import fs from 'node:fs'
 import path from 'node:path'
 import { PNG } from 'pngjs'

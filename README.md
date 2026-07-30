@@ -1,6 +1,6 @@
 # Pixel Wayfarer Face
 
-Amazfit Bip 6専用の、16-bit RPG風Zepp OS文字盤です。天候で切り替わる背景を主役に据え、中央に時刻とマイクロコピーをひとかたまりで配置。上段に日付とバッテリーを表す10分割HPゲージ、下段に最低・現在・最高気温と歩数を並べます。AOD対応。
+Amazfit Bip 6専用の、16-bit RPG風Zepp OS文字盤です。天候で切り替わる背景を主役に据え、中央に時刻を大きく置きます。上段に日付とバッテリーを表す10分割HPゲージ、下段に最低・現在・最高気温と歩数を並べます。AOD対応。
 
 ![390×450 preview](docs/preview-390x450.png)
 
@@ -36,7 +36,8 @@ Zeus CLI 1.9.3の公開パッケージには、ESM専用の推移依存をCommon
 | `npm run assets` | 数字・記号・天候アイコンとプレビューを再生成（背景は対象外） |
 | `npm run normalize` | `art/backgrounds-src/`の背景元画像を正規化して`assets/`へ出力 |
 | `npm run safe-area` | 角丸ディスプレイの隅にUIがはみ出していないか検査（既定半径105px） |
-| `npm run sprites` | モンスター字形・中ボスの透過／寸法／にじみ／余白を検査 |
+| `npm run sprites` | モンスター字形の透過／寸法／にじみ／余白を検査 |
+| `npm run normalize-sprites` | `art/monster-digits-src/`を実機サイズ（52×72）へ縮小して`assets/`へ出力 |
 
 `npm run assets`は**背景PNGを書き換えません**。背景は`assets/bip-6/images/backgrounds/`にある
 実ファイルを正とし、プレビューもそこから読み込みます。
@@ -72,7 +73,6 @@ watchface/layout.js      全座標・寸法
 watchface/theme.js       色・文字サイズ
 watchface/weather.js     天候コード、昼夜、フォールバック
 watchface/battery.js     クランプ、10分割HP、状態色
-watchface/copy.js        6種類のマイクロコピー
 watchface/steps.js       歩数の正規化と桁区切り
 watchface/debug-theme.js 背景プレビュー（Off / 巡回 / 固定）の解決ロジック
 watchface/aod.js         AOD専用描画
@@ -82,16 +82,16 @@ app-side/index.js        Settings StorageとBLE同期
 tools/generate-assets.mjs オリジナルPNG生成、プレビュー合成
 tools/normalize-background.mjs 背景元画像の寸法・グリッド・減色の正規化と検証
 tools/check-safe-area.mjs 角丸ディスプレイに対する座標の検査
+tools/normalize-sprites.mjs モンスター字形を実機サイズへ縮小
 tools/check-sprites.mjs  透過スプライトの検査
 art/backgrounds-src/     背景の元画像置き場（パッケージ対象外）
 assets/bip-6/images/     パッケージ対象アセット
 docs/background-image-gen-brief.md 背景画像の生成指示書（制約の根拠）
 docs/background-prompts.md 背景画像の生成プロンプト集（10枚・コピペ用）
-docs/battle-face-design.md 戦闘画面デザイン仕様とモンスター生成プロンプト
+docs/monster-digits.md   モンスター字形の仕様と生成プロンプト
 art/monster-digits-src/  モンスター字形の元画像置き場（パッケージ対象外）
-art/boss-src/            中ボスの元画像置き場（パッケージ対象外）
 docs/device-testing.md   実機確認手順とチェックリスト
-tests/                   バッテリー、天候、コピー、歩数、背景プレビューのテスト
+tests/                   バッテリー、天候、歩数、背景プレビューのテスト
 ```
 
 ## 表示と更新
@@ -104,7 +104,7 @@ tests/                   バッテリー、天候、コピー、歩数、背景�
 - 天候: 公式Weatherセンサーの当日`index`で背景を選択
 - 昼夜: 当日の日の出・日の入りを優先し、欠損時は06:00〜17:59を昼と判定
 - レイアウト: 上下2枚の窓（黒地＋白い2px枠）にUIを集約し、中央は開けて背景を見せる。完全に見える帯は合計216px
-- AOD: 黒背景に時刻、日付、低輝度HPのみ。秒、天候、装飾、コピーは非表示
+- AOD: 黒背景に時刻、日付、低輝度HPのみ。秒、天候、装飾は非表示
 - 設定: Settings Storage → Side Service → ZML/BLE → Watchface。受信値は端末ローカルへキャッシュ
 
 分更新、バッテリー変更、文字盤への復帰時だけ必要な表示を更新します。通常動作では秒タイマーとアニメーションを使用しません。
@@ -130,19 +130,7 @@ tests/                   バッテリー、天候、コピー、歩数、背景�
 
 ## 設定項目
 
-Zeppアプリの文字盤設定に2つのセクションがあります。
-
-### Message preset
-
-時刻の下にサブタイトルとして表示する文言です。**文字盤に出るのは本文のみ**で、
-`TACTIC`などのラベルは設定画面でプリセットを見分けるための分類名です。
-
-- `SAFETY FIRST`（初期値）
-- `TAKE IT EASY`
-- `ONE STEP AT A TIME`
-- `STAY SHARP`
-- `KEEP MOVING`
-- `NO RUSH`
+Zeppアプリの文字盤設定にセクションが1つあります。
 
 ### Background preview（デバッグ）
 
@@ -157,7 +145,7 @@ Zeppアプリの文字盤設定に2つのセクションがあります。
 
 使い方と確認手順は[実機確認手順](docs/device-testing.md)を参照してください。
 
-自由入力、温度ラベル切替、Thin Bar HPは将来拡張です。
+温度ラベル切替とThin Bar HPは将来拡張です。
 
 ## アセットとライセンス
 

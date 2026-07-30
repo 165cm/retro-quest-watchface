@@ -1,6 +1,6 @@
-// モンスター字形・中ボスを実機サイズへ縮小して assets/ へ配置する。
+// モンスター字形を実機サイズへ縮小して assets/ へ配置する。
 //
-// 元画像は実機表示の2倍で作ってある（字形 104×144 → 52×72、中ボス 260×220 → 130×110）。
+// 元画像は実機表示の2倍で作ってある（104×144 → 52×72）。
 // ちょうど2:1なので、2×2の平均だけで劣化なく縮小できる。
 //
 //   node tools/normalize-sprites.mjs
@@ -26,13 +26,6 @@ const JOBS = [
     to: path.join(ASSET_ROOT, 'digits', 'monster'),
     names: Array.from({ length: 10 }, (_, i) => `${i}.png`),
     size: [52, 72],
-  },
-  {
-    label: '中ボス',
-    from: path.join(ROOT, 'art', 'boss-src'),
-    to: path.join(ASSET_ROOT, 'boss'),
-    names: Array.from({ length: 13 }, (_, i) => `${String(i).padStart(2, '0')}.png`),
-    size: [130, 110],
   },
 ]
 

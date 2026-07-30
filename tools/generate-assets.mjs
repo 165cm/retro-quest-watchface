@@ -592,29 +592,6 @@ function generateAmPm(scale, fill, outline, shadow, cellW, cellH) {
   writePng(path.join(directory, 'blank.png'), image(cellW, cellH, '#00000000'))
 }
 
-// ▶カーソル。ドラクエUIで最も認識率の高い記号。
-function drawCursor() {
-  const png = image(14, 18, '#00000000')
-  drawPattern(
-    png,
-    [
-      '1000000',
-      '1100000',
-      '1110000',
-      '1111000',
-      '1111100',
-      '1111110',
-      '1111100',
-      '1111000',
-      '1110000',
-    ],
-    0,
-    0,
-    2,
-    { 1: '#F4F3E8' },
-  )
-  return png
-}
 
 function generateDigitSet(name, width, height, scale, fill, outline = null, options = {}) {
   const { thickness = 1, shadow = null, shadowOffset = 3, colonW = null } = options
@@ -982,7 +959,7 @@ function loadBackground(theme) {
 // 実機のdrawNormalView()と同じ座標で合成する。watchface/layout.js を変えたらここも合わせる。
 // 実機と同じ座標で合成する。座標は watchface/layout.js を読み、
 // 数字・アイコン類は生成済みの実スプライトを貼るので、実装とずれない。
-// ただし日付・コピー・気温ラベル・歩数は実機ではシステムフォントで描かれる。
+// ただし日付・気温ラベル・歩数は実機ではシステムフォントで描かれる。
 // ここではビットマップ字形で近似しているため、字幅は実機と完全一致しない。
 function loadAsset(relative) {
   return PNG.sync.read(fs.readFileSync(path.join(ASSET_ROOT, relative)))
@@ -998,7 +975,7 @@ function previewWindow(png, rect) {
 
 const rect2 = rect
 
-function preview(theme = 'clear_day', { hour = '10', minute = '09', amPm = 'am', bossId = '10', encounter = 'STORM CROW APPEARS!' } = {}) {
+function preview(theme = 'clear_day', { hour = '10', minute = '09', amPm = 'am' } = {}) {
   const png = image(390, 450, '#031426')
   blit(png, loadBackground(theme), LAYOUT.background.x, LAYOUT.background.y)
 
@@ -1017,12 +994,6 @@ function preview(theme = 'clear_day', { hour = '10', minute = '09', amPm = 'am',
       LAYOUT.hp.segmentH - 4,
       i < 7 ? '#4FA83E' : '#1A1A1A',
     )
-  }
-
-  // 中ボス（時で入れ替わる）
-  const bossFile = path.join(ASSET_ROOT, 'boss', `${bossId}.png`)
-  if (fs.existsSync(bossFile)) {
-    blit(png, PNG.sync.read(fs.readFileSync(bossFile)), LAYOUT.boss.x, LAYOUT.boss.y)
   }
 
   // 時刻: 実スプライトを貼る。中央寄せの式も実装と同じ。
@@ -1048,9 +1019,6 @@ function preview(theme = 'clear_day', { hour = '10', minute = '09', amPm = 'am',
 
   // 下の窓
   previewWindow(png, LAYOUT.bottomWindow)
-  blit(png, drawCursor(), LAYOUT.copyCursor.x, LAYOUT.copyCursor.y)
-  drawText(png, encounter, LAYOUT.encounterText.x, LAYOUT.encounterText.y + 6, 2, '#F4F3E8', 2)
-  overlayRect(png, LAYOUT.divider.x, LAYOUT.divider.y, LAYOUT.divider.w, LAYOUT.divider.h, '#F4F3E8', 90)
 
   const temp = LAYOUT.temperature
   const labels = [
@@ -1090,7 +1058,6 @@ generateDigitSet('temp-now', 20, 26, 3, '#F4F3E8', '#031426', { thickness: 1 })
 generateDigitSet('temp-high', 20, 26, 3, '#F2A03A', '#031426', { thickness: 1 })
 
 writePng(path.join(ASSET_ROOT, 'steps.png'), drawStepsIcon())
-writePng(path.join(ASSET_ROOT, 'cursor.png'), drawCursor())
 
 Object.keys(PALETTES).forEach((theme) => {
   writePng(path.join(ASSET_ROOT, 'weather', `${theme}.png`), drawWeatherIcon(theme))
@@ -1107,14 +1074,11 @@ if (process.argv.includes('--with-backgrounds')) {
 
 const fullPreview = preview('clear_day')
 writePng(path.join(DOCS_ROOT, 'preview-390x450.png'), fullPreview)
-// プレビューごとに別の中ボスを出す。3枚並べたときに時刻連動が伝わる。
-writePng(
-  path.join(DOCS_ROOT, 'preview-rain-390x450.png'),
-  preview('rain', { hour: '09', minute: '32', amPm: 'am', bossId: '09', encounter: 'MIRROR SHARD APPEARS!' }),
-)
+// プレビューごとに別の時刻を出す。桁数の違いで中心がずれないことも確認できる。
+writePng(path.join(DOCS_ROOT, 'preview-rain-390x450.png'), preview('rain', { hour: '9', minute: '32' }))
 writePng(
   path.join(DOCS_ROOT, 'preview-night-390x450.png'),
-  preview('clear_night', { hour: '02', minute: '47', amPm: 'am', bossId: '02', encounter: 'CAVE CRAWLER APPEARS!' }),
+  preview('clear_night', { hour: '2', minute: '47' }),
 )
 
 const thumbnail = image(266, 307, '#031426')

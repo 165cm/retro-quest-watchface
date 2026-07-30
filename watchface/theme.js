@@ -18,11 +18,9 @@ export const COLORS = Object.freeze({
 })
 
 // 階層は「時刻(スプライト72px) / 実データ24px / ラベル20px」の3段だけ。
-// コピーは装飾なので実データより上位に置かない。
 export const TYPE = Object.freeze({
   date: 24,
   steps: 24,
-  encounter: 24,
   tempLabel: 20,
   aodDate: 24,
 })

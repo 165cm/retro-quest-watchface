@@ -4,7 +4,6 @@ import { log } from '@zos/utils'
 import { BasePage } from '@zeppos/zml/base-page'
 import { LAYOUT, SCREEN } from './layout.js'
 import { COLORS, TYPE } from './theme.js'
-import { getBossName, getBossSprite } from './boss.js'
 import {
   TOTAL_SEGMENTS,
   getBatteryColorKey,
@@ -100,8 +99,6 @@ WatchFace(
     date: null,
     hpSegments: [],
     aod: null,
-    encounter: null,
-    boss: null,
     step: null,
     steps: null,
     weatherTheme: 'clear_day',
@@ -173,7 +170,6 @@ WatchFace(
     })
 
     this.drawTopWindow()
-    this.drawBoss()
     this.drawTime()
     this.drawBottomWindow()
   },
@@ -223,15 +219,6 @@ WatchFace(
     }
   },
 
-  // 中ボス。時ごとに入れ替わる「今の時間の敵」。
-  drawBoss() {
-    this.state.boss = ui.createWidget(ui.widget.IMG, {
-      ...LAYOUT.boss,
-      src: 'images/boss/00.png',
-      show_level: ui.show_level.ONLY_NORMAL,
-    })
-  },
-
   // 時刻は窓を持たず背景へ直接。数字はモンスター字形で、縁取りと影を焼いてある。
   drawTime() {
     this.state.mainTime = createTimeSprites({
@@ -253,30 +240,9 @@ WatchFace(
     })
   },
 
-  // 下の窓: ▶カーソル付きのコピー、区切り線、気温3列、歩数。
+  // 下の窓: 気温3列と歩数の1段だけ。
   drawBottomWindow() {
     questWindow(LAYOUT.bottomWindow)
-
-    ui.createWidget(ui.widget.IMG, {
-      ...LAYOUT.copyCursor,
-      src: 'images/cursor.png',
-      show_level: ui.show_level.ONLY_NORMAL,
-    })
-    this.state.encounter = textWidget(
-      LAYOUT.encounterText,
-      '',
-      TYPE.encounter,
-      COLORS.TEXT_PRIMARY,
-      ui.align.LEFT,
-      ui.show_level.ONLY_NORMAL,
-    )
-
-    ui.createWidget(ui.widget.FILL_RECT, {
-      ...LAYOUT.divider,
-      color: COLORS.TEXT_PRIMARY,
-      alpha: 90,
-      show_level: ui.show_level.ONLY_NORMAL,
-    })
 
     const temp = LAYOUT.temperature
     const columns = [
@@ -342,16 +308,6 @@ WatchFace(
           : 'images/ampm/pm.png'
         : 'images/ampm/blank.png',
     })
-
-    // 中ボスは表示時刻の「時」で決まる。24時間制の午後は午前と同じ敵になる。
-    this.state.boss.setProperty(
-      ui.prop.SRC,
-      `images/boss/${getBossSprite(displayHour)}.png`,
-    )
-    this.state.encounter.setProperty(
-      ui.prop.TEXT,
-      `${getBossName(displayHour)} APPEARS!`,
-    )
 
     const weekday = WEEKDAYS[time.getDay() - 1] || '---'
     const dateText = `${time.getMonth()}/${time.getDate()} ${weekday}`
