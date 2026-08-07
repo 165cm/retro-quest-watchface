@@ -8,7 +8,7 @@
 //   node tools/check-safe-area.mjs [--radius 105]
 import { LAYOUT, SCREEN } from '../watchface/layout.js'
 
-const DEFAULT_RADIUS = 105
+const DEFAULT_RADIUS = SCREEN.cornerRadius
 
 function parseRadius(argv) {
   const index = argv.indexOf('--radius')

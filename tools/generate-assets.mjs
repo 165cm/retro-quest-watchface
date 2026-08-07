@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { PNG } from 'pngjs'
-import { LAYOUT } from '../watchface/layout.js'
+import { LAYOUT, SCREEN } from '../watchface/layout.js'
 import { renderGlyph } from './render-glyph.mjs'
 
 const ROOT = process.cwd()
@@ -879,20 +879,30 @@ writePng(
   preview('clear_night', { hour: '2', minute: '47' }),
 )
 
-const thumbnail = image(266, 307, '#031426')
-for (let y = 0; y < thumbnail.height; y += 1) {
-  for (let x = 0; x < thumbnail.width; x += 1) {
-    const sx = Math.floor((x / thumbnail.width) * fullPreview.width)
-    const sy = Math.floor((y / thumbnail.height) * fullPreview.height)
-    const sourceIndex = (fullPreview.width * sy + sx) << 2
-    setPixel(thumbnail, x, y, [
-      fullPreview.data[sourceIndex],
-      fullPreview.data[sourceIndex + 1],
-      fullPreview.data[sourceIndex + 2],
-      fullPreview.data[sourceIndex + 3],
-    ])
+// 提出用プレビュー。Zeppの審査要件は次の3つ。
+//   1. 画面解像度と同じ寸法（390×450）にする
+//   2. 端末の角丸に合わせて四隅を切り抜く（不透明な直角の隅があると差し戻される）
+//   3. 時刻は 10:09 を表示する
+// 角は距離場でアルファを落とす。1画素ぶんで落とすので、拡大表示されても
+// 階段状にならない。
+function cropToScreenCorners(source, radius) {
+  const png = new PNG({ width: source.width, height: source.height })
+  source.data.copy(png.data)
+  for (let y = 0; y < png.height; y += 1) {
+    for (let x = 0; x < png.width; x += 1) {
+      const d = roundRectDistance(x + 0.5, y + 0.5, 0, 0, png.width, png.height, radius)
+      const coverage = Math.min(1, Math.max(0, 0.5 - d))
+      if (coverage >= 1) continue
+      const index = (png.width * y + x) << 2
+      png.data[index + 3] = Math.round(png.data[index + 3] * coverage)
+    }
   }
+  return png
 }
-writePng(path.join(ASSET_ROOT, 'preview.png'), thumbnail)
+
+writePng(
+  path.join(ASSET_ROOT, 'preview.png'),
+  cropToScreenCorners(fullPreview, SCREEN.cornerRadius),
+)
 
 console.log('Generated original pixel assets in assets/bip-6/images')

@@ -2,6 +2,12 @@ export const SCREEN = Object.freeze({
   width: 390,
   height: 450,
   safe: 30,
+  // 画面の角丸半径。Zepp OSのgetDeviceInfo()はwidth/height/screenShapeしか
+  // 返さず半径を公開していないため、実機で欠けた事実から逆算した想定値。
+  // 90pxでは実機の欠けを説明できないので105を採用している。
+  // 座標の検査（check-safe-area）と提出用プレビューの角の切り抜きが、
+  // 同じ値を見るようにここへ置いている。
+  cornerRadius: 105,
 })
 
 // Bip 6は角丸ディスプレイ。角の高さでは画面幅をそのまま使えないため、
