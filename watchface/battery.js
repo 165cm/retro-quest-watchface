@@ -1,5 +1,3 @@
-export const TOTAL_SEGMENTS = 10
-
 export function normalizeBattery(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return null
@@ -7,12 +5,13 @@ export function normalizeBattery(value) {
   return Math.max(0, Math.min(100, Math.round(value)))
 }
 
-export function getFilledSegments(value, totalSegments = TOTAL_SEGMENTS) {
+// 角丸の棒なので、残量が少しでもあるときは半径ぶんの幅を割らないようにする。
+// 幅が高さを下回ると角丸が潰れ、「残っている」ことが形として読めなくなる。
+export function getBarWidth(value, trackWidth, minWidth) {
   const safe = normalizeBattery(value)
-  if (safe === null || safe === 0) {
-    return 0
-  }
-  return Math.ceil((safe / 100) * totalSegments)
+  if (safe === null || safe === 0) return 0
+  const raw = Math.round((safe / 100) * trackWidth)
+  return Math.min(trackWidth, Math.max(minWidth, raw))
 }
 
 export function getBatteryColorKey(value) {

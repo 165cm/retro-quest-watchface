@@ -33,10 +33,10 @@ const PNG_WRITE_OPTIONS = Object.freeze({
 // 判定は「明るいピクセルが占める面積」で行う。単発の最大輝度で見ると、
 // 星や雪の粒のような小さな点1つで警告が出てしまい、実際の可読性と合わないため。
 const TIME_BAND = Object.freeze({
-  x0: 58,
-  x1: 360,
-  y0: 170,
-  y1: 242,
+  x0: 49,
+  x1: 368,
+  y0: 160,
+  y1: 240,
   brightLuma: 200,
   maxBrightRatio: 0.05,
 })

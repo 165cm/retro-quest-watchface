@@ -1,6 +1,6 @@
 # Pixel Wayfarer Face
 
-Amazfit Bip 6専用の、16-bit RPG風Zepp OS文字盤です。天候で切り替わる背景を主役に据え、中央に時刻を大きく置きます。上段に日付とバッテリーを表す10分割HPゲージ、下段に最低・現在・最高気温と歩数を並べます。AOD対応。
+Amazfit Bip 6専用のZepp OS文字盤です。天候で切り替わる16-bit風の背景を主役に据え、UIは現行世代のドラクエに寄せた角丸パネルでまとめています。上のパネルに天候・日付・現在気温、中央に時刻、下のパネルにHPと歩数・気温幅。AOD対応。
 
 ![390×450 preview](docs/preview-390x450.png)
 
@@ -36,8 +36,6 @@ Zeus CLI 1.9.3の公開パッケージには、ESM専用の推移依存をCommon
 | `npm run assets` | 数字・記号・天候アイコンとプレビューを再生成（背景は対象外） |
 | `npm run normalize` | `art/backgrounds-src/`の背景元画像を正規化して`assets/`へ出力 |
 | `npm run safe-area` | 角丸ディスプレイの隅にUIがはみ出していないか検査（既定半径105px） |
-| `npm run sprites` | モンスター字形の透過／寸法／にじみ／余白を検査 |
-| `npm run normalize-sprites` | `art/monster-digits-src/`を実機サイズ（52×72）へ縮小して`assets/`へ出力 |
 
 `npm run assets`は**背景PNGを書き換えません**。背景は`assets/bip-6/images/backgrounds/`にある
 実ファイルを正とし、プレビューもそこから読み込みます。
@@ -72,24 +70,23 @@ watchface/index.js       通常表示、センサー購読、更新処理
 watchface/layout.js      全座標・寸法
 watchface/theme.js       色・文字サイズ
 watchface/weather.js     天候コード、昼夜、フォールバック
-watchface/battery.js     クランプ、10分割HP、状態色
+watchface/battery.js     クランプ、HPの棒幅、状態色
 watchface/steps.js       歩数の正規化と桁区切り
 watchface/debug-theme.js 背景プレビュー（Off / 巡回 / 固定）の解決ロジック
 watchface/aod.js         AOD専用描画
-watchface/time-sprites.js 可変幅を抑えた画像数字描画
+watchface/time-sprites.js 画像数字の中央寄せ配置
 setting/index.js         Zeppアプリ内プリセット設定
 app-side/index.js        Settings StorageとBLE同期
 tools/generate-assets.mjs オリジナルPNG生成、プレビュー合成
 tools/normalize-background.mjs 背景元画像の寸法・グリッド・減色の正規化と検証
 tools/check-safe-area.mjs 角丸ディスプレイに対する座標の検査
-tools/normalize-sprites.mjs モンスター字形を実機サイズへ縮小
-tools/check-sprites.mjs  透過スプライトの検査
+tools/glyph-paths.mjs    数字・記号の字形（中心線のポリライン）
+tools/render-glyph.mjs   距離場から縁取り・影つきの文字画像を起こす
 art/backgrounds-src/     背景の元画像置き場（パッケージ対象外）
 assets/bip-6/images/     パッケージ対象アセット
 docs/background-image-gen-brief.md 背景画像の生成指示書（制約の根拠）
 docs/background-prompts.md 背景画像の生成プロンプト集（10枚・コピペ用）
-docs/monster-digits.md   モンスター字形の仕様と生成プロンプト
-art/monster-digits-src/  モンスター字形の元画像置き場（パッケージ対象外）
+docs/type-and-ui.md      字形の作り方、画面構成、配色
 docs/device-testing.md   実機確認手順とチェックリスト
 tests/                   バッテリー、天候、歩数、背景プレビューのテスト
 ```
@@ -100,7 +97,7 @@ tests/                   バッテリー、天候、歩数、背景プレビュ�
 - 日付: `M/D DDD`形式、英語大文字曜日
 - 気温: `WEATHER_LOW`、`WEATHER_CURRENT`、`WEATHER_HIGH`をファームウェアの文字盤データ型へ直接バインド
 - 歩数: `Step.getCurrent()`。3桁ごとに区切って表示（権限 `data:user.hd.step`）
-- バッテリー: `Battery.getCurrent()`を0〜100へクランプし、`ceil(percent / 10)`で10分割
+- バッテリー: `Battery.getCurrent()`を0〜100へクランプし、角丸の棒の幅へ換算（残量があるときは角丸が潰れない最小幅を保つ）
 - 天候: 公式Weatherセンサーの当日`index`で背景を選択
 - 昼夜: 当日の日の出・日の入りを優先し、欠損時は06:00〜17:59を昼と判定
 - レイアウト: 上下2枚の窓（黒地＋白い2px枠）にUIを集約し、中央は開けて背景を見せる。完全に見える帯は合計216px

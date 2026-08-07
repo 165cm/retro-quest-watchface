@@ -4,12 +4,7 @@ import { log } from '@zos/utils'
 import { BasePage } from '@zeppos/zml/base-page'
 import { LAYOUT, SCREEN } from './layout.js'
 import { COLORS, TYPE } from './theme.js'
-import {
-  TOTAL_SEGMENTS,
-  getBatteryColorKey,
-  getFilledSegments,
-  normalizeBattery,
-} from './battery.js'
+import { getBarWidth, getBatteryColorKey, normalizeBattery } from './battery.js'
 import { getTodayWeather, isNightAt, resolveWeatherTheme } from './weather.js'
 import { formatSteps } from './steps.js'
 import {
@@ -28,7 +23,8 @@ const BATTERY_COLORS = {
   green: COLORS.HP_GREEN,
   yellow: COLORS.HP_YELLOW,
   red: COLORS.HP_RED,
-  empty: COLORS.HP_EMPTY,
+  // 値が読めないときは棒の幅が0になるので、色は溝と同じでよい。
+  empty: COLORS.HP_TRACK,
 }
 
 function textWidget(rect, text, size, color, align = ui.align.LEFT, showLevel) {
@@ -48,27 +44,29 @@ function digitArray(path) {
   return Array.from({ length: 10 }, (_, index) => `${path}/${index}.png`)
 }
 
-// ドラクエ様式の窓。黒地に白い2pxの直角枠、それだけ。
-// 背景は完全に隠さず透かすが、透過率は上下で揃えて材質を一つに見せる。
-const WINDOW_ALPHA = 200
+// 現行ドラクエのコマンドウィンドウ。角丸の濃紺ガラスに金の細枠、それだけ。
+// 背景は透かすが、透過率は上下で揃えて材質を一つに見せる。
+const PANEL_ALPHA = 205
 
-function questWindow(rect) {
+function questPanel(rect) {
   ui.createWidget(ui.widget.FILL_RECT, {
     ...rect,
-    color: COLORS.WINDOW,
-    alpha: WINDOW_ALPHA,
+    radius: LAYOUT.panelRadius,
+    color: COLORS.PANEL,
+    alpha: PANEL_ALPHA,
     show_level: ui.show_level.ONLY_NORMAL,
   })
   ui.createWidget(ui.widget.STROKE_RECT, {
     ...rect,
-    color: COLORS.TEXT_PRIMARY,
+    radius: LAYOUT.panelRadius,
+    color: COLORS.PANEL_EDGE,
     line_width: 2,
-    radius: 0,
     show_level: ui.show_level.ONLY_NORMAL,
   })
 }
 
-function temperatureWidget(rect, type, path, unitPath, showLevel) {
+function temperatureWidget(rect, type, path, align, showLevel) {
+  const unitPath = `${path}/degree.png`
   return ui.createWidget(ui.widget.TEXT_IMG, {
     ...rect,
     type,
@@ -80,8 +78,8 @@ function temperatureWidget(rect, type, path, unitPath, showLevel) {
     imperial_unit_sc: unitPath,
     imperial_unit_tc: unitPath,
     imperial_unit_en: unitPath,
-    h_space: 2,
-    align_h: ui.align.CENTER_H,
+    h_space: 1,
+    align_h: align,
     show_level: showLevel,
   })
 }
@@ -97,7 +95,8 @@ WatchFace(
     mainTime: null,
     amPm: null,
     date: null,
-    hpSegments: [],
+    hpBar: null,
+    hpText: null,
     aod: null,
     step: null,
     steps: null,
@@ -169,15 +168,14 @@ WatchFace(
       show_level: ui.show_level.ONLY_NORMAL,
     })
 
-    this.drawTopWindow()
+    this.drawTopPanel()
     this.drawTime()
-    this.drawBottomWindow()
+    this.drawBottomPanel()
   },
 
-  // 上の窓: 天候アイコン・日付・HPゲージを1行に。
-  // パーセント表示はゲージと同じ値の二重表示なので通常表示では持たない。
-  drawTopWindow() {
-    questWindow(LAYOUT.topWindow)
+  // 上の板は「外の様子」だけ。天候アイコン・日付・現在気温を1行に集める。
+  drawTopPanel() {
+    questPanel(LAYOUT.topPanel)
 
     this.state.weatherIcon = ui.createWidget(ui.widget.IMG, {
       ...LAYOUT.weatherIcon,
@@ -194,36 +192,21 @@ WatchFace(
       ui.show_level.ONLY_NORMAL,
     )
 
-    for (let i = 0; i < TOTAL_SEGMENTS; i += 1) {
-      const x = LAYOUT.hp.gaugeX + i * (LAYOUT.hp.segmentW + LAYOUT.hp.gap)
-      ui.createWidget(ui.widget.STROKE_RECT, {
-        x,
-        y: LAYOUT.hp.gaugeY,
-        w: LAYOUT.hp.segmentW,
-        h: LAYOUT.hp.segmentH,
-        color: COLORS.TEXT_PRIMARY,
-        line_width: 1,
-        radius: 0,
-        show_level: ui.show_level.ONLY_NORMAL,
-      })
-      this.state.hpSegments.push(
-        ui.createWidget(ui.widget.FILL_RECT, {
-          x: x + 2,
-          y: LAYOUT.hp.gaugeY + 2,
-          w: LAYOUT.hp.segmentW - 4,
-          h: LAYOUT.hp.segmentH - 4,
-          color: COLORS.HP_EMPTY,
-          show_level: ui.show_level.ONLY_NORMAL,
-        }),
-      )
-    }
+    temperatureWidget(
+      LAYOUT.nowTemp,
+      ui.data_type.WEATHER_CURRENT,
+      'images/digits/temp-now',
+      ui.align.RIGHT,
+      ui.show_level.ONLY_NORMAL,
+    )
   },
 
-  // 時刻は窓を持たず背景へ直接。数字はモンスター字形で、縁取りと影を焼いてある。
+  // 時刻は板を持たず背景へ直接。数字は縁取りと影を焼いたベクター字形なので、
+  // どの背景の上でも輪郭が消えない。
   drawTime() {
     this.state.mainTime = createTimeSprites({
       y: LAYOUT.time.y,
-      digitPath: 'images/digits/monster',
+      digitPath: 'images/digits/time',
       digitW: LAYOUT.time.digitW,
       digitH: LAYOUT.time.digitH,
       colonW: LAYOUT.time.colonW,
@@ -240,34 +223,39 @@ WatchFace(
     })
   },
 
-  // 下の窓: 気温3列と歩数の1段だけ。
-  drawBottomWindow() {
-    questWindow(LAYOUT.bottomWindow)
+  // 下の板は「自分の状態」。1段目にHPの棒、2段目に歩数と今日の気温幅。
+  drawBottomPanel() {
+    questPanel(LAYOUT.bottomPanel)
 
-    const temp = LAYOUT.temperature
-    const columns = [
-      { label: 'L', color: COLORS.LOW_BLUE, type: ui.data_type.WEATHER_LOW, path: 'temp-low' },
-      { label: 'NOW', color: COLORS.TEXT_PRIMARY, type: ui.data_type.WEATHER_CURRENT, path: 'temp-now' },
-      { label: 'H', color: COLORS.HIGH_ORANGE, type: ui.data_type.WEATHER_HIGH, path: 'temp-high' },
-    ]
-    columns.forEach((column, index) => {
-      const geometry = temp.columns[index]
-      textWidget(
-        { x: geometry.x, y: temp.labelY, w: geometry.w, h: temp.labelH },
-        column.label,
-        TYPE.tempLabel,
-        column.color,
-        ui.align.CENTER_H,
-        ui.show_level.ONLY_NORMAL,
-      )
-      temperatureWidget(
-        { x: geometry.x, y: temp.valueY, w: geometry.w, h: temp.valueH },
-        column.type,
-        `images/digits/${column.path}`,
-        `images/digits/${column.path}/degree.png`,
-        ui.show_level.ONLY_NORMAL,
-      )
+    const hp = LAYOUT.hp
+    textWidget(
+      hp.label,
+      'HP',
+      TYPE.label,
+      COLORS.TEXT_LABEL,
+      ui.align.LEFT,
+      ui.show_level.ONLY_NORMAL,
+    )
+    ui.createWidget(ui.widget.FILL_RECT, {
+      ...hp.track,
+      radius: hp.radius,
+      color: COLORS.HP_TRACK,
+      show_level: ui.show_level.ONLY_NORMAL,
     })
+    this.state.hpBar = ui.createWidget(ui.widget.FILL_RECT, {
+      ...hp.track,
+      radius: hp.radius,
+      color: COLORS.HP_GREEN,
+      show_level: ui.show_level.ONLY_NORMAL,
+    })
+    this.state.hpText = textWidget(
+      hp.text,
+      '100%',
+      TYPE.battery,
+      COLORS.TEXT_PRIMARY,
+      ui.align.RIGHT,
+      ui.show_level.ONLY_NORMAL,
+    )
 
     ui.createWidget(ui.widget.IMG, {
       ...LAYOUT.steps.icon,
@@ -279,6 +267,38 @@ WatchFace(
       '0',
       TYPE.steps,
       COLORS.TEXT_PRIMARY,
+      ui.align.LEFT,
+      ui.show_level.ONLY_NORMAL,
+    )
+
+    const range = LAYOUT.range
+    textWidget(
+      range.lowLabel,
+      'L',
+      TYPE.label,
+      COLORS.LOW_BLUE,
+      ui.align.LEFT,
+      ui.show_level.ONLY_NORMAL,
+    )
+    temperatureWidget(
+      range.lowValue,
+      ui.data_type.WEATHER_LOW,
+      'images/digits/temp-low',
+      ui.align.LEFT,
+      ui.show_level.ONLY_NORMAL,
+    )
+    textWidget(
+      range.highLabel,
+      'H',
+      TYPE.label,
+      COLORS.HIGH_ORANGE,
+      ui.align.LEFT,
+      ui.show_level.ONLY_NORMAL,
+    )
+    temperatureWidget(
+      range.highValue,
+      ui.data_type.WEATHER_HIGH,
+      'images/digits/temp-high',
       ui.align.LEFT,
       ui.show_level.ONLY_NORMAL,
     )
@@ -321,27 +341,27 @@ WatchFace(
 
   updateBattery() {
     const value = normalizeBattery(this.state.battery.getCurrent())
-    const filled = getFilledSegments(value)
     const color = BATTERY_COLORS[getBatteryColorKey(value)]
-    this.state.hpSegments.forEach((segment, index) => {
-      segment.setProperty(ui.prop.MORE, {
-        x: LAYOUT.hp.gaugeX + index * (LAYOUT.hp.segmentW + LAYOUT.hp.gap) + 2,
-        y: LAYOUT.hp.gaugeY + 2,
-        w: LAYOUT.hp.segmentW - 4,
-        h: LAYOUT.hp.segmentH - 4,
-        color: index < filled ? color : COLORS.HP_EMPTY,
-      })
+    const track = LAYOUT.hp.track
+
+    this.state.hpBar.setProperty(ui.prop.MORE, {
+      x: track.x,
+      y: track.y,
+      w: getBarWidth(value, track.w, track.h),
+      h: track.h,
+      radius: LAYOUT.hp.radius,
+      color,
     })
-    this.state.aod.segments.forEach((segment, index) => {
-      segment.setProperty(ui.prop.MORE, {
-        x:
-          LAYOUT.aod.hpGaugeX +
-          index * (LAYOUT.aod.segmentW + LAYOUT.aod.gap),
-        y: LAYOUT.aod.hpGaugeY,
-        w: LAYOUT.aod.segmentW,
-        h: LAYOUT.aod.segmentH,
-        color: index < filled ? COLORS.AOD_TEXT : COLORS.AOD_EMPTY,
-      })
+    this.state.hpText.setProperty(ui.prop.TEXT, value === null ? '--%' : `${value}%`)
+
+    const aodBar = LAYOUT.aod.hp
+    this.state.aod.bar.setProperty(ui.prop.MORE, {
+      x: aodBar.x,
+      y: aodBar.y,
+      w: getBarWidth(value, aodBar.w, aodBar.h),
+      h: aodBar.h,
+      radius: aodBar.radius,
+      color: COLORS.AOD_TEXT,
     })
   },
 
