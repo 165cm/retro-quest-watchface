@@ -72,6 +72,7 @@ watchface/theme.js       色・文字サイズ
 watchface/weather.js     天候コード、昼夜、フォールバック
 watchface/battery.js     クランプ、HPの棒幅、状態色
 watchface/steps.js       歩数の正規化と桁区切り
+watchface/date.js        曜日の解決（getDay()の2流儀に両対応）と日付整形
 watchface/debug-theme.js 背景プレビュー（Off / 巡回 / 固定）の解決ロジック
 watchface/aod.js         AOD専用描画
 watchface/time-sprites.js 画像数字の中央寄せ配置
@@ -88,13 +89,13 @@ docs/background-image-gen-brief.md 背景画像の生成指示書（制約の根
 docs/background-prompts.md 背景画像の生成プロンプト集（10枚・コピペ用）
 docs/type-and-ui.md      字形の作り方、画面構成、配色
 docs/device-testing.md   実機確認手順とチェックリスト
-tests/                   バッテリー、天候、歩数、背景プレビューのテスト
+tests/                   バッテリー、天候、歩数、曜日、背景プレビューのテスト
 ```
 
 ## 表示と更新
 
 - 時刻: システムの12/24時間設定に追従。分をゼロ埋めし、12時間制ではAM/PMを表示
-- 日付: `M/D DDD`形式、英語大文字曜日
+- 日付: `M/D DDD`形式、英語大文字曜日。`Time.getDay()`は端末により`0=日曜`と`1=月曜〜7=日曜`のどちらを返すか資料が食い違うため、`7`を`0`へ畳んで両方の流儀で正しく引けるようにしている
 - 気温: `WEATHER_LOW`、`WEATHER_CURRENT`、`WEATHER_HIGH`をファームウェアの文字盤データ型へ直接バインド
 - 歩数: `Step.getCurrent()`。3桁ごとに区切って表示（権限 `data:user.hd.step`）
 - バッテリー: `Battery.getCurrent()`を0〜100へクランプし、角丸の棒の幅へ換算（残量があるときは角丸が潰れない最小幅を保つ）
@@ -202,7 +203,8 @@ Zeppアプリの文字盤設定にセクションが1つあります。
 
 - ZABビルドは通過を確認済みです（`zeus build`が4つのJSをrollupし、86枚のPNGをTGAへ変換して完了）。実機Bip 6とZepp OS Simulatorは開発環境に接続していないため、実機表示とSettings AppのBLE反映は未確認です。
 - 現在気温はファームウェアの`WEATHER_CURRENT`へ直接バインドするため、JavaScript側から値を単体テストできません。
-- 温度単位はシステム設定へ追従しますが、表示を簡潔にするため摂氏・華氏とも単位画像は`°`です。
+- 温度単位はシステム設定へ追従しますが、表示を簡潔にするため摂氏・華氏とも単位画像は`°`です。最低・最高の枠は華氏3桁（`100°` = 66px）が収まる70pxを確保しています。
+- `Time.getDay()`の返り値の流儀は実機で未確定です。月曜〜土曜は両方の流儀で同じ添字になるため、スクリーンショットからは判別できません。実装は日曜（`0`／`7`）を両方受けるため表示は正しくなりますが、どちらの流儀かを実機で確認できると`watchface/date.js`を単純化できます。
 - AODの焼き付き対策は発光面積10%未満を意図した固定レイアウトです。端末固有のピクセルシフトはファームウェア動作を実機確認してください。
 - Bip 6は角丸ディスプレイですが、Zepp OSの`getDeviceInfo()`は角丸半径を返しません。`npm run safe-area`は実機で欠けた事実から逆算した想定値（既定105px）で検査するもので、端末の実寸とは一致しない可能性があります。
 - `appId`は開発用の仮値です。ストア提出前にZepp Consoleで割り当てられた値へ置き換えてください。

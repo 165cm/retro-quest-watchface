@@ -7,6 +7,7 @@ import { COLORS, TYPE } from './theme.js'
 import { getBarWidth, getBatteryColorKey, normalizeBattery } from './battery.js'
 import { getTodayWeather, isNightAt, resolveWeatherTheme } from './weather.js'
 import { formatSteps } from './steps.js'
+import { formatDate } from './date.js'
 import {
   CYCLE_INTERVAL_MS,
   isCycleMode,
@@ -17,7 +18,20 @@ import { createTimeSprites } from './time-sprites.js'
 import { createAodView } from './aod.js'
 
 const logger = log.getLogger('pixel-wayfarer-face')
-const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+const DEBUG_STORAGE_KEY = 'pixel_wayfarer_debug_theme'
+
+// レガシーのグローバルAPI（hmSensor / hmFS）を触る箇所を包む。
+// onInit で例外が出ると build() へ到達せず文字盤が真っ黒になるため、
+// 天候やデバッグ設定のような「無くても時刻は出せる」機能で
+// 全体を道連れにしない。失敗時は既定値へ落として描画を続ける。
+function tolerate(operation, fallback) {
+  try {
+    return operation()
+  } catch (error) {
+    logger.log('legacy API unavailable, using fallback')
+    return fallback
+  }
+}
 
 const BATTERY_COLORS = {
   green: COLORS.HP_GREEN,
@@ -113,9 +127,13 @@ WatchFace(
     this.state.time = new Time()
     this.state.battery = new Battery()
     this.state.step = new Step()
-    this.state.weather = hmSensor.createSensor(hmSensor.id.WEATHER)
+    // null のまま渡しても getTodayWeather() が既定値を返し、背景は unknown になる。
+    this.state.weather = tolerate(
+      () => hmSensor.createSensor(hmSensor.id.WEATHER),
+      null,
+    )
     this.state.debugIndex = normalizeDebugIndex(
-      hmFS.SysProGetInt('pixel_wayfarer_debug_theme') || 0,
+      tolerate(() => hmFS.SysProGetInt(DEBUG_STORAGE_KEY), 0) || 0,
     )
   },
 
@@ -329,8 +347,7 @@ WatchFace(
         : 'images/ampm/blank.png',
     })
 
-    const weekday = WEEKDAYS[time.getDay() - 1] || '---'
-    const dateText = `${time.getMonth()}/${time.getDate()} ${weekday}`
+    const dateText = formatDate(time.getMonth(), time.getDate(), time.getDay())
     this.state.date.setProperty(ui.prop.TEXT, dateText)
     this.state.aod.date.setProperty(ui.prop.TEXT, dateText)
   },
@@ -416,9 +433,13 @@ WatchFace(
 
   applyDebugTheme(value) {
     const next = normalizeDebugIndex(value)
-    if (next !== this.state.debugIndex) this.state.debugTick = 0
-    this.state.debugIndex = next
-    hmFS.SysProSetInt('pixel_wayfarer_debug_theme', next)
+    // 起動のたびに loadDebugTheme() から同じ値で呼ばれる。値が変わって
+    // いないときまで書き込むとフラッシュを無駄に消耗するので、差分だけ保存する。
+    if (next !== this.state.debugIndex) {
+      this.state.debugTick = 0
+      this.state.debugIndex = next
+      tolerate(() => hmFS.SysProSetInt(DEBUG_STORAGE_KEY, next), null)
+    }
     this.applyTheme()
     this.startCycleTimer()
   },
@@ -439,6 +460,10 @@ WatchFace(
   },
 
   onDestroy() {
+    // 購読したものは全部外す。分更新だけ外し忘れていた。
+    if (this.state.time && this.state.minuteCallback) {
+      this.state.time.offPerMinute(this.state.minuteCallback)
+    }
     if (this.state.battery && this.state.batteryCallback) {
       this.state.battery.offChange(this.state.batteryCallback)
     }
