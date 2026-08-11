@@ -900,9 +900,15 @@ function cropToScreenCorners(source, radius) {
   return png
 }
 
-writePng(
-  path.join(ASSET_ROOT, 'preview.png'),
-  cropToScreenCorners(fullPreview, SCREEN.cornerRadius),
-)
+const storePreview = cropToScreenCorners(fullPreview, SCREEN.cornerRadius)
+
+writePng(path.join(ASSET_ROOT, 'preview.png'), storePreview)
+
+// ストアへアップロードする実体はこちら。中身は上と同じだが、docs/ に置くことで
+// `zeus build` の影響を受けない。ビルドは app.json の icon/cover として
+// assets/ 側の preview.png を 266px へ縮小するため、assets/ の画像を
+// そのまま提出用に使うと、ビルド後に縮小版を掴んでしまう事故が起きる。
+// （2026-08の却下は、266x307で四隅が不透明な画像を提出したのが原因だった）
+writePng(path.join(DOCS_ROOT, 'store-preview-390x450.png'), storePreview)
 
 console.log('Generated original pixel assets in assets/bip-6/images')

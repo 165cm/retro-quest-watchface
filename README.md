@@ -36,6 +36,7 @@ Zeus CLI 1.9.3の公開パッケージには、ESM専用の推移依存をCommon
 | `npm run assets` | 数字・記号・天候アイコンとプレビューを再生成（背景は対象外） |
 | `npm run normalize` | `art/backgrounds-src/`の背景元画像を正規化して`assets/`へ出力 |
 | `npm run safe-area` | 角丸ディスプレイの隅にUIがはみ出していないか検査（既定半径105px） |
+| `npm run check-preview` | ストア提出用プレビューの寸法・四隅の透過を検査 |
 
 `npm run assets`は**背景PNGを書き換えません**。背景は`assets/bip-6/images/backgrounds/`にある
 実ファイルを正とし、プレビューもそこから読み込みます。
@@ -81,6 +82,7 @@ app-side/index.js        Settings StorageとBLE同期
 tools/generate-assets.mjs オリジナルPNG生成、プレビュー合成
 tools/normalize-background.mjs 背景元画像の寸法・グリッド・減色の正規化と検証
 tools/check-safe-area.mjs 角丸ディスプレイに対する座標の検査
+tools/check-preview.mjs  提出用プレビューの寸法・四隅の透過の検査
 tools/glyph-paths.mjs    数字・記号の字形（中心線のポリライン）
 tools/render-glyph.mjs   距離場から縁取り・影つきの文字画像を起こす
 art/backgrounds-src/     背景の元画像置き場（パッケージ対象外）
@@ -89,6 +91,7 @@ docs/background-image-gen-brief.md 背景画像の生成指示書（制約の根
 docs/background-prompts.md 背景画像の生成プロンプト集（10枚・コピペ用）
 docs/type-and-ui.md      字形の作り方、画面構成、配色
 docs/device-testing.md   実機確認手順とチェックリスト
+docs/store-preview-390x450.png ストア提出用プレビュー（アップロードする実体）
 tests/                   バッテリー、天候、歩数、曜日、背景プレビューのテスト
 ```
 
@@ -153,9 +156,31 @@ Zeppアプリの文字盤設定にセクションが1つあります。
 2. **端末の角丸に合わせて四隅を切り抜く**。不透明な直角の隅があると差し戻されます
 3. **時刻は 10:09**
 
-`npm run assets` が `assets/bip-6/images/preview.png` をこの3条件を満たす形で書き出します。
-申請フォームの「预览图 / プレビュー画像」には**このファイルをそのまま**アップロードしてください。
-実機のスクリーンショットを撮り直す必要はありません（撮ると四隅が黒く埋まって再び差し戻されます）。
+`npm run assets` がこの3条件を満たす画像を書き出し、`npm run check-preview` が
+1〜2を機械的に検査します（3は目視）。**提出前に必ず検査を通してください。**
+
+```sh
+npm run assets && npm run check-preview
+```
+
+申請フォームの「预览图 / プレビュー画像」へアップロードするのは
+**`docs/store-preview-390x450.png`** です。実機のスクリーンショットを撮り直す
+必要はありません（撮ると四隅が黒く埋まって再び差し戻されます）。
+
+アップロード時の注意が2つあります。
+
+- **`assets/bip-6/images/preview.png`を提出用に使わないこと。** 中身は同一ですが、
+  こちらは`app.json`の`icon`/`cover`を兼ねており、`zeus build`が266pxへ縮小します。
+  ビルド後に掴むと縮小版を提出してしまいます。
+- 画像アップロードの選択肢は**「原文件上传」（原寸）**を選ぶこと。圧縮アップロードは
+  PNGの透過（＝角の切り抜き）を落とす可能性があります。
+
+### 差し戻しの記録
+
+2026-08、`The four corners need to be removed` として却下されました。原因は
+提出画像が**266×307の縮小サムネイルで、四隅が不透明な直角のまま**だったことです。
+当時の`preview.png`は角の切り抜きを実装する前のもので、`npm run check-preview`は
+この画像を4項目すべてで検出します。
 
 角丸半径は `SCREEN.cornerRadius`（`watchface/layout.js`）の1か所で管理しています。
 座標のはみ出し検査（`npm run safe-area`）と切り抜きが同じ値を見るので、
@@ -214,9 +239,10 @@ Zeppアプリの文字盤設定にセクションが1つあります。
 
 1. 実機テスト項目を完了します。
 2. Zepp ConsoleでWatchfaceを作成し、割り当てられた`appId`へ更新します。
-3. ストア用プレビューが`10:09`であること、権利表示、対象端末を確認します。
+3. `npm run assets && npm run check && npm run check-preview && npm run build`を実行します。
+4. プレビュー画像とZABをアップロードします。**画像の要件と注意点は
+   [ストア申請](#ストア申請zepp-open-platform)を必ず参照してください**（差し戻しの原因の大半がここです）。
+5. 対象国・英語名・説明・独自制作物の申告を設定します。
    **背景がAI生成素材である点の申告方針**を「アセットとライセンス」の注意書きに従って確認します。
-4. `npm run assets && npm run check && npm run build`を実行します。
-5. `dist/`のZABをZepp Consoleへアップロードし、対象国・英語名・説明・独自制作物の申告を設定します。
 
 提出手順は公式の[How to submit a Watchface](https://docs.zepp.com/docs/distribute/watchface/)を優先してください。

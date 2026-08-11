@@ -11,7 +11,8 @@
     "check": "node --test tests/*.test.mjs",
     "build": "zeus build",
     "dev": "zeus dev",
-    "preview": "zeus preview"
+    "preview": "zeus preview",
+    "check-preview": "node tools/check-preview.mjs"
   },
   "license": "MIT",
   "dependencies": {
