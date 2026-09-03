@@ -7,6 +7,7 @@ Amazfit Bip 6専用のZepp OS文字盤です。天候で切り替わる16-bit風
 ## 対象端末と実行環境
 
 - 対象: Amazfit Bip 6
+- appId: `1121508`（Zepp Consoleが割り当てた値。ZABのappIdがこれと一致しないとConsoleが端末を認識できず、`Supported Devices`が空のままになります）
 - 解像度: 390 × 450 px
 - Zepp OS: 5.0
 - API_LEVEL: 4.2
@@ -232,7 +233,6 @@ npm run assets && npm run check-preview
 - `Time.getDay()`の返り値の流儀は実機で未確定です。月曜〜土曜は両方の流儀で同じ添字になるため、スクリーンショットからは判別できません。実装は日曜（`0`／`7`）を両方受けるため表示は正しくなりますが、どちらの流儀かを実機で確認できると`watchface/date.js`を単純化できます。
 - AODの焼き付き対策は発光面積10%未満を意図した固定レイアウトです。端末固有のピクセルシフトはファームウェア動作を実機確認してください。
 - Bip 6は角丸ディスプレイですが、Zepp OSの`getDeviceInfo()`は角丸半径を返しません。`npm run safe-area`は実機で欠けた事実から逆算した想定値（既定105px）で検査するもので、端末の実寸とは一致しない可能性があります。
-- `appId`は開発用の仮値です。ストア提出前にZepp Consoleで割り当てられた値へ置き換えてください。
 - Zeus CLIの推移依存に既知の監査警告があります。`npm audit fix --force`はCLI互換性を壊すため自動適用していません。
 
 ## 公開・提出
