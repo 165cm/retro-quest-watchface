@@ -17,9 +17,26 @@ import path from 'node:path'
 import { PNG } from 'pngjs'
 import { SCREEN } from '../watchface/layout.js'
 
+// 2枚とも四隅の透過が要る。寸法と用途が違うので別々に検査する。
+//   - ストア提出用: 申請フォームへアップロードする画像
+//   - パッケージ同梱: app.json の icon/cover。端末の文字盤切り替え
+//     アニメーション（審査では transition animation）に使われる。
+//     `zeus build` の縮小を通さないよう、最終寸法の266px幅で生成する。
+const ICON_WIDTH = 266
+
 const DEFAULT_TARGETS = [
-  'docs/store-preview-390x450.png',
-  'assets/bip-6/images/preview.png',
+  {
+    file: 'docs/store-preview-390x450.png',
+    label: 'ストア提出用',
+    width: SCREEN.width,
+    height: SCREEN.height,
+  },
+  {
+    file: 'assets/bip-6/images/preview.png',
+    label: 'パッケージ同梱アイコン（transition animation）',
+    width: ICON_WIDTH,
+    height: Math.round((SCREEN.height * ICON_WIDTH) / SCREEN.width),
+  },
 ]
 
 function parseRadius(argv) {
@@ -38,7 +55,10 @@ function parseTargets(argv) {
     if (argv[index - 1] === '--radius') return false
     return true
   })
-  return files.length > 0 ? files : DEFAULT_TARGETS
+  // 引数で渡された画像は寸法を決め打ちできないので、実寸をそのまま受ける。
+  return files.length > 0
+    ? files.map((file) => ({ file, label: '指定ファイル', width: null, height: null }))
+    : DEFAULT_TARGETS
 }
 
 // 角丸の境界からの符号つき距離。正なら外側。
@@ -54,16 +74,18 @@ function cornerDistance(x, y, w, h, radius) {
 // 「完全に不透明な画素」と「帯より外まではみ出した画素」だけを弾く。
 const FEATHER = 1
 
-function inspect(file, radius) {
+function inspect(target, baseRadius) {
   const problems = []
-  const png = PNG.sync.read(fs.readFileSync(file))
+  const png = PNG.sync.read(fs.readFileSync(target.file))
   const alpha = (x, y) => png.data[((png.width * y + x) << 2) + 3]
 
-  if (png.width !== SCREEN.width || png.height !== SCREEN.height) {
+  if (target.width !== null && (png.width !== target.width || png.height !== target.height)) {
     problems.push(
-      `寸法が ${png.width}x${png.height}。画面解像度と同じ ${SCREEN.width}x${SCREEN.height} が必要`,
+      `寸法が ${png.width}x${png.height}。この用途では ${target.width}x${target.height} が必要`,
     )
   }
+  // 角丸半径は画像の幅へ比例させる。縮小した画像でも同じ形の角になる。
+  const radius = (baseRadius * png.width) / SCREEN.width
   if (png.colorType !== 6) {
     problems.push(
       `カラータイプが ${png.colorType}。透過を持てるRGBA(6)で書き出す必要がある`,
@@ -119,18 +141,19 @@ console.log(`角丸半径 ${radius}px を想定して提出用プレビューを
 
 let failed = 0
 for (const target of targets) {
-  const file = path.resolve(process.cwd(), target)
-  if (!fs.existsSync(file)) {
-    console.log(`✗ ${target}\n    ファイルがありません。先に npm run assets を実行してください\n`)
+  const resolved = { ...target, file: path.resolve(process.cwd(), target.file) }
+  const name = `${target.file} [${target.label}]`
+  if (!fs.existsSync(resolved.file)) {
+    console.log(`✗ ${name}\n    ファイルがありません。先に npm run assets を実行してください\n`)
     failed += 1
     continue
   }
-  const problems = inspect(file, radius)
+  const problems = inspect(resolved, radius)
   if (problems.length === 0) {
-    console.log(`✓ ${target}`)
+    console.log(`✓ ${name}`)
   } else {
     failed += 1
-    console.log(`✗ ${target}`)
+    console.log(`✗ ${name}`)
     problems.forEach((problem) => console.log(`    - ${problem}`))
   }
   console.log('')

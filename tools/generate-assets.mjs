@@ -900,15 +900,70 @@ function cropToScreenCorners(source, radius) {
   return png
 }
 
-const storePreview = cropToScreenCorners(fullPreview, SCREEN.cornerRadius)
+// ボックスフィルタで縮小する。呼び出し側は「まだ角を切り抜いていない
+// 完全不透明な画像」を渡すので、アルファの前乗算は不要。
+// 角の切り抜きは縮小後に行う（先に切り抜くと、縮小で角の境界が濁る）。
+function downscale(source, targetWidth) {
+  const targetHeight = Math.round((source.height * targetWidth) / source.width)
+  const png = new PNG({ width: targetWidth, height: targetHeight })
+  const scaleX = source.width / targetWidth
+  const scaleY = source.height / targetHeight
 
-writePng(path.join(ASSET_ROOT, 'preview.png'), storePreview)
+  for (let y = 0; y < targetHeight; y += 1) {
+    const y0 = Math.floor(y * scaleY)
+    const y1 = Math.max(y0 + 1, Math.floor((y + 1) * scaleY))
+    for (let x = 0; x < targetWidth; x += 1) {
+      const x0 = Math.floor(x * scaleX)
+      const x1 = Math.max(x0 + 1, Math.floor((x + 1) * scaleX))
+      let r = 0
+      let g = 0
+      let b = 0
+      let a = 0
+      let count = 0
+      for (let sy = y0; sy < y1; sy += 1) {
+        for (let sx = x0; sx < x1; sx += 1) {
+          const index = (source.width * sy + sx) << 2
+          r += source.data[index]
+          g += source.data[index + 1]
+          b += source.data[index + 2]
+          a += source.data[index + 3]
+          count += 1
+        }
+      }
+      const index = (targetWidth * y + x) << 2
+      png.data[index] = Math.round(r / count)
+      png.data[index + 1] = Math.round(g / count)
+      png.data[index + 2] = Math.round(b / count)
+      png.data[index + 3] = Math.round(a / count)
+    }
+  }
+  return png
+}
 
-// ストアへアップロードする実体はこちら。中身は上と同じだが、docs/ に置くことで
-// `zeus build` の影響を受けない。ビルドは app.json の icon/cover として
-// assets/ 側の preview.png を 266px へ縮小するため、assets/ の画像を
-// そのまま提出用に使うと、ビルド後に縮小版を掴んでしまう事故が起きる。
-// （2026-08の却下は、266x307で四隅が不透明な画像を提出したのが原因だった）
-writePng(path.join(DOCS_ROOT, 'store-preview-390x450.png'), storePreview)
+// ストアへアップロードする実体。`zeus build` の影響を受けない docs/ に置く。
+writePng(
+  path.join(DOCS_ROOT, 'store-preview-390x450.png'),
+  cropToScreenCorners(fullPreview, SCREEN.cornerRadius),
+)
+
+// パッケージ同梱のアイコン。app.json の icon/cover がこれを参照し、
+// 端末の文字盤切り替えアニメーション（審査では transition animation と
+// 呼ばれる）とZeppアプリのサムネイルに使われる。
+//
+// `zeus build` はこの画像を幅266pxへ縮小する。390x450を渡すとビルド側の
+// 縮小処理を通ることになり、そこで四隅のアルファが保たれる保証がない。
+// （2026-09の却下 "The transition animation has four corners that need to
+// be removed" はこれが原因とみられる）
+// そこで最終寸法まで自分で縮小し、そのサイズで角を切り抜いて書き出す。
+// ビルド側に縮小の余地を残さないので、アルファは確実に残る。
+const ICON_WIDTH = 266
+
+writePng(
+  path.join(ASSET_ROOT, 'preview.png'),
+  cropToScreenCorners(
+    downscale(fullPreview, ICON_WIDTH),
+    (SCREEN.cornerRadius * ICON_WIDTH) / SCREEN.width,
+  ),
+)
 
 console.log('Generated original pixel assets in assets/bip-6/images')
