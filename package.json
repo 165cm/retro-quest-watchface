@@ -6,10 +6,13 @@
   "description": "Original retro pixel-art watchface for Amazfit Bip 6",
   "scripts": {
     "assets": "node tools/generate-assets.mjs",
+    "normalize": "node tools/normalize-background.mjs",
+    "safe-area": "node tools/check-safe-area.mjs",
     "check": "node --test tests/*.test.mjs",
     "build": "zeus build",
     "dev": "zeus dev",
-    "preview": "zeus preview"
+    "preview": "zeus preview",
+    "check-preview": "node tools/check-preview.mjs"
   },
   "license": "MIT",
   "dependencies": {

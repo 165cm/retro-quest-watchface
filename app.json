@@ -1,7 +1,7 @@
 {
   "configVersion": "v3",
   "app": {
-    "appId": 10420724,
+    "appId": 1121508,
     "appName": "Pixel Wayfarer Face",
     "appType": "watchface",
     "version": {
@@ -11,9 +11,14 @@
     "vender": "independent",
     "description": "Original retro pixel-art weather watchface for Amazfit Bip 6",
     "icon": "images/preview.png",
-    "cover": ["images/preview.png"]
+    "cover": [
+      "images/preview.png"
+    ]
   },
-  "permissions": ["device:os.local_storage"],
+  "permissions": [
+    "device:os.local_storage",
+    "data:user.hd.step"
+  ],
   "runtime": {
     "apiVersion": {
       "compatible": "4.2",

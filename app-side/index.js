@@ -1,26 +1,26 @@
 import { BaseSideService, settingsLib } from '@zeppos/zml/base-side'
-import { normalizePresetIndex } from '../watchface/copy.js'
+import { normalizeDebugIndex } from '../watchface/debug-theme.js'
 
-const STORAGE_KEY = 'messagePreset'
+const DEBUG_KEY = 'debugTheme'
 
-function readPreset() {
-  return normalizePresetIndex(settingsLib.getItem(STORAGE_KEY))
+function readDebugTheme() {
+  return normalizeDebugIndex(settingsLib.getItem(DEBUG_KEY))
 }
 
 AppSideService(
   BaseSideService({
     onRequest(req, res) {
-      if (req.method === 'GET_MESSAGE_PRESET') {
-        res(null, { presetIndex: readPreset() })
+      if (req.method === 'GET_DEBUG_THEME') {
+        res(null, { debugIndex: readDebugTheme() })
         return
       }
       res(new Error(`Unsupported request: ${req.method}`))
     },
     onSettingsChange({ key }) {
-      if (key === STORAGE_KEY) {
+      if (key === DEBUG_KEY) {
         this.call({
-          type: 'MESSAGE_PRESET_CHANGED',
-          presetIndex: readPreset(),
+          type: 'DEBUG_THEME_CHANGED',
+          debugIndex: readDebugTheme(),
         })
       }
     },
