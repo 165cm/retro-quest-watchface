@@ -12,7 +12,8 @@
     "build": "zeus build",
     "dev": "zeus dev",
     "preview": "zeus preview",
-    "check-preview": "node tools/check-preview.mjs"
+    "check-preview": "node tools/check-preview.mjs",
+    "check-package": "node tools/check-package.mjs"
   },
   "license": "MIT",
   "dependencies": {

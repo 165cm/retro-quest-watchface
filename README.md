@@ -38,6 +38,7 @@ Zeus CLI 1.9.3の公開パッケージには、ESM専用の推移依存をCommon
 | `npm run normalize` | `art/backgrounds-src/`の背景元画像を正規化して`assets/`へ出力 |
 | `npm run safe-area` | 角丸ディスプレイの隅にUIがはみ出していないか検査（既定半径105px） |
 | `npm run check-preview` | ストア提出用プレビューの寸法・四隅の透過を検査 |
+| `npm run check-package` | ビルド済みZABを展開し、同梱TGAのアルファと四隅を検査 |
 
 `npm run assets`は**背景PNGを書き換えません**。背景は`assets/bip-6/images/backgrounds/`にある
 実ファイルを正とし、プレビューもそこから読み込みます。
