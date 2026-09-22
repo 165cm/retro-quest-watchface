@@ -1,26 +1,38 @@
+// 現行のドラクエ（XI / ウォーク系）のUIに合わせた配色。
+// 8bit期の原色ではなく、濃紺のガラス板に金の縁、文字は白 ── の3層だけ。
+// 色数を増やすほど背景の絵に負けるので、意味を持つ色は温度とHPに限る。
 export const COLORS = Object.freeze({
   BACKGROUND_NAVY: 0x031426,
-  PANEL_NAVY: 0x061b31,
-  PANEL_EDGE: 0xf4f3e8,
-  TEXT_PRIMARY: 0xf4f3e8,
-  TEXT_MUTED: 0xa9b0b8,
-  HP_GREEN: 0x62b84a,
-  HP_YELLOW: 0xe1b84a,
-  HP_RED: 0xd9534f,
-  HP_EMPTY: 0x183047,
-  LOW_BLUE: 0x69a7e8,
-  HIGH_ORANGE: 0xe98a4a,
-  AOD_TEXT: 0xb8b8b8,
+
+  // 板は真っ黒ではなく青みのある濃紺。黒だと背景から浮いて板が主役になる。
+  PANEL: 0x08182c,
+  // 縁は金。現行ドラクエのコマンドウィンドウの識別色で、白枠より柔らかい。
+  PANEL_EDGE: 0xcdb87e,
+
+  TEXT_PRIMARY: 0xf2f5fa,
+  // ラベルは金系で一段落とす。値と同じ白にすると読む順番が決まらない。
+  TEXT_LABEL: 0xcdb87e,
+  TEXT_MUTED: 0x93a3b8,
+
+  // HPは棒1本。溝は板よりわずかに明るくして、満タンでも溝の存在が分かるようにする。
+  HP_TRACK: 0x1d2c41,
+  HP_GREEN: 0x5cc27a,
+  HP_YELLOW: 0xe8c15a,
+  HP_RED: 0xe8695a,
+
+  LOW_BLUE: 0x86c8f0,
+  HIGH_ORANGE: 0xf0a45c,
+
+  AOD_TEXT: 0xb4bcc6,
+  AOD_MUTED: 0x4a525c,
   BLACK: 0x000000,
-  PANEL_ACCENT_GOLD: 0xc9a85c,
 })
 
+// 階層は「時刻(スプライト80px) / 実データ26px / ラベル18px」の3段。
 export const TYPE = Object.freeze({
-  copyLabel: 22,
-  copyText: 27,
-  date: 28,
-  hp: 24,
-  amPm: 22,
+  date: 26,
+  steps: 26,
+  label: 18,
+  battery: 20,
   aodDate: 24,
-  aodHp: 22,
 })

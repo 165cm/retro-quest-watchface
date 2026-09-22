@@ -3,6 +3,9 @@ import { LAYOUT, SCREEN } from './layout.js'
 import { COLORS, TYPE } from './theme.js'
 import { createTimeSprites } from './time-sprites.js'
 
+// 通常表示の省電力版。時刻の光学中心を通常表示と揃えてあるので、
+// 手首を上げても視線の着地点が動かない。
+// 板も枠も描かない。常時点灯では点いている画素の数がそのまま電力になる。
 export function createAodView() {
   ui.createWidget(ui.widget.FILL_RECT, {
     x: 0,
@@ -14,12 +17,12 @@ export function createAodView() {
   })
 
   const time = createTimeSprites({
-    y: LAYOUT.aod.timeY,
+    y: LAYOUT.aod.time.y,
     digitPath: 'images/digits/aod',
-    digitW: 32,
-    digitH: 49,
-    colonW: 12,
-    gap: 4,
+    digitW: LAYOUT.aod.time.digitW,
+    digitH: LAYOUT.aod.time.digitH,
+    colonW: LAYOUT.aod.time.colonW,
+    gap: LAYOUT.aod.time.gap,
     showLevel: ui.show_level.ONAL_AOD,
   })
 
@@ -33,39 +36,17 @@ export function createAodView() {
     show_level: ui.show_level.ONAL_AOD,
   })
 
-  const hpLabel = ui.createWidget(ui.widget.TEXT, {
-    ...LAYOUT.aod.hpLabel,
+  // 溝がないと残量の分母が読めないため、暗い溝だけは置く。
+  ui.createWidget(ui.widget.FILL_RECT, {
+    ...LAYOUT.aod.hp,
+    color: COLORS.AOD_MUTED,
+    show_level: ui.show_level.ONAL_AOD,
+  })
+  const bar = ui.createWidget(ui.widget.FILL_RECT, {
+    ...LAYOUT.aod.hp,
     color: COLORS.AOD_TEXT,
-    text_size: TYPE.aodHp,
-    align_h: ui.align.LEFT,
-    align_v: ui.align.CENTER_V,
-    text: 'HP',
     show_level: ui.show_level.ONAL_AOD,
   })
 
-  const segments = []
-  for (let i = 0; i < 10; i += 1) {
-    segments.push(
-      ui.createWidget(ui.widget.FILL_RECT, {
-        x: LAYOUT.aod.hpGaugeX + i * (LAYOUT.aod.segmentW + LAYOUT.aod.gap),
-        y: LAYOUT.aod.hpGaugeY,
-        w: LAYOUT.aod.segmentW,
-        h: LAYOUT.aod.segmentH,
-        color: COLORS.HP_EMPTY,
-        show_level: ui.show_level.ONAL_AOD,
-      }),
-    )
-  }
-
-  const percent = ui.createWidget(ui.widget.TEXT, {
-    ...LAYOUT.aod.percent,
-    color: COLORS.AOD_TEXT,
-    text_size: TYPE.aodHp,
-    align_h: ui.align.RIGHT,
-    align_v: ui.align.CENTER_V,
-    text: '--%',
-    show_level: ui.show_level.ONAL_AOD,
-  })
-
-  return { time, date, hpLabel, segments, percent }
+  return { time, date, bar }
 }
