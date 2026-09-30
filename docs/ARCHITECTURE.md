@@ -63,19 +63,19 @@
 | `docs/preview-*.png` | README 用のプレビュー（昼・夜・雨） |
 | `README.md` | この文字盤の説明・天気コードの表・既知の制限・提出手順 |
 
-### 文字盤：`faces/yuge-ramen/`（ゆげおばけ）
+### 文字盤：`faces/yuge-ramen/`（ゆげラーメン）
 
 | ファイル・フォルダ | 役割 |
 |---|---|
 | `app.json` | アプリの設定。appId は仮の値（`20260930`） |
-| `watchface/index.js` | 文字盤の本体。分ごとに時刻・日付・天気・シフト・表情を、電池の変化で電池を更新する |
-| `watchface/shift.js` | シフトの残り時間・吹き出しの文・おばけの表情を決める計算（テストあり） |
+| `watchface/index.js` | 文字盤の本体。分ごとに時刻・日付・天気（背景）・シフトを、電池の変化で電池を更新する |
+| `watchface/shift.js` | シフトの残り時間と木札の文を決める計算（テストあり） |
 | `watchface/layout.js`・`theme.js` | 座標・大きさ／色・文字の大きさ |
 | `watchface/aod.js` | AOD の表示（時刻・日付・シフトの残り） |
 | `setting/index.js` | Zepp アプリの設定画面（シフトのオン／オフ・はじまり・おわり） |
 | `setting/keys.js` | 設定の保存キーと、読み取り（設定画面と Side Service で共通） |
 | `app-side/index.js` | Side Service。シフトの設定を時計に渡す |
-| `tools/generate-assets.mjs` | おばけ・数字・背景・小物をすべて SVG で描き、`@resvg/resvg-js` で PNG にする |
+| `tools/generate-assets.mjs` | 数字・背景（ラーメン屋の店内・天気ごとに10枚）・小物をすべて SVG で描き、`@resvg/resvg-js` で PNG にする |
 | `docs/preview-*.png` | README 用のプレビュー（シフト中・おわったあと・夜・雨） |
 
 ## データ
@@ -90,7 +90,7 @@
 - 番号は `COPY_PRESETS` の並び順。範囲外・変な値は 0（`TACTIC / SAFETY FIRST`）になる
 - 時計とスマホのやりとり：文字盤が起動時に `GET_MESSAGE_PRESET` を問い合わせる。設定が変わると Side Service から `MESSAGE_PRESET_CHANGED` が届く
 
-### ゆげおばけ
+### ゆげラーメン
 
 | どこ | キー | 中身 |
 |---|---|---|
@@ -116,5 +116,5 @@
 
 - 環境変数・秘密の値：なし
 - ビルドの道具：Zeus CLI 1.9.3（`@zeppos/zeus-cli`）。`package.json` の `overrides` で一部の依存の版を固定している。ビルドの時に Zepp のサーバー（`upload-cdn.zepp.com`）から端末の一覧を取る
-- ライブラリ：`@zeppos/zml`（時計とスマホのやりとり）、`pngjs`（Pixel Wayfarer の画像を作る時だけ）、`@resvg/resvg-js`（ゆげおばけの SVG を PNG にする時だけ）
+- ライブラリ：`@zeppos/zml`（時計とスマホのやりとり）、`pngjs`（Pixel Wayfarer の画像を作る時だけ）、`@resvg/resvg-js`（ゆげラーメンの SVG を PNG にする時だけ）
 - 公開先：Zepp Console（ストア）。`appId` は文字盤ごとに Zepp Console の値を使う

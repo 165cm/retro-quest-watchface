@@ -19,13 +19,12 @@ export const LAYOUT = Object.freeze({
   temp: { x: 226, y: 31, w: 82, h: 30 },
   // 時刻
   time: { y: 78 },
-  // ゆげおばけ（どんぶりつき）と吹き出し
-  obake: { x: 18, y: 178, w: 160, h: 160 },
-  bubble: { x: 168, y: 196, w: 206, h: 86 },
+  // シフトの木札（背景の絵。左にちょうちん、右に窓、下にラーメン）
   // 2行の時：小さいラベル＋大きい文字。1行の時：真ん中に1行
-  bubbleLabel: { x: 184, y: 203, w: 184, h: 28 },
-  bubbleMain: { x: 184, y: 228, w: 184, h: 42 },
-  bubbleSingle: { x: 184, y: 210, w: 184, h: 56 },
+  card: { x: 95, y: 182, w: 200, h: 84 },
+  cardLabel: { x: 103, y: 190, w: 184, h: 26 },
+  cardMain: { x: 103, y: 214, w: 184, h: 44 },
+  cardSingle: { x: 103, y: 196, w: 184, h: 56 },
   // 下の帯：歩数と電池
   bottomPill: { x: 60, y: 352, w: 270, h: 56, radius: 28 },
   stepIcon: { x: 76, y: 365, w: 30, h: 30 },

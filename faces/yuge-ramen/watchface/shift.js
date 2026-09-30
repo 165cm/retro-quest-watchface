@@ -1,4 +1,4 @@
-// バイトのシフトと、ゆげおばけの表情を決める計算。時計・スマホの設定画面・Side Service で共通に使う。
+// バイトのシフトの残り時間と、木札の文を決める計算。時計・スマホの設定画面・Side Service で共通に使う。
 // 時刻は「0時からの分」（例：11:15 → 675）で扱う。
 
 export const DAY_MINUTES = 24 * 60
@@ -77,7 +77,7 @@ export function getShiftStatus(nowMin, shift) {
   return { phase: 'off', remaining: 0 }
 }
 
-// 吹き出しの文。label が空なら1行で出す。
+// 木札の文。label が空なら1行で出す。
 export function getShiftMessage(status, hour) {
   if (status.phase === 'during') return { label: 'おわりまで', main: `あと ${formatDuration(status.remaining)}` }
   if (status.phase === 'before') return { label: 'しごとまで', main: `あと ${formatDuration(status.remaining)}` }
@@ -87,14 +87,3 @@ export function getShiftMessage(status, hour) {
   if (hour >= 17 && hour < 22) return { label: '', main: 'こんばんは' }
   return { label: '', main: 'おやすみ…' }
 }
-
-// ゆげおばけの表情。電池が少ない時がいちばん優先。
-export function getMood(status, batteryPercent, hour) {
-  if (typeof batteryPercent === 'number' && batteryPercent <= 20) return 'tired'
-  if (status.phase === 'during') return 'work'
-  if (status.phase === 'after') return 'happy'
-  if (status.phase === 'off' && (hour >= 22 || hour < 5)) return 'sleep'
-  return 'normal'
-}
-
-export const MOODS = Object.freeze(['normal', 'work', 'happy', 'tired', 'sleep'])

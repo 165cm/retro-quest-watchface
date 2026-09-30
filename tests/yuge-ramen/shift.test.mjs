@@ -3,7 +3,6 @@ import assert from 'node:assert/strict'
 import {
   formatClock,
   formatDuration,
-  getMood,
   getShiftMessage,
   getShiftStatus,
   normalizeShift,
@@ -54,16 +53,11 @@ test('turning the shift off or broken settings never crash', () => {
   })
 })
 
-test('messages and moods match the situation', () => {
+test('card messages match the situation', () => {
   assert.deepEqual(getShiftMessage({ phase: 'during', remaining: 135 }, 14), { label: 'おわりまで', main: 'あと 2:15' })
   assert.deepEqual(getShiftMessage({ phase: 'before', remaining: 80 }, 9), { label: 'しごとまで', main: 'あと 1:20' })
   assert.deepEqual(getShiftMessage({ phase: 'after', remaining: 0 }, 17), { label: '', main: 'おつかれさま!' })
   assert.deepEqual(getShiftMessage({ phase: 'off', remaining: 0 }, 23), { label: '', main: 'おやすみ…' })
-  assert.equal(getMood({ phase: 'during' }, 80, 14), 'work')
-  assert.equal(getMood({ phase: 'during' }, 15, 14), 'tired')
-  assert.equal(getMood({ phase: 'after' }, 80, 17), 'happy')
-  assert.equal(getMood({ phase: 'off' }, 80, 23), 'sleep')
-  assert.equal(getMood({ phase: 'off' }, null, 12), 'normal')
 })
 
 test('settings saved on the phone are read safely', async () => {

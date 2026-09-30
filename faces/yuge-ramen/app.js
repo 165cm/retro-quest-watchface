@@ -7,10 +7,10 @@ App(
   BaseApp({
     globalData: {},
     onCreate() {
-      logger.log('Yuge Obake Face started')
+      logger.log('Yuge Ramen Face started')
     },
     onDestroy() {
-      logger.log('Yuge Obake Face stopped')
+      logger.log('Yuge Ramen Face stopped')
     },
   }),
 )

@@ -1,12 +1,12 @@
-// ゆげおばけの文字盤の絵（PNG）をすべて作る。絵は SVG で描き、resvg で PNG にする。
-// キャラクター・数字・背景はすべてこのファイルで描いたオリジナル。既存作品の絵や公式フォントは使わない。
+// ゆげラーメンの文字盤の絵（PNG）をすべて作る。絵は SVG で描き、resvg で PNG にする。
+// 数字・背景（ラーメン屋の店内）・小物はすべてこのファイルで描いたオリジナル。既存作品の絵や公式フォントは使わない。
+// キャラクターは描かない。お店の名前やロゴのような文字も描かない。
 //
 //   npm run assets -- yuge-ramen
 import fs from 'node:fs'
 import path from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
 import { DIGITS, LAYOUT, SCREEN } from '../watchface/layout.js'
-import { MOODS } from '../watchface/shift.js'
 
 const ROOT = process.cwd()
 const IMAGES = path.join(ROOT, 'assets', 'bip-6', 'images')
@@ -24,6 +24,12 @@ const C = {
   band: '#7FB7E0',
   aod: '#A89C90',
   yellow: '#FFD98A',
+  wood: '#C8955E',
+  woodDark: '#A8754A',
+  woodLight: '#F6E2BD',
+  wall: '#F8EBD0',
+  noren: '#C8574B',
+  lantern: '#E0604F',
 }
 
 // ---------- 書き出し ----------
@@ -107,110 +113,6 @@ function writeDigits(name, { w, h, colonW }, style) {
   write(path.join(dir, 'degree.png'), degreeSvg(Math.round(w * 0.6), h, style.color))
 }
 
-// ---------- ゆげおばけ（160×160） ----------
-
-const BODY =
-  'M37 114 C29 68 46 39 73 36 C68 25 80 13 93 9 C88 19 86 29 91 36 C117 40 131 70 123 114 Z'
-
-function face(mood) {
-  const cheeks = `<ellipse cx="54" cy="84" rx="9" ry="5.5" fill="${C.pink}" opacity="0.85"/><ellipse cx="106" cy="84" rx="9" ry="5.5" fill="${C.pink}" opacity="0.85"/>`
-  const dotEyes = `<ellipse cx="68" cy="71" rx="3.8" ry="4.8" fill="${C.cocoa}"/><ellipse cx="92" cy="71" rx="3.8" ry="4.8" fill="${C.cocoa}"/><circle cx="69.3" cy="69.3" r="1.3" fill="#fff"/><circle cx="93.3" cy="69.3" r="1.3" fill="#fff"/>`
-  const line = (d, width = 2.6) =>
-    `<path d="${d}" fill="none" stroke="${C.cocoa}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/>`
-  switch (mood) {
-    case 'work':
-      return (
-        cheeks +
-        dotEyes +
-        line('M62 62 L73 64') +
-        line('M98 62 L87 64') +
-        line('M75 81 Q80 84 85 81')
-      )
-    case 'happy':
-      return (
-        cheeks +
-        line('M62 73 Q68 64 74 73', 3) +
-        line('M86 73 Q92 64 98 73', 3) +
-        `<path d="M73 79 Q80 90 87 79 Z" fill="${C.red}" stroke="${C.cocoa}" stroke-width="2.2" stroke-linejoin="round"/>`
-      )
-    case 'tired':
-      return (
-        cheeks +
-        line('M62 70 Q68 74 74 71', 3) +
-        line('M86 71 Q92 74 98 70', 3) +
-        line('M73 84 Q76.5 80 80 84 Q83.5 88 87 84') +
-        `<path d="M112 50 Q117 58 112 62 Q107 58 112 50 Z" fill="#BFE3F5" stroke="${C.cocoa}" stroke-width="1.6"/>`
-      )
-    case 'sleep':
-      return (
-        cheeks +
-        line('M62 70 Q68 76 74 70', 3) +
-        line('M86 70 Q92 76 98 70', 3) +
-        `<ellipse cx="80" cy="83" rx="2.6" ry="2" fill="${C.cocoa}"/>`
-      )
-    default:
-      return cheeks + dotEyes + line('M74 80 Q77 84 80 80 Q83 84 86 80')
-  }
-}
-
-function extras(mood) {
-  const line = (d, color = C.cocoa, width = 2.6) =>
-    `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/>`
-  const star = (x, y, r) =>
-    `<path d="M${x} ${y - r} Q${x} ${y} ${x + r} ${y} Q${x} ${y} ${x} ${y + r} Q${x} ${y} ${x - r} ${y} Q${x} ${y} ${x} ${y - r} Z" fill="${C.yellow}" stroke="${C.cocoa}" stroke-width="1.2"/>`
-  switch (mood) {
-    case 'work':
-      // はちまき（手ぬぐい）と結び目
-      return (
-        line('M40 57 Q80 44 121 57', C.band, 9) +
-        `<ellipse cx="126" cy="55" rx="7" ry="4" fill="${C.band}" transform="rotate(-30 126 55)"/><ellipse cx="127" cy="63" rx="7" ry="4" fill="${C.band}" transform="rotate(25 127 63)"/>`
-      )
-    case 'happy':
-      return star(128, 34, 8) + star(34, 46, 6) + star(136, 70, 5)
-    case 'sleep':
-      return line('M118 24 H128 L118 36 H128', C.cocoaSoft, 2.4) + line('M132 8 H139 L132 17 H139', C.cocoaSoft, 2)
-    default:
-      return ''
-  }
-}
-
-function obakeSvg(mood, { lineColor = C.cocoa, aod = false } = {}) {
-  if (aod) {
-    // AOD 用：線だけで、光る所を少なく
-    return svg(
-      160,
-      160,
-      `<path d="${BODY}" fill="none" stroke="${C.aod}" stroke-width="3" stroke-linejoin="round"/>` +
-        `<path d="M18 112 Q22 150 80 152 Q138 150 142 112 Z" fill="none" stroke="${C.aod}" stroke-width="3"/>`,
-    )
-  }
-  const soup =
-    `<ellipse cx="80" cy="112" rx="60" ry="11" fill="${C.broth}" stroke="${lineColor}" stroke-width="3"/>` +
-    `<path d="M26 111 Q32 106 38 111 Q44 116 50 111" fill="none" stroke="${C.noodle}" stroke-width="3.5" stroke-linecap="round"/>` +
-    `<circle cx="121" cy="110" r="7" fill="#fff" stroke="${lineColor}" stroke-width="1.6"/><path d="M121 110 m-3 0 a3 3 0 1 1 3 3 a5 5 0 1 1 -5 -5" fill="none" stroke="${C.pink}" stroke-width="1.8"/>`
-  const arms =
-    `<path d="M39 88 Q27 92 29 102" fill="none" stroke="${lineColor}" stroke-width="3" stroke-linecap="round"/>` +
-    `<path d="M121 88 Q133 92 131 102" fill="none" stroke="${lineColor}" stroke-width="3" stroke-linecap="round"/>`
-  const body = `<path d="${BODY}" fill="#FFFFFF" stroke="${lineColor}" stroke-width="3" stroke-linejoin="round"/>`
-  const bowl =
-    `<path d="M18 112 Q22 150 80 152 Q138 150 142 112 Q80 126 18 112 Z" fill="#FFFDF8" stroke="${lineColor}" stroke-width="3" stroke-linejoin="round"/>` +
-    `<path d="M24 127 Q80 143 136 127" fill="none" stroke="${C.red}" stroke-width="5" stroke-linecap="round"/>` +
-    `<path d="M24 127 Q80 143 136 127" fill="none" stroke="#fff" stroke-width="1.6" stroke-dasharray="2 7" stroke-linecap="round"/>` +
-    `<ellipse cx="80" cy="152" rx="26" ry="5" fill="#FFFDF8" stroke="${lineColor}" stroke-width="2.5"/>`
-  return svg(160, 160, soup + arms + body + face(mood) + extras(mood) + bowl)
-}
-
-// ---------- 小物 ----------
-
-function bubbleSvg() {
-  const { w, h } = LAYOUT.bubble
-  return svg(
-    w,
-    h,
-    `<path d="M36 4 H${w - 26} Q${w - 4} 4 ${w - 4} 26 V${h - 26} Q${w - 4} ${h - 4} ${w - 26} ${h - 4} H38 Q16 ${h - 4} 15 ${h - 22} L3 ${h - 12} L14 ${h - 36} V26 Q14 4 36 4 Z" fill="#FFFFFF" stroke="${C.cocoa}" stroke-width="3" stroke-linejoin="round"/>`,
-  )
-}
-
 function footSvg() {
   const { w, h } = LAYOUT.stepIcon
   const foot = (x, y, rot) =>
@@ -237,107 +139,182 @@ function batterySvg(level) {
   )
 }
 
-// ---------- 背景（390×450） ----------
+// ---------- 背景：ラーメン屋の店内（390×450） ----------
+// 上にのれん、左に赤ちょうちん、右に窓（天気が見える）、真ん中にシフトの木札、下にカウンターとラーメン。
 
-const SKIES = {
-  clear_day: ['#BFE6FA', '#EAF8FF', '#BFE3A0', '#A8D68A', 'sun'],
-  partly_cloudy_day: ['#C7E4F5', '#EEF7FC', '#BFE3A0', '#A8D68A', 'sun-cloud'],
-  cloudy_day: ['#D3DDE6', '#EEF2F5', '#C4DDB0', '#AFCF98', 'cloud'],
-  rain: ['#BCC9D8', '#E1E8F0', '#B4D6A4', '#9CC68C', 'rain'],
-  thunder: ['#B6B4CF', '#DEDCEC', '#AFCFA0', '#98BF8A', 'thunder'],
-  snow: ['#D5E6F3', '#F2F8FC', '#F6FAFC', '#E6EFF5', 'snow'],
-  fog: ['#DCD8EA', '#F3F1F8', '#CFE2C2', '#BCD6AE', 'fog'],
-  clear_night: ['#4B4F8C', '#8C86BF', '#6F8F87', '#5E7F78', 'moon'],
-  cloudy_night: ['#5A5E8A', '#9A96BD', '#6F8F87', '#5E7F78', 'moon-cloud'],
-  unknown: ['#D8F0E4', '#F4FBF6', '#C6E6B4', '#B0D89C', ''],
+// 窓の外の空：[上の色, 下の色, 天気]
+const WINDOW_SKIES = {
+  clear_day: ['#9ED8F5', '#D8F1FC', 'sun'],
+  partly_cloudy_day: ['#A9D3EC', '#E0F0F9', 'sun-cloud'],
+  cloudy_day: ['#B9C6D2', '#E2E8EE', 'cloud'],
+  rain: ['#9FB0C4', '#D3DCE6', 'rain'],
+  thunder: ['#8F8BB0', '#C9C6DE', 'thunder'],
+  snow: ['#C9DCEB', '#F1F6FA', 'snow'],
+  fog: ['#D3CFE2', '#EFEDF5', 'fog'],
+  clear_night: ['#2E3266', '#555A96', 'moon'],
+  cloudy_night: ['#3D4170', '#6A6D99', 'moon-cloud'],
+  unknown: ['#CDEBDD', '#F0FAF4', ''],
 }
+
+const WINDOW = { x: 312, y: 184, w: 60, h: 78 }
+const LANTERN = { cx: 50, cy: 224 }
+const COUNTER_Y = 296
 
 function cloud(x, y, s, opacity = 0.95) {
   return `<g transform="translate(${x} ${y}) scale(${s})" fill="#FFFFFF" opacity="${opacity}"><circle cx="0" cy="0" r="16"/><circle cx="18" cy="-8" r="20"/><circle cx="38" cy="0" r="15"/><rect x="0" y="0" width="38" height="15"/></g>`
 }
 
-function flower(x, y, r, petal, rnd) {
-  const petals = Array.from({ length: 5 }, (_, i) => {
-    const a = (i / 5) * Math.PI * 2 + rnd() * 0.5
-    return `<circle cx="${(x + Math.cos(a) * r).toFixed(1)}" cy="${(y + Math.sin(a) * r).toFixed(1)}" r="${(r * 0.75).toFixed(1)}" fill="${petal}"/>`
-  }).join('')
-  return petals + `<circle cx="${x}" cy="${y}" r="${(r * 0.55).toFixed(1)}" fill="#FFE08A"/>`
+function norenSvg() {
+  const flaps = 4
+  const gap = 4
+  const flapW = (SCREEN.width - gap * (flaps - 1)) / flaps
+  let out = `<rect x="0" y="0" width="${SCREEN.width}" height="8" fill="${C.woodDark}"/>`
+  for (let i = 0; i < flaps; i += 1) {
+    const x = i * (flapW + gap)
+    out += `<path d="M${x} 6 H${x + flapW} V70 Q${x + flapW / 2} 74 ${x} 70 Z" fill="${C.noren}"/>`
+    out += `<rect x="${x}" y="60" width="${flapW}" height="4" fill="#FFFFFF" opacity="0.8"/>`
+  }
+  return out
+}
+
+function lanternSvg(night) {
+  const { cx, cy } = LANTERN
+  let out = ''
+  if (night) out += `<circle cx="${cx}" cy="${cy}" r="56" fill="${C.yellow}" opacity="0.35"/>`
+  out += `<path d="M${cx} ${cy - 54} V${cy - 40}" stroke="${C.cocoa}" stroke-width="2"/>`
+  out += `<ellipse cx="${cx}" cy="${cy}" rx="27" ry="36" fill="${night ? '#F07A5E' : C.lantern}" stroke="${C.cocoa}" stroke-width="2.5"/>`
+  for (const dy of [-24, -12, 0, 12, 24]) {
+    const rx = 27 * Math.sqrt(1 - (dy / 36) ** 2)
+    out += `<path d="M${(cx - rx).toFixed(1)} ${cy + dy} Q${cx} ${cy + dy + 4} ${(cx + rx).toFixed(1)} ${cy + dy}" fill="none" stroke="#B2463A" stroke-width="1.4" opacity="0.8"/>`
+  }
+  out += `<rect x="${cx - 13}" y="${cy - 41}" width="26" height="8" rx="2" fill="${C.cocoa}"/>`
+  out += `<rect x="${cx - 13}" y="${cy + 33}" width="26" height="8" rx="2" fill="${C.cocoa}"/>`
+  out += `<path d="M${cx} ${cy + 41} V${cy + 52}" stroke="${C.lantern}" stroke-width="4" stroke-linecap="round"/>`
+  return out
+}
+
+function windowSvg(theme, rnd) {
+  const { x, y, w, h } = WINDOW
+  const [top, bottom, weather] = WINDOW_SKIES[theme]
+  let sky = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#win)"/>`
+  if (weather.startsWith('sun')) sky += `<circle cx="${x + 40}" cy="${y + 22}" r="11" fill="${C.yellow}"/>`
+  if (weather.startsWith('moon')) {
+    sky += `<circle cx="${x + 40}" cy="${y + 22}" r="10" fill="#FFF3B8"/><circle cx="${x + 45}" cy="${y + 18}" r="9" fill="${top}"/>`
+    for (let i = 0; i < 6; i += 1) {
+      sky += `<circle cx="${(x + 6 + rnd() * (w - 12)).toFixed(1)}" cy="${(y + 30 + rnd() * (h - 36)).toFixed(1)}" r="1.2" fill="#FFF6C8"/>`
+    }
+  }
+  if (weather.includes('cloud') || weather === 'rain' || weather === 'thunder') {
+    sky += cloud(x + 8, y + 40, 0.55, weather.startsWith('moon') ? 0.5 : 0.95)
+  }
+  if (weather === 'rain' || weather === 'thunder') {
+    for (let i = 0; i < 14; i += 1) {
+      const rx = x + rnd() * w
+      const ry = y + 46 + rnd() * (h - 50)
+      sky += `<path d="M${rx.toFixed(1)} ${ry.toFixed(1)} l-2 6" stroke="#6F93BD" stroke-width="1.6" stroke-linecap="round"/>`
+    }
+  }
+  if (weather === 'thunder') {
+    sky += `<path d="M${x + 44} ${y + 34} L${x + 36} ${y + 50} H${x + 43} L${x + 38} ${y + 64} L${x + 52} ${y + 44} H${x + 45} L${x + 50} ${y + 34} Z" fill="${C.yellow}" stroke="${C.cocoa}" stroke-width="1"/>`
+  }
+  if (weather === 'snow') {
+    for (let i = 0; i < 16; i += 1) {
+      sky += `<circle cx="${(x + rnd() * w).toFixed(1)}" cy="${(y + rnd() * h).toFixed(1)}" r="${(1.2 + rnd() * 1.3).toFixed(1)}" fill="#FFFFFF"/>`
+    }
+  }
+  if (weather === 'fog') {
+    for (const fy of [y + 20, y + 42, y + 62]) sky += `<rect x="${x}" y="${fy}" width="${w}" height="9" rx="4.5" fill="#FFFFFF" opacity="0.7"/>`
+  }
+  return (
+    `<defs><linearGradient id="win" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${top}"/><stop offset="1" stop-color="${bottom}"/></linearGradient>` +
+    `<clipPath id="winclip"><rect x="${x}" y="${y}" width="${w}" height="${h}"/></clipPath></defs>` +
+    `<g clip-path="url(#winclip)">${sky}</g>` +
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="${C.woodDark}" stroke-width="6"/>` +
+    `<path d="M${x + w / 2} ${y} V${y + h} M${x} ${y + h / 2} H${x + w}" stroke="${C.woodDark}" stroke-width="3"/>` +
+    `<rect x="${x - 6}" y="${y + h}" width="${w + 12}" height="6" rx="2" fill="${C.wood}"/>`
+  )
+}
+
+function cardSvg() {
+  const { x, y, w, h } = LAYOUT.card
+  const cx = x + w / 2
+  return (
+    `<path d="M${cx - 40} ${y + 8} L${cx} ${y - 6} L${cx + 40} ${y + 8}" fill="none" stroke="${C.cocoaSoft}" stroke-width="2"/>` +
+    `<rect x="${x + 3}" y="${y + 5}" width="${w - 6}" height="${h - 8}" rx="10" fill="${C.woodLight}" stroke="${C.cocoa}" stroke-width="3"/>` +
+    `<rect x="${x + 10}" y="${y + 12}" width="${w - 20}" height="${h - 22}" rx="6" fill="none" stroke="${C.wood}" stroke-width="1.5" opacity="0.7"/>` +
+    `<circle cx="${cx - 40}" cy="${y + 9}" r="3" fill="${C.cocoa}"/><circle cx="${cx + 40}" cy="${y + 9}" r="3" fill="${C.cocoa}"/>`
+  )
+}
+
+// どんぶりの縁の雷文（ラーメンどんぶりによくある、四角いうずまきの模様）
+function keyPattern(x0, y, width, size, color) {
+  let d = ''
+  for (let x = x0; x < x0 + width; x += size + 4) {
+    const s = size
+    d += `M${x} ${y + s} V${y} H${x + s} V${y + s * 0.75} H${x + s * 0.25} V${y + s * 0.25} H${x + s * 0.6} `
+  }
+  return `<path d="${d}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/>`
+}
+
+function counterSvg() {
+  const W = SCREEN.width
+  let out = `<rect x="0" y="${COUNTER_Y}" width="${W}" height="12" fill="${C.wood}"/>`
+  out += `<rect x="0" y="${COUNTER_Y + 12}" width="${W}" height="${SCREEN.height - COUNTER_Y - 12}" fill="${C.woodDark}"/>`
+  out += `<rect x="0" y="${COUNTER_Y + 12}" width="${W}" height="3" fill="#8E6038" opacity="0.6"/>`
+  for (let x = 40; x < W; x += 56) {
+    out += `<path d="M${x} ${COUNTER_Y + 36} V${SCREEN.height}" stroke="#946640" stroke-width="2" opacity="0.6"/>`
+  }
+  out += `<rect x="0" y="${COUNTER_Y + 20}" width="${W}" height="14" fill="${C.cream}"/>`
+  out += keyPattern(6, COUNTER_Y + 22, W, 10, C.red)
+  return out
+}
+
+function ramenSvg() {
+  const cx = SCREEN.width / 2
+  const rimY = COUNTER_Y - 14
+  let out = ''
+  // 湯気（木札の後ろへ立ちのぼる）
+  for (const dx of [-22, 0, 22]) {
+    out += `<path d="M${cx + dx} ${rimY - 6} Q${cx + dx - 9} ${rimY - 16} ${cx + dx} ${rimY - 26} Q${cx + dx + 9} ${rimY - 36} ${cx + dx} ${rimY - 46}" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" opacity="0.9"/>`
+  }
+  out += `<ellipse cx="${cx}" cy="${rimY}" rx="54" ry="10" fill="${C.broth}" stroke="${C.cocoa}" stroke-width="2.5"/>`
+  // のり・チャーシュー・なると・たまご・ねぎ
+  out += `<rect x="${cx + 22}" y="${rimY - 22}" width="16" height="22" rx="2" fill="#2F4A3A" transform="rotate(12 ${cx + 30} ${rimY - 10})"/>`
+  out += `<ellipse cx="${cx - 20}" cy="${rimY - 1}" rx="14" ry="6" fill="#D9A07C" stroke="#A8664A" stroke-width="1.5"/>`
+  out += `<circle cx="${cx + 8}" cy="${rimY - 1}" r="6.5" fill="#FFFFFF" stroke="${C.cocoa}" stroke-width="1.2"/><path d="M${cx + 8} ${rimY - 1} m-2.5 0 a2.5 2.5 0 1 1 2.5 2.5 a4.5 4.5 0 1 1 -4.5 -4.5" fill="none" stroke="${C.pink}" stroke-width="1.6"/>`
+  out += `<ellipse cx="${cx - 40}" cy="${rimY - 1}" rx="8" ry="5" fill="#FFFFFF" stroke="${C.cocoaSoft}" stroke-width="1"/><circle cx="${cx - 40}" cy="${rimY - 1}" r="3.4" fill="#F7B733"/>`
+  for (const [dx, dy] of [[-4, 3], [22, 4], [-30, 4], [34, 2]]) {
+    out += `<circle cx="${cx + dx}" cy="${rimY + dy}" r="2" fill="#7BB661"/>`
+  }
+  // どんぶり
+  out += `<path d="M${cx - 54} ${rimY} Q${cx - 50} ${rimY + 30} ${cx} ${rimY + 32} Q${cx + 50} ${rimY + 30} ${cx + 54} ${rimY} Q${cx} ${rimY + 14} ${cx - 54} ${rimY} Z" fill="#FFFDF8" stroke="${C.cocoa}" stroke-width="2.5" stroke-linejoin="round"/>`
+  out += `<path d="M${cx - 46} ${rimY + 13} Q${cx} ${rimY + 26} ${cx + 46} ${rimY + 13}" fill="none" stroke="${C.red}" stroke-width="4" stroke-linecap="round"/>`
+  out += `<ellipse cx="${cx}" cy="${rimY + 32}" rx="20" ry="4" fill="#FFFDF8" stroke="${C.cocoa}" stroke-width="2"/>`
+  return out
 }
 
 function backgroundSvg(theme, seed) {
-  const [skyTop, skyBottom, hillFar, hillNear, weather] = SKIES[theme]
   const night = theme.includes('night')
   const rnd = random(seed)
   const W = SCREEN.width
-  const H = SCREEN.height
-  let body = `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${skyTop}"/><stop offset="1" stop-color="${skyBottom}"/></linearGradient></defs>`
-  body += `<rect width="${W}" height="${H}" fill="url(#sky)"/>`
-
-  // 空の飾り（時刻の後ろは避けて、左右のはしに置く）
-  if (night) {
-    for (let i = 0; i < 26; i += 1) {
-      const x = 20 + rnd() * (W - 40)
-      const y = 70 + rnd() * 220
-      const r = 1 + rnd() * 1.6
-      body += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="#FFF6C8" opacity="${(0.5 + rnd() * 0.5).toFixed(2)}"/>`
-    }
+  let body = `<defs><linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${night ? '#EAD4AC' : C.wall}"/><stop offset="1" stop-color="${night ? '#DCC196' : '#F1DDB8'}"/></linearGradient></defs>`
+  body += `<rect width="${W}" height="${SCREEN.height}" fill="url(#wall)"/>`
+  // 壁の板の継ぎ目（うすく）
+  for (let x = 65; x < W; x += 65) {
+    body += `<path d="M${x} 72 V${COUNTER_Y}" stroke="#E2CBA2" stroke-width="1.5" opacity="0.7"/>`
   }
-  if (weather.startsWith('sun')) {
-    body += `<circle cx="352" cy="158" r="17" fill="${C.yellow}"/><circle cx="352" cy="158" r="24" fill="${C.yellow}" opacity="0.35"/>`
-  }
-  if (weather.startsWith('moon')) {
-    body += `<circle cx="352" cy="158" r="16" fill="#FFF3B8"/><circle cx="360" cy="152" r="14" fill="${skyBottom}"/>`
-  }
-  if (weather.includes('cloud') || ['rain', 'thunder'].includes(weather)) {
-    const opacity = night ? 0.45 : 0.95
-    body += cloud(26, 176, 0.9, opacity) + cloud(300, 106, 0.7, opacity) + cloud(330, 290, 0.6, opacity)
-  }
-  if (weather === 'thunder') {
-    body += `<path d="M44 196 L32 222 H42 L34 246 L56 214 H45 L54 196 Z" fill="${C.yellow}" stroke="${C.cocoa}" stroke-width="1.6" stroke-linejoin="round"/>`
-  }
-  if (weather === 'fog') {
-    for (const y of [120, 190, 262]) {
-      body += `<rect x="-20" y="${y}" width="${W + 40}" height="22" rx="11" fill="#FFFFFF" opacity="0.55"/>`
-    }
-  }
-
-  // 丘
-  body += `<path d="M0 300 Q90 270 190 292 T390 282 V450 H0 Z" fill="${hillFar}"/>`
-  body += `<path d="M0 330 Q110 306 220 326 T390 318 V450 H0 Z" fill="${hillNear}"/>`
-
-  // 草と花
-  const grass = night ? '#4E6E68' : theme === 'snow' ? '#C9D8E2' : '#8DBF74'
-  for (let i = 0; i < 40; i += 1) {
-    const x = rnd() * W
-    const y = 320 + rnd() * 130
-    body += `<path d="M${x.toFixed(1)} ${y.toFixed(1)} l-3 -7 M${x.toFixed(1)} ${y.toFixed(1)} l3 -8" stroke="${grass}" stroke-width="1.8" stroke-linecap="round"/>`
-  }
-  const petals = night ? ['#C9C4E6', '#E7C6D6'] : theme === 'snow' ? ['#FFFFFF', '#F6D6DE'] : ['#FFFFFF', '#FBD3DB', '#FFFFFF']
-  for (let i = 0; i < 16; i += 1) {
-    const x = 20 + rnd() * (W - 40)
-    const y = 322 + rnd() * 118
-    body += flower(x, y, 3 + rnd() * 2.5, petals[i % petals.length], rnd)
-  }
-
-  // 雨・雪
-  if (weather === 'rain' || weather === 'thunder') {
-    for (let i = 0; i < 70; i += 1) {
-      const x = rnd() * W
-      const y = rnd() * H
-      body += `<path d="M${x.toFixed(1)} ${y.toFixed(1)} l-3 9" stroke="#8FB3D9" stroke-width="2" stroke-linecap="round" opacity="0.7"/>`
-    }
-  }
-  if (weather === 'snow') {
-    for (let i = 0; i < 70; i += 1) {
-      body += `<circle cx="${(rnd() * W).toFixed(1)}" cy="${(rnd() * H).toFixed(1)}" r="${(1.5 + rnd() * 2).toFixed(1)}" fill="#FFFFFF" opacity="0.9"/>`
-    }
-  }
-  return svg(W, H, body)
+  body += norenSvg()
+  body += windowSvg(theme, rnd)
+  body += lanternSvg(night)
+  body += counterSvg()
+  body += ramenSvg()
+  body += cardSvg()
+  return svg(W, SCREEN.height, body)
 }
 
 // ---------- プレビュー（文字盤全体をまとめて描く） ----------
 
-function previewSvg({ theme, time, date, temp, label, message, mood, steps, battery }) {
+function previewSvg({ theme, time, date, temp, label, message, steps, battery }) {
   const img = (file, x, y, w, h) =>
     `<image href="${dataUri(path.join(IMAGES, file))}" x="${x}" y="${y}" width="${w}" height="${h}"/>`
   const text = (value, rect, size, anchor = 'middle', color = C.cocoa) => {
@@ -361,26 +338,26 @@ function previewSvg({ theme, time, date, temp, label, message, mood, steps, batt
   const S = DIGITS.small
   const tempRow = row(temp, 'small', 0, LAYOUT.temp.y, S.w, S.h, { gap: 1 })
   const stepRow = row(String(steps), 'small', LAYOUT.steps.x, LAYOUT.steps.y, S.w, S.h, { gap: 1 })
-  const pill = (r) => `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="${r.radius}" fill="${C.cream}" opacity="0.8"/>`
+  const pill = (r) => `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="${r.radius}" fill="${C.cream}" opacity="0.92"/>`
   const level = Math.ceil((battery / 100) * 5)
   let body = img(`backgrounds/${theme}.png`, 0, 0, SCREEN.width, SCREEN.height)
   body += pill(LAYOUT.topPill)
   body += text(date, LAYOUT.date, 26, 'start')
   body += `<g transform="translate(${LAYOUT.temp.x + (LAYOUT.temp.w - tempRow.width) / 2} 0)">${tempRow.out}</g>`
   body += `<g transform="translate(${timeX} 0)">${timeRow.out}</g>`
-  body += img(`obake/${mood}.png`, LAYOUT.obake.x, LAYOUT.obake.y, LAYOUT.obake.w, LAYOUT.obake.h)
-  body += img('bubble.png', LAYOUT.bubble.x, LAYOUT.bubble.y, LAYOUT.bubble.w, LAYOUT.bubble.h)
   body += label
-    ? text(label, LAYOUT.bubbleLabel, 20, 'middle', C.cocoaSoft) + text(message, LAYOUT.bubbleMain, 30)
-    : text(message, LAYOUT.bubbleSingle, 27)
+    ? text(label, LAYOUT.cardLabel, 20, 'middle', C.cocoaSoft) + text(message, LAYOUT.cardMain, 30)
+    : text(message, LAYOUT.cardSingle, 27)
   body += pill(LAYOUT.bottomPill)
   body += img('icons/step.png', LAYOUT.stepIcon.x, LAYOUT.stepIcon.y, LAYOUT.stepIcon.w, LAYOUT.stepIcon.h)
   body += stepRow.out
   body += img(`battery/${level}.png`, LAYOUT.batteryIcon.x, LAYOUT.batteryIcon.y, LAYOUT.batteryIcon.w, LAYOUT.batteryIcon.h)
   body += text(`${battery}%`, LAYOUT.percent, 24, 'end', battery <= 20 ? '#D9534F' : C.cocoa)
   // Bip 6 の角丸（プレビューの見た目を実機に近づけるため）
-  body += `<path d="M0 0 H${SCREEN.width} V${SCREEN.height} H0 Z M${SCREEN.cornerRadius} 0 H${SCREEN.width - SCREEN.cornerRadius} A${SCREEN.cornerRadius} ${SCREEN.cornerRadius} 0 0 1 ${SCREEN.width} ${SCREEN.cornerRadius} V${SCREEN.height - SCREEN.cornerRadius} A${SCREEN.cornerRadius} ${SCREEN.cornerRadius} 0 0 1 ${SCREEN.width - SCREEN.cornerRadius} ${SCREEN.height} H${SCREEN.cornerRadius} A${SCREEN.cornerRadius} ${SCREEN.cornerRadius} 0 0 1 0 ${SCREEN.height - SCREEN.cornerRadius} V${SCREEN.cornerRadius} A${SCREEN.cornerRadius} ${SCREEN.cornerRadius} 0 0 1 ${SCREEN.cornerRadius} 0 Z" fill="#000" fill-rule="evenodd"/>`
-  return svg(SCREEN.width, SCREEN.height, body)
+  const r = SCREEN.cornerRadius
+  const { width: W, height: H } = SCREEN
+  body += `<path d="M0 0 H${W} V${H} H0 Z M${r} 0 H${W - r} A${r} ${r} 0 0 1 ${W} ${r} V${H - r} A${r} ${r} 0 0 1 ${W - r} ${H} H${r} A${r} ${r} 0 0 1 0 ${H - r} V${r} A${r} ${r} 0 0 1 ${r} 0 Z" fill="#000" fill-rule="evenodd"/>`
+  return svg(W, H, body)
 }
 
 // ---------- 実行 ----------
@@ -391,20 +368,18 @@ writeDigits('time', DIGITS.time, { color: C.cocoa, width: 7, outline: C.white })
 writeDigits('small', DIGITS.small, { color: C.cocoa, width: 7 })
 writeDigits('aod', DIGITS.aod, { color: C.aod, width: 5 })
 
-for (const mood of MOODS) write(path.join(IMAGES, 'obake', `${mood}.png`), obakeSvg(mood))
-write(path.join(IMAGES, 'bubble.png'), bubbleSvg())
 write(path.join(IMAGES, 'icons', 'step.png'), footSvg())
 for (let level = 0; level <= 5; level += 1) write(path.join(IMAGES, 'battery', `${level}.png`), batterySvg(level))
 
-Object.keys(SKIES).forEach((theme, index) => {
+Object.keys(WINDOW_SKIES).forEach((theme, index) => {
   write(path.join(IMAGES, 'backgrounds', `${theme}.png`), backgroundSvg(theme, 1000 + index))
 })
 
 const PREVIEWS = {
-  'preview-390x450': { theme: 'clear_day', time: '14:45', date: '10/2 (木)', temp: '23°', label: 'おわりまで', message: 'あと 2:15', mood: 'work', steps: 8420, battery: 72 },
-  'preview-after-390x450': { theme: 'partly_cloudy_day', time: '17:20', date: '10/3 (金)', temp: '21°', message: 'おつかれさま!', mood: 'happy', steps: 12380, battery: 46 },
-  'preview-night-390x450': { theme: 'clear_night', time: '23:08', date: '10/3 (金)', temp: '17°', message: 'おやすみ…', mood: 'sleep', steps: 13051, battery: 38 },
-  'preview-rain-390x450': { theme: 'rain', time: '10:05', date: '10/2 (木)', temp: '18°', label: 'しごとまで', message: 'あと 1:10', mood: 'tired', steps: 1204, battery: 18 },
+  'preview-390x450': { theme: 'clear_day', time: '14:45', date: '10/2 (木)', temp: '23°', label: 'おわりまで', message: 'あと 2:15', steps: 8420, battery: 72 },
+  'preview-after-390x450': { theme: 'partly_cloudy_day', time: '17:20', date: '10/3 (金)', temp: '21°', message: 'おつかれさま!', steps: 12380, battery: 46 },
+  'preview-night-390x450': { theme: 'clear_night', time: '23:08', date: '10/3 (金)', temp: '17°', message: 'おやすみ…', steps: 13051, battery: 38 },
+  'preview-rain-390x450': { theme: 'rain', time: '10:05', date: '10/2 (木)', temp: '18°', label: 'しごとまで', message: 'あと 1:10', steps: 1204, battery: 18 },
 }
 for (const [name, state] of Object.entries(PREVIEWS)) {
   write(path.join(DOCS, `${name}.png`), previewSvg(state))

@@ -7,11 +7,11 @@ Zepp OS（Amazfit）向けのオリジナル文字盤をまとめたリポジト
 | 文字盤 | 対象端末 | 状態 | 詳しく |
 |---|---|---|---|
 | Pixel Wayfarer Face | Amazfit Bip 6（390×450） | ビルド確認済み・実機未確認・ストア未公開 | [faces/pixel-wayfarer](faces/pixel-wayfarer/README.md) |
-| Yuge Obake Face（ゆげおばけ） | Amazfit Bip 6（390×450） | ビルド確認済み・実機未確認・自分用 | [faces/yuge-ramen](faces/yuge-ramen/README.md) |
+| Yuge Ramen Face（ゆげラーメン） | Amazfit Bip 6（390×450） | ビルド確認済み・実機未確認・自分用 | [faces/yuge-ramen](faces/yuge-ramen/README.md) |
 
-| Pixel Wayfarer Face | Yuge Obake Face |
+| Pixel Wayfarer Face | Yuge Ramen Face |
 |---|---|
-| ![Pixel Wayfarer Face](faces/pixel-wayfarer/docs/preview-390x450.png) | ![Yuge Obake Face](faces/yuge-ramen/docs/preview-390x450.png) |
+| ![Pixel Wayfarer Face](faces/pixel-wayfarer/docs/preview-390x450.png) | ![Yuge Ramen Face](faces/yuge-ramen/docs/preview-390x450.png) |
 
 ## 使い方
 

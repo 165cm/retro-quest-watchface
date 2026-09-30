@@ -2,14 +2,14 @@
   "configVersion": "v3",
   "app": {
     "appId": 20260930,
-    "appName": "Yuge Obake Face",
+    "appName": "Yuge Ramen Face",
     "appType": "watchface",
     "version": {
       "code": 1,
       "name": "0.1.0"
     },
     "vender": "independent",
-    "description": "Original pastel ramen-steam watchface with a shift countdown for Amazfit Bip 6",
+    "description": "Original pastel ramen-shop watchface with a shift countdown for Amazfit Bip 6",
     "icon": "images/preview.png",
     "cover": [
       "images/preview.png"
@@ -60,10 +60,10 @@
   },
   "i18n": {
     "en-US": {
-      "name": "Yuge Obake Face"
+      "name": "Yuge Ramen Face"
     },
     "ja-JP": {
-      "name": "ゆげおばけ"
+      "name": "ゆげラーメン"
     }
   },
   "defaultLanguage": "ja-JP",

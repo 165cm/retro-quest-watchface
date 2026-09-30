@@ -4,7 +4,7 @@ import { log } from '@zos/utils'
 import { BasePage } from '@zeppos/zml/base-page'
 import { DIGITS, LAYOUT, SCREEN } from './layout.js'
 import { COLORS, TYPE } from './theme.js'
-import { getMood, getShiftMessage, getShiftStatus, normalizeShift } from './shift.js'
+import { getShiftMessage, getShiftStatus, normalizeShift } from './shift.js'
 import { createAodView } from './aod.js'
 import { getFilledSegments, normalizeBattery, formatBatteryPercent } from '../../../shared/battery.js'
 import { getTodayWeather, isNightAt, resolveWeatherTheme } from '../../../shared/weather.js'
@@ -77,7 +77,7 @@ function pill(rect) {
     h: rect.h,
     radius: rect.radius,
     color: COLORS.CREAM,
-    alpha: 205,
+    alpha: 235,
     show_level: ui.show_level.ONLY_NORMAL,
   })
 }
@@ -109,7 +109,6 @@ WatchFace(
       battery: null,
       weather: null,
       shift: null,
-      batteryPercent: null,
       widgets: {},
       aod: null,
       minuteCallback: null,
@@ -131,10 +130,7 @@ WatchFace(
       this.loadShift()
 
       this.state.minuteCallback = () => this.updateMinute()
-      this.state.batteryCallback = () => {
-        this.updateBattery()
-        this.updateMinute()
-      }
+      this.state.batteryCallback = () => this.updateBattery()
       this.state.time.onPerMinute(this.state.minuteCallback)
       this.state.battery.onChange(this.state.batteryCallback)
 
@@ -173,18 +169,8 @@ WatchFace(
         showLevel: ui.show_level.ONLY_NORMAL,
       })
 
-      w.obake = ui.createWidget(ui.widget.IMG, {
-        ...LAYOUT.obake,
-        src: 'images/obake/normal.png',
-        show_level: ui.show_level.ONLY_NORMAL,
-      })
-      ui.createWidget(ui.widget.IMG, {
-        ...LAYOUT.bubble,
-        src: 'images/bubble.png',
-        show_level: ui.show_level.ONLY_NORMAL,
-      })
-      w.bubbleLabel = textWidget(LAYOUT.bubbleLabel, '', TYPE.bubbleLabel, COLORS.COCOA_SOFT)
-      w.bubbleMain = textWidget(LAYOUT.bubbleSingle, '', TYPE.bubbleSingle, COLORS.COCOA)
+      w.cardLabel = textWidget(LAYOUT.cardLabel, '', TYPE.cardLabel, COLORS.COCOA_SOFT)
+      w.cardMain = textWidget(LAYOUT.cardSingle, '', TYPE.cardSingle, COLORS.COCOA)
 
       pill(LAYOUT.bottomPill)
       ui.createWidget(ui.widget.IMG, {
@@ -201,7 +187,7 @@ WatchFace(
       w.percent = textWidget(LAYOUT.percent, '--%', TYPE.percent, COLORS.COCOA, ui.align.RIGHT)
     },
 
-    // 分ごと：時刻・日付・天気・シフト・表情
+    // 分ごと：時刻・日付・天気・シフト
     updateMinute() {
       const time = this.state.time
       const w = this.state.widgets
@@ -222,22 +208,18 @@ WatchFace(
 
       const status = getShiftStatus(hour * 60 + minute, this.state.shift)
       const message = getShiftMessage(status, hour)
-      w.bubbleLabel.setProperty(ui.prop.TEXT, message.label)
-      const mainRect = message.label ? LAYOUT.bubbleMain : LAYOUT.bubbleSingle
-      w.bubbleMain.setProperty(ui.prop.MORE, {
+      w.cardLabel.setProperty(ui.prop.TEXT, message.label)
+      const mainRect = message.label ? LAYOUT.cardMain : LAYOUT.cardSingle
+      w.cardMain.setProperty(ui.prop.MORE, {
         ...mainRect,
         text: message.main,
-        text_size: message.label ? TYPE.bubbleMain : TYPE.bubbleSingle,
+        text_size: message.label ? TYPE.cardMain : TYPE.cardSingle,
       })
       this.state.aod.shift.setProperty(ui.prop.TEXT, `${message.label} ${message.main}`.trim())
-
-      const mood = getMood(status, this.state.batteryPercent, hour)
-      w.obake.setProperty(ui.prop.SRC, `images/obake/${mood}.png`)
     },
 
     updateBattery() {
       const value = normalizeBattery(this.state.battery.getCurrent())
-      this.state.batteryPercent = value
       const level = getFilledSegments(value, BATTERY_LEVELS)
       this.state.widgets.batteryIcon.setProperty(ui.prop.SRC, `images/battery/${level}.png`)
       this.state.widgets.percent.setProperty(ui.prop.MORE, {
