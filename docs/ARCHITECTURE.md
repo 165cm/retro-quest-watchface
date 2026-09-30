@@ -85,12 +85,12 @@
 | ファイル・フォルダ | 役割 |
 |---|---|
 | `app.json` | アプリの設定。appId は仮の値（`20261001`）。文字盤だけ（スマホの設定・Side Service はない） |
-| `watchface/index.js` | 文字盤の本体。分ごと（と画面が戻った時）に時刻・曜日・日を更新する。気温・電池・歩数・心拍の数字は時計のデータに直接つなぐ。電池の枠の塗りは電池の変化で更新 |
-| `watchface/layout.js`・`theme.js` | 座標・大きさ・紋の位置／色 |
-| `watchface/format.js` | 時刻と日の文字（桁のそろえ方） |
-| `watchface/aod.js` | AOD の表示（時刻・曜日と日） |
-| `tools/strokes.mjs` | 数字 0〜9 と曜日の英字の字形（線の点の並び） |
-| `tools/generate-assets.mjs` | 紋・アイコンの背景、数字・曜日、プレビューを作る |
+| `watchface/index.js` | 文字盤の本体。分ごと（と画面が戻った時）に時刻と日付を更新する。気温・歩数・心拍・電池の数字は時計のデータに直接つなぐ。電池の枠の塗りは電池の変化で更新 |
+| `watchface/layout.js`・`theme.js` | 座標・大きさ・画面の四隅の形／色（どちらも元のデザインから測った値） |
+| `watchface/format.js` | 時刻と日付の文字（`WED 30 SEP`） |
+| `watchface/aod.js` | AOD の表示（時刻・日付） |
+| `tools/generate-assets.mjs` | 紋・題字・アイコンの背景、数字、プレビューを作る |
+| `source/fonts/` | 数字を描くフォント（Liberation Sans、OFL）とライセンス |
 
 ## データ
 
@@ -113,7 +113,7 @@
 ### KAMON
 
 - 保存するデータはない（スマホの設定もない）
-- 気温（`WEATHER_CURRENT`）・電池（`BATTERY`）・歩数（`STEP`）・心拍（`HEART`）は、文字盤の部品 `TEXT_IMG` に時計のデータを直接つないでいる
+- 気温（`WEATHER_CURRENT`）・歩数（`STEP`）・心拍（`HEART`）・電池（`BATTERY`）は、文字盤の部品 `TEXT_IMG` に時計のデータを直接つないでいる
 
 ## 時計から読む値（センサー）
 

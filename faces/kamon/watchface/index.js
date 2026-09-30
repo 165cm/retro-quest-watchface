@@ -2,9 +2,9 @@ import ui from '@zos/ui'
 import { Battery, Time, TIME_HOUR_FORMAT_12 } from '@zos/sensor'
 import { log } from '@zos/utils'
 import { DIGITS, LAYOUT, SCREEN } from './layout.js'
-import { COLORS, LOW_BATTERY } from './theme.js'
+import { COLORS } from './theme.js'
 import { createAodView } from './aod.js'
-import { dayText, hourText } from './format.js'
+import { dateText, hourText } from './format.js'
 import { normalizeBattery } from '../../../shared/battery.js'
 import { weekdayIndex } from '../../../shared/date.js'
 import { createTimeSprites } from '../../../shared/time-sprites.js'
@@ -27,7 +27,7 @@ function digitArray(path) {
   return Array.from({ length: 10 }, (_, index) => `${path}/${index}.png`)
 }
 
-// 時計のデータ（気温・電池・歩数・心拍）を、数字の画像で直接出す。データが無い時は「--」
+// 時計のデータ（気温・歩数・心拍・電池）を、赤い数字の画像で直接出す。データが無い時は「--」
 function dataNumber(rect, type, extra = {}) {
   return tolerate(() =>
     ui.createWidget(ui.widget.TEXT_IMG, {
@@ -90,13 +90,13 @@ WatchFace({
     })
   },
 
-  // 背景の絵に、紋・アイコン・区切り・電池の枠まで入っている
+  // 背景の絵に、紋・題字・線・アイコン・区切り・電池の枠まで入っている
   drawNormalView() {
     const w = this.state.widgets
     const L = LAYOUT
     ui.createWidget(ui.widget.IMG, { x: 0, y: 0, w: SCREEN.width, h: SCREEN.height, src: 'images/background.png', show_level: NORMAL })
     // 電池の枠の中の塗り（残りに合わせて左から）
-    w.batteryFill = ui.createWidget(ui.widget.FILL_RECT, { ...L.batteryFill, color: COLORS.GOLD, show_level: NORMAL })
+    w.batteryFill = ui.createWidget(ui.widget.FILL_RECT, { ...L.batteryFill, color: COLORS.RED, show_level: NORMAL })
 
     w.time = createTimeSprites({
       screenWidth: SCREEN.width,
@@ -109,51 +109,44 @@ WatchFace({
       showLevel: NORMAL,
     })
 
-    w.weekday = ui.createWidget(ui.widget.IMG, { ...L.weekday, src: 'images/weekday/0.png', show_level: NORMAL })
-    w.day = [0, 1].map((i) =>
-      ui.createWidget(ui.widget.IMG, {
-        x: L.day.x + i * (DIGITS.small.w + DIGITS.small.gap),
-        y: L.day.y,
-        w: DIGITS.small.w,
-        h: DIGITS.small.h,
-        src: `${SMALL}/0.png`,
-        show_level: NORMAL,
-      }),
-    )
+    // 日付は時計のシステムの文字（元のデザインと同じ）
+    const { size, ...rect } = L.date
+    w.date = ui.createWidget(ui.widget.TEXT, {
+      ...rect,
+      text: '',
+      text_size: size,
+      color: COLORS.CREAM,
+      align_h: ui.align.CENTER_H,
+      align_v: ui.align.CENTER_V,
+      show_level: NORMAL,
+    })
 
     dataNumber(L.temp, ui.data_type.WEATHER_CURRENT, TEMPERATURE)
-    dataNumber(L.battery, ui.data_type.BATTERY)
     dataNumber(L.steps, ui.data_type.STEP)
     dataNumber(L.heart, ui.data_type.HEART)
+    dataNumber(L.battery, ui.data_type.BATTERY)
   },
 
-  // 分ごと：時刻・曜日・日
+  // 分ごと：時刻と日付
   updateMinute() {
     const time = this.state.time
-    const w = this.state.widgets
-    const aod = this.state.aod
     const hours = hourText(time.getHours(), time.getHourFormat() === TIME_HOUR_FORMAT_12, time.getFormatHour())
     const minutes = String(time.getMinutes()).padStart(2, '0')
-    w.time.update(hours, minutes)
-    aod.time.update(hours, minutes)
+    this.state.widgets.time.update(hours, minutes)
+    this.state.aod.time.update(hours, minutes)
 
-    const day = dayText(time.getDate())
-    const weekday = weekdayIndex(time.getDay())
-    for (const view of [w, aod]) {
-      view.weekday.setProperty(ui.prop.VISIBLE, weekday !== null)
-      if (weekday !== null) view.weekday.setProperty(ui.prop.SRC, `${view === aod ? 'images/weekday-aod' : 'images/weekday'}/${weekday}.png`)
-      view.day.forEach((digit, i) => digit.setProperty(ui.prop.SRC, `${view === aod ? 'images/digits/aod-small' : SMALL}/${day[i]}.png`))
-    }
+    const date = dateText(weekdayIndex(time.getDay()), time.getDate(), time.getMonth())
+    this.state.widgets.date.setProperty(ui.prop.TEXT, date)
+    this.state.aod.date.setProperty(ui.prop.TEXT, date)
   },
 
-  // 電池の数字は時計のデータに直接つないでいる。ここでは枠の中の塗りだけを更新する（少ない時は朱）
+  // 電池の数字は時計のデータに直接つないでいる。ここでは枠の中の塗りだけを更新する
   updateBattery() {
     const value = normalizeBattery(this.state.battery.getCurrent())
     const fill = LAYOUT.batteryFill
     const width = Math.round((fill.w * (value === null ? 0 : value)) / 100)
-    const color = value !== null && value <= LOW_BATTERY ? COLORS.LOW : COLORS.GOLD
     this.state.widgets.batteryFill.setProperty(ui.prop.VISIBLE, width > 0)
-    if (width > 0) this.state.widgets.batteryFill.setProperty(ui.prop.MORE, { ...fill, w: width, color })
+    if (width > 0) this.state.widgets.batteryFill.setProperty(ui.prop.MORE, { ...fill, w: width, color: COLORS.RED })
   },
 
   onDestroy() {

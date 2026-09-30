@@ -1,15 +1,11 @@
-// 色。絵の色（tools/generate-assets.mjs）もここから読む。
+// 色。元のデザインの色を画素から測ったもの。絵の色（tools/generate-assets.mjs）もここから読む。
 export const COLORS = Object.freeze({
-  BLACK: 0x000000, // 地（有機ELで光らない黒）
-  SUMI: 0x2a2a2a, // 紋（墨色。時刻より目立たせない）
-  SHU: 0xe53a2f, // 時刻（朱色）
-  GOLD: 0xc8a45a, // アイコン・区切り・電池の塗り
-  KINARI: 0xefe7d6, // 小さい数字と曜日（生成り）
-  LOW: 0xe53a2f, // 電池が少ない時の塗り（色だけでなく数字も出す）
-  AOD_TIME: 0x9a2a22, // 画面オフ時の時刻（暗い朱）
-  AOD_TEXT: 0x6e675a, // 画面オフ時の曜日と日（暗い生成り）
+  BLACK: 0x000000, // 地
+  SUMI: 0x222222, // 紋（墨色）
+  RED: 0xff001f, // 時刻・下の段の数字・ハート・電池の塗り
+  RULE: 0x80000e, // 題字の左右の線・下の段の区切り（暗い赤）
+  CREAM: 0xf2e6d8, // 題字・日付・アイコン
+  AOD_TIME: 0x8a0012, // 画面オフ時の時刻（暗い赤）
+  AOD_TEXT: 0x6e665e, // 画面オフ時の日付
   NOTIFICATION_CHECK: 0x22cc88, // 確認図だけに重ねる通知の目印（製品の背景には入れない）
 })
-
-// 電池がこれ以下なら塗りを朱にする（%）
-export const LOW_BATTERY = 20

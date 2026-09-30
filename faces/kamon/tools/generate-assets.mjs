@@ -1,20 +1,27 @@
 // KAMON の文字盤の絵（PNG）をすべて作る。
 //   npm run assets -- kamon
 //
-// - 絵・数字・文字はすべてこのファイルと tools/strokes.mjs の図形から作る（フォント・写真・生成AIの画像は使わない）
-// - 紋は、よくある形（丸・菱・七宝・花菱）を組み合わせたこの文字盤のためのもの。実在の家の紋は写さない
-// - 固定背景（紋・アイコン・区切り）は1枚の絵にまとめる。数字と曜日だけを時計で重ねる
-// - 通知のマークは背景に描かない
+// 元のデザイン（ユーザーのドラマ風の時計）の配置・色・大きさをそのまま使い、問題のあった所だけを置き換えている：
+// - 題字「VIVANT」→「KAMON」（同じ字間・同じ位置）
+// - ドラマのマーク（輪の中の六角形）→ 家紋の七宝（同じ太い輪・同じ墨色）
+// - 出どころのわからない数字の字形 → Liberation Sans Bold（SIL Open Font License 1.1。source/fonts/）
+// - いつも「晴れ」の太陽のアイコン → 温度計
+// - いつも3本の電池の目盛り → 残りに合わせて時計が塗る（背景には枠だけ）
+// 生成AIの画像・写真は使わない。紋は昔からある形（丸・七宝・菱）を組み合わせたこの文字盤のためのもの
 import fs from 'node:fs'
 import path from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
-import { CREST, DIGITS, LAYOUT, NOTIFICATION, SCREEN, WEEKDAY_W, timeWidth } from '../watchface/layout.js'
-import { COLORS, LOW_BATTERY } from '../watchface/theme.js'
-import { DIGIT_STROKES, LETTER_STROKES, WEEKDAYS, strokePaths } from './strokes.mjs'
+import { CREST, DIGITS, LAYOUT, NOTIFICATION, SCREEN, TITLE, CORNER_INSET } from '../watchface/layout.js'
+import { COLORS } from '../watchface/theme.js'
+import { dateText } from '../watchface/format.js'
 
 const ROOT = process.cwd()
 const IMAGES = path.join(ROOT, 'assets', 'bip-6', 'images')
 const DOCS = path.join(ROOT, 'docs')
+const FONTS = path.join(ROOT, 'source', 'fonts')
+const FONT = 'Liberation Sans'
+// Liberation Sans の数字・大文字の高さ（フォントの大きさに対する割合）
+const CAP = 0.716
 
 const hex = (n) => `#${n.toString(16).padStart(6, '0').toUpperCase()}`
 const C = Object.fromEntries(Object.entries(COLORS).map(([k, v]) => [k, hex(v)]))
@@ -27,132 +34,136 @@ function svg(width, height, body) {
 
 function write(file, source) {
   fs.mkdirSync(path.dirname(file), { recursive: true })
-  fs.writeFileSync(file, new Resvg(source).render().asPng())
+  const resvg = new Resvg(source, {
+    font: {
+      fontFiles: ['LiberationSans-Bold.ttf', 'LiberationSans-Regular.ttf'].map((f) => path.join(FONTS, f)),
+      loadSystemFonts: false,
+      defaultFontFamily: FONT,
+    },
+  })
+  fs.writeFileSync(file, resvg.render().asPng())
 }
 
 const dataUri = (file) => `data:image/png;base64,${fs.readFileSync(file).toString('base64')}`
 
-// ---------- 紋（丸に十二菱、中に七宝と花菱） ----------
+// 文字（中央ぞろえ）。top は大文字・数字の上端
+function text(value, { x, top, size, color, weight = 'bold', spacing = 0, anchor = 'middle' }) {
+  const baseline = top + size * CAP
+  return `<text x="${x}" y="${baseline.toFixed(2)}" font-family="${FONT}" font-weight="${weight}" font-size="${size}" letter-spacing="${spacing}" fill="${color}" text-anchor="${anchor}">${value}</text>`
+}
 
-// 菱（ひし形）。中心 (x, y)、たて横の半分の長さ、向き（度）
+// ---------- 紋（太い輪に七宝） ----------
+// 七宝：正方形から、四隅を中心にした4つの円をくり抜いた四つ星。まん中に花菱の形をくり抜く
+// 四つ星の先は上下左右に来る。その先を通る円を重ねて「七宝」の形にする
+
 function diamond(x, y, rx, ry, angle, color) {
   return `<path d="M0 ${-ry} L${rx} 0 L0 ${ry} L${-rx} 0 Z" transform="translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${angle})" fill="${color}"/>`
 }
 
-export function crestBody(color = C.SUMI, { cx = CREST.cx, cy = CREST.cy, r = CREST.r } = {}) {
-  const ring = 12
+export function crestBody(color = C.SUMI, { cx = CREST.cx, cy = CREST.cy, r = CREST.r, ring = CREST.ring } = {}) {
+  const s = r / CREST.r
+  const R = Math.round(112 * s)
   let body = `<circle cx="${cx}" cy="${cy}" r="${r - ring / 2}" fill="none" stroke="${color}" stroke-width="${ring}"/>`
-  // 十二菱：時計の文字盤の12の目盛りを、小さな菱で表す
-  const rr = r - 26
-  for (let i = 0; i < 12; i += 1) {
-    const a = (i * 30 * Math.PI) / 180
-    body += diamond(cx + rr * Math.sin(a), cy - rr * Math.cos(a), i % 3 === 0 ? 8 : 6, i % 3 === 0 ? 13 : 10, i * 30, color)
-  }
-  // 七宝：円の中に、4つの円の弧でできる四つ星
-  const r0 = Math.round(r * 0.5)
-  const sw = 9
-  body += `<clipPath id="shippo"><circle cx="${cx}" cy="${cy}" r="${r0 + sw / 2}"/></clipPath>`
-  body += `<circle cx="${cx}" cy="${cy}" r="${r0}" fill="none" stroke="${color}" stroke-width="${sw}"/>`
-  body += `<g clip-path="url(#shippo)">`
-  for (const [dx, dy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
-    body += `<circle cx="${cx + dx * r0}" cy="${cy + dy * r0}" r="${r0}" fill="none" stroke="${color}" stroke-width="${sw}"/>`
-  }
-  body += `</g>`
-  // 花菱：まん中に4枚の菱の花びら
+  body += `<mask id="shippo"><rect x="${cx - R}" y="${cy - R}" width="${2 * R}" height="${2 * R}" fill="#fff"/>`
+  for (const [dx, dy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) body += `<circle cx="${cx + dx * R}" cy="${cy + dy * R}" r="${R}" fill="#000"/>`
+  // まん中の花菱（4枚の菱の花びら）をくり抜く
   for (let i = 0; i < 4; i += 1) {
-    const a = (i * 90 * Math.PI) / 180
-    body += diamond(cx + 11 * Math.sin(a), cy - 11 * Math.cos(a), 6, 9, i * 90, color)
+    const a = (i * Math.PI) / 2
+    body += diamond(cx + 22 * s * Math.sin(a), cy - 22 * s * Math.cos(a), 11 * s, 17 * s, i * 90, '#000')
   }
+  body += `</mask><rect x="${cx - R}" y="${cy - R}" width="${2 * R}" height="${2 * R}" fill="${color}" mask="url(#shippo)"/>`
+  // 四つ星の先を通る円（七宝の輪）
+  body += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${color}" stroke-width="${Math.round(12 * s)}"/>`
   return body
 }
 
-// ---------- アイコン（金） ----------
+// ---------- 題字・アイコン ----------
 
-function icons(color = C.GOLD) {
+function titleBody() {
+  let body = ''
+  const chars = TITLE.text.split('')
+  const start = TITLE.x - ((chars.length - 1) * TITLE.pitch) / 2
+  chars.forEach((ch, i) => {
+    body += text(ch, { x: start + i * TITLE.pitch, top: TITLE.y, size: TITLE.h / CAP, color: C.CREAM, weight: 'normal' })
+  })
+  for (const r of TITLE.rules) body += `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${C.RULE}"/>`
+  return body
+}
+
+function iconsBody() {
   const L = LAYOUT
   let body = ''
-  // 温度計
+  // 温度計（元のデザインの太陽の代わり。天気で絵が変わらないので、気温だとわかる形にした）
   {
     const { x, y, w, h } = L.tempIcon
     const cx = x + w / 2
-    body += `<rect x="${cx - 3}" y="${y + 1}" width="6" height="${h - 9}" rx="3" fill="none" stroke="${color}" stroke-width="2"/>`
-    body += `<circle cx="${cx}" cy="${y + h - 6}" r="5" fill="${color}"/>`
-    body += `<rect x="${cx - 1}" y="${y + 8}" width="2" height="${h - 14}" fill="${color}"/>`
+    body += `<rect x="${cx - 3}" y="${y + 1}" width="6" height="${h - 8}" rx="3" fill="none" stroke="${C.CREAM}" stroke-width="2"/>`
+    body += `<circle cx="${cx}" cy="${y + h - 5}" r="5" fill="${C.CREAM}"/>`
+    body += `<rect x="${cx - 1}" y="${y + 7}" width="2" height="${h - 12}" fill="${C.CREAM}"/>`
+  }
+  // 足あと
+  {
+    const { x, y } = L.stepsIcon
+    const foot = (fx, fy) =>
+      `<ellipse cx="${fx}" cy="${fy}" rx="3.5" ry="5.5" fill="${C.CREAM}"/><rect x="${fx - 3}" y="${fy + 6}" width="6" height="4" rx="2" fill="${C.CREAM}"/>`
+    body += foot(x + 5, y + 6) + foot(x + 14, y + 10)
+  }
+  // ハート（赤）
+  {
+    const { x, y, w, h } = L.heartIcon
+    const s = (px, py) => `${(x + px * w).toFixed(1)} ${(y + py * h).toFixed(1)}`
+    body += `<path d="M${s(0.5, 1)} C${s(0.1, 0.72)} ${s(0, 0.5)} ${s(0, 0.3)} C${s(0, 0.08)} ${s(0.2, 0)} ${s(0.3, 0)} C${s(0.42, 0)} ${s(0.5, 0.1)} ${s(0.5, 0.2)} C${s(0.5, 0.1)} ${s(0.58, 0)} ${s(0.7, 0)} C${s(0.8, 0)} ${s(1, 0.08)} ${s(1, 0.3)} C${s(1, 0.5)} ${s(0.9, 0.72)} ${s(0.5, 1)} Z" fill="${C.RED}"/>`
   }
   // 電池の枠（中の塗りは時計が残りに合わせて描く）
   {
     const { x, y, w, h } = L.batteryIcon
-    body += `<rect x="${x + 1}" y="${y + 1}" width="${w - 5}" height="${h - 2}" fill="none" stroke="${color}" stroke-width="2"/>`
-    body += `<rect x="${x + w - 3}" y="${y + h / 2 - 3}" width="3" height="6" fill="${color}"/>`
+    body += `<rect x="${x + 1}" y="${y + 1}" width="${w - 5}" height="${h - 2}" rx="2" fill="none" stroke="${C.CREAM}" stroke-width="2"/>`
+    body += `<rect x="${x + w - 3}" y="${y + h / 2 - 3}" width="3" height="6" fill="${C.CREAM}"/>`
   }
-  // 足あと（2つ）
-  {
-    const { x, y } = L.stepsIcon
-    const foot = (fx, fy) =>
-      `<ellipse cx="${fx}" cy="${fy}" rx="4" ry="6" fill="${color}"/><rect x="${fx - 3}" y="${fy + 7}" width="6" height="4" rx="2" fill="${color}"/>`
-    body += foot(x + 5, y + 7) + foot(x + 15, y + 12)
-  }
-  // ハート
-  {
-    const { x, y, w, h } = L.heartIcon
-    const s = (px, py) => `${(x + px * w).toFixed(1)} ${(y + py * h).toFixed(1)}`
-    body += `<path d="M${s(0.5, 1)} C${s(0.1, 0.72)} ${s(0, 0.5)} ${s(0, 0.3)} C${s(0, 0.08)} ${s(0.2, 0)} ${s(0.3, 0)} C${s(0.42, 0)} ${s(0.5, 0.1)} ${s(0.5, 0.2)} C${s(0.5, 0.1)} ${s(0.58, 0)} ${s(0.7, 0)} C${s(0.8, 0)} ${s(1, 0.08)} ${s(1, 0.3)} C${s(1, 0.5)} ${s(0.9, 0.72)} ${s(0.5, 1)} Z" fill="${color}"/>`
-  }
-  const d = L.divider
-  body += `<rect x="${d.x}" y="${d.y}" width="${d.w}" height="${d.h}" fill="${color}"/>`
+  for (const d of L.dividers) body += `<rect x="${d.x}" y="${d.y}" width="${d.w}" height="${d.h}" fill="${C.RULE}"/>`
   return body
 }
 
 function backgroundSvg() {
-  return svg(SCREEN.width, SCREEN.height, `<rect width="${SCREEN.width}" height="${SCREEN.height}" fill="${C.BLACK}"/>` + crestBody() + icons())
+  return svg(SCREEN.width, SCREEN.height, `<rect width="${SCREEN.width}" height="${SCREEN.height}" fill="${C.BLACK}"/>` + crestBody() + titleBody() + iconsBody())
 }
 
-// ---------- 数字・文字の画像 ----------
+// ---------- 数字の画像 ----------
 
-function glyphSvg(strokes, spec, color, w = spec.w) {
-  return svg(w, spec.h, strokePaths(strokes, { w, h: spec.h, stroke: spec.stroke, chamfer: spec.chamfer, color }))
+function digitSvg(ch, spec, color) {
+  return svg(spec.w, spec.h, text(ch, { x: spec.w / 2, top: (spec.h - spec.size * CAP) / 2, size: spec.size, color }))
 }
 
-// 「:」は線の太さの四角を2つ
 function colonSvg(spec, color) {
-  const s = spec.stroke
-  const x = (spec.colonW - s) / 2
-  return svg(spec.colonW, spec.h, [0.3, 0.7].map((v) => `<rect x="${x}" y="${(spec.h * v - s / 2).toFixed(2)}" width="${s}" height="${s}" fill="${color}"/>`).join(''))
+  const b = spec.colonBar
+  const x = (spec.colonW - b.w) / 2
+  return svg(spec.colonW, spec.h, [b.top, b.bottom].map((y) => `<rect x="${x}" y="${y}" width="${b.w}" height="${b.h}" fill="${color}"/>`).join(''))
 }
 
 function writeDigits(name, spec, color, { units = false } = {}) {
   const dir = path.join(IMAGES, 'digits', name)
-  for (let d = 0; d <= 9; d += 1) write(path.join(dir, `${d}.png`), glyphSvg(DIGIT_STROKES[d], spec, color))
-  if (spec.colonW) write(path.join(dir, 'colon.png'), colonSvg(spec, color))
+  for (let d = 0; d <= 9; d += 1) write(path.join(dir, `${d}.png`), digitSvg(String(d), spec, color))
+  if (spec.colonBar) write(path.join(dir, 'colon.png'), colonSvg(spec, color))
   if (!units) return
-  const s = spec.stroke
   const u = spec.unitW
+  const bar = Math.max(2, Math.round(spec.size * 0.12))
   // 「-」：気温がマイナスの時
-  write(path.join(dir, 'negative.png'), svg(u, spec.h, `<rect x="1" y="${spec.h / 2 - s / 2}" width="${u - 2}" height="${s}" fill="${color}"/>`))
-  // 「°」：摂氏・華氏どちらでも同じ（単位は時計の設定に従う）。上に小さな四角の輪
-  const d = u - 3
-  write(path.join(dir, 'degree.png'), svg(u, spec.h, `<rect x="2" y="1" width="${d - 1}" height="${d - 1}" fill="none" stroke="${color}" stroke-width="2"/>`))
+  write(path.join(dir, 'negative.png'), svg(u, spec.h, `<rect x="1" y="${(spec.h - bar) / 2}" width="${u - 2}" height="${bar}" fill="${color}"/>`))
+  // 「°」：摂氏・華氏どちらでも同じ（単位は時計の設定に従う）
+  const top = (spec.h - spec.size * CAP) / 2
+  write(path.join(dir, 'degree.png'), svg(u, spec.h, `<circle cx="${u / 2}" cy="${top + 2.5}" r="2.2" fill="none" stroke="${color}" stroke-width="1.6"/>`))
   // 「--」：心拍・天気のデータがまだ無い時
   const iw = 2 * spec.w + spec.gap
-  const dash = (x) => `<rect x="${x + 2}" y="${spec.h / 2 - s / 2}" width="${spec.w - 4}" height="${s}" fill="${color}"/>`
+  const dash = (x) => `<rect x="${x + 2}" y="${(spec.h - bar) / 2}" width="${spec.w - 4}" height="${bar}" fill="${color}"/>`
   write(path.join(dir, 'invalid.png'), svg(iw, spec.h, dash(0) + dash(spec.w + spec.gap)))
-}
-
-function weekdaySvg(name, color) {
-  const spec = DIGITS.letter
-  const body = name
-    .split('')
-    .map((ch, i) => strokePaths(LETTER_STROKES[ch], { x: i * (spec.w + spec.gap), w: spec.w, h: spec.h, stroke: spec.stroke, chamfer: spec.chamfer, color }))
-    .join('')
-  return svg(WEEKDAY_W, spec.h, body)
 }
 
 // ---------- プレビュー（文字盤全体をまとめて描く） ----------
 
-function spriteRow(text, dir, rect, spec, align = 'left') {
+function spriteRow(value, dir, rect, spec, align = 'left') {
   const width = (ch) => (ch === ':' ? spec.colonW : ch === '-' || ch === '°' ? spec.unitW : spec.w)
   const file = (ch) => ({ ':': 'colon', '-': 'negative', '°': 'degree' })[ch] || ch
-  const chars = text.split('')
+  const chars = value.split('')
   const total = chars.reduce((s, ch) => s + width(ch), 0) + spec.gap * (chars.length - 1)
   let x = align === 'center' ? rect.x + Math.round((rect.w - total) / 2) : rect.x
   let out = ''
@@ -163,10 +174,17 @@ function spriteRow(text, dir, rect, spec, align = 'left') {
   return out
 }
 
-function roundedMask() {
-  const r = SCREEN.cornerRadius
+// 画面の形（CORNER_INSET）の外を黒で隠す
+function screenMask() {
   const { width: W, height: H } = SCREEN
-  return `<path d="M0 0 H${W} V${H} H0 Z M${r} 0 H${W - r} A${r} ${r} 0 0 1 ${W} ${r} V${H - r} A${r} ${r} 0 0 1 ${W - r} ${H} H${r} A${r} ${r} 0 0 1 0 ${H - r} V${r} A${r} ${r} 0 0 1 ${r} 0 Z" fill="#000" fill-rule="evenodd"/>`
+  const n = CORNER_INSET.length
+  const left = CORNER_INSET.map((inset, y) => `${inset} ${y}`)
+  const top = `M0 0 H${W} V${H} H0 Z M${CORNER_INSET[0]} 0 H${W - CORNER_INSET[0]} ` +
+    CORNER_INSET.map((inset, y) => `L${W - inset} ${y}`).join(' ') + ` L${W} ${n} V${H - n} ` +
+    CORNER_INSET.map((_, i) => `L${W - CORNER_INSET[n - 1 - i]} ${H - n + i}`).join(' ') + ` L${W - CORNER_INSET[0]} ${H} H${CORNER_INSET[0]} ` +
+    CORNER_INSET.map((_, i) => `L${CORNER_INSET[i]} ${H - i}`).join(' ') + ` L0 ${H - n} V${n} ` +
+    left.reverse().map((p) => `L${p}`).join(' ') + ' Z'
+  return `<path d="${top}" fill="#000" fill-rule="evenodd"/>`
 }
 
 function notificationLayer() {
@@ -177,34 +195,37 @@ function notificationLayer() {
   )
 }
 
-// 時計と同じ規則で時刻の文字をつくる（24時間は2桁、12時間は先頭の0なし）
 const img = (file, rect) => `<image href="${dataUri(path.join(IMAGES, file))}" x="${rect.x}" y="${rect.y}" width="${rect.w}" height="${rect.h}"/>`
 
-function previewSvg({ time, weekday, day, temp, battery, steps, heart }, { notification = false } = {}) {
+// 日付は時計のシステムの文字で出す。プレビューでは Liberation Sans で近い見た目にする
+function dateLine(value, rect, color) {
+  return text(value, { x: rect.x + rect.w / 2, top: rect.y + (rect.h - rect.size * CAP) / 2, size: rect.size, color, weight: 'normal' })
+}
+
+function previewSvg({ time, weekday, day, month, temp, battery, steps, heart }, { notification = false } = {}) {
   const L = LAYOUT
   const small = DIGITS.small
   let body = img('background.png', { x: 0, y: 0, w: SCREEN.width, h: SCREEN.height })
   const f = L.batteryFill
   const fw = Math.round((f.w * battery) / 100)
-  if (fw > 0) body += `<rect x="${f.x}" y="${f.y}" width="${fw}" height="${f.h}" fill="${battery <= LOW_BATTERY ? C.LOW : C.GOLD}"/>`
+  if (fw > 0) body += `<rect x="${f.x}" y="${f.y}" width="${fw}" height="${f.h}" fill="${C.RED}"/>`
   body += spriteRow(time, 'time', { x: 0, y: L.timeY, w: SCREEN.width }, DIGITS.time, 'center')
-  body += img(`weekday/${weekday}.png`, L.weekday)
-  body += spriteRow(String(day).padStart(2, '0'), 'small', L.day, small)
-  body += temp === null ? img('digits/small/invalid.png', { ...L.temp, w: 2 * small.w + small.gap }) : spriteRow(`${temp}°`, 'small', L.temp, small)
-  body += spriteRow(String(battery), 'small', L.battery, small)
+  body += dateLine(dateText(weekday, day, month), L.date, C.CREAM)
+  const invalid = (rect) => img('digits/small/invalid.png', { ...rect, w: 2 * small.w + small.gap })
+  body += temp === null ? invalid(L.temp) : spriteRow(`${temp}°`, 'small', L.temp, small)
   body += spriteRow(String(steps), 'small', L.steps, small)
-  body += heart === null ? img('digits/small/invalid.png', { ...L.heart, w: 2 * small.w + small.gap }) : spriteRow(String(heart), 'small', L.heart, small)
+  body += heart === null ? invalid(L.heart) : spriteRow(String(heart), 'small', L.heart, small)
+  body += spriteRow(String(battery), 'small', L.battery, small)
   if (notification) body += notificationLayer()
-  return svg(SCREEN.width, SCREEN.height, body + roundedMask())
+  return svg(SCREEN.width, SCREEN.height, body + screenMask())
 }
 
-function aodPreviewSvg({ time, weekday, day }) {
+function aodPreviewSvg({ time, weekday, day, month }) {
   const L = LAYOUT.aod
   let body = `<rect width="${SCREEN.width}" height="${SCREEN.height}" fill="#000"/>`
   body += spriteRow(time, 'aod', { x: 0, y: L.timeY, w: SCREEN.width }, DIGITS.aod, 'center')
-  body += img(`weekday-aod/${weekday}.png`, L.weekday)
-  body += spriteRow(String(day).padStart(2, '0'), 'aod-small', L.day, DIGITS.small)
-  return svg(SCREEN.width, SCREEN.height, body + roundedMask())
+  body += dateLine(dateText(weekday, day, month), L.date, C.AOD_TEXT)
+  return svg(SCREEN.width, SCREEN.height, body + screenMask())
 }
 
 // ---------- 実行 ----------
@@ -212,25 +233,19 @@ function aodPreviewSvg({ time, weekday, day }) {
 fs.rmSync(IMAGES, { recursive: true, force: true })
 
 write(path.join(IMAGES, 'background.png'), backgroundSvg())
-writeDigits('time', DIGITS.time, C.SHU)
+writeDigits('time', DIGITS.time, C.RED)
 writeDigits('aod', DIGITS.aod, C.AOD_TIME)
-writeDigits('small', DIGITS.small, C.KINARI, { units: true })
-writeDigits('aod-small', DIGITS.small, C.AOD_TEXT)
-WEEKDAYS.forEach((name, i) => {
-  write(path.join(IMAGES, 'weekday', `${i}.png`), weekdaySvg(name, C.KINARI))
-  write(path.join(IMAGES, 'weekday-aod', `${i}.png`), weekdaySvg(name, C.AOD_TEXT))
-})
+writeDigits('small', DIGITS.small, C.RED, { units: true })
 
-// ストアの見本は 10:09（時計の広告の決まりごと）。weekday は 0＝日〜6＝土
-const SAMPLE = { time: '10:09', weekday: 3, day: 30, temp: 23, battery: 86, steps: 6824, heart: 72 }
+// weekday は 0＝日〜6＝土。ストアの見本は 10:09（時計の広告の決まりごと）
+const SAMPLE = { time: '10:09', weekday: 3, day: 30, month: 9, temp: 21, battery: 76, steps: 5478, heart: 85 }
 write(path.join(DOCS, 'preview-390x450.png'), previewSvg(SAMPLE))
-write(path.join(DOCS, 'preview-worst-390x450.png'), previewSvg({ time: '23:58', weekday: 4, day: 31, temp: -12, battery: 100, steps: 99999, heart: 199 }))
-write(path.join(DOCS, 'preview-low-390x450.png'), previewSvg({ time: '7:41', weekday: 6, day: 5, temp: null, battery: 9, steps: 0, heart: null }))
+write(path.join(DOCS, 'preview-worst-390x450.png'), previewSvg({ time: '23:58', weekday: 4, day: 31, month: 12, temp: -12, battery: 100, steps: 99999, heart: 199 }))
+write(path.join(DOCS, 'preview-low-390x450.png'), previewSvg({ time: '7:41', weekday: 6, day: 5, month: 5, temp: null, battery: 9, steps: 0, heart: null }))
 write(path.join(DOCS, 'preview-aod-390x450.png'), aodPreviewSvg(SAMPLE))
 write(path.join(DOCS, 'check-notification.png'), previewSvg(SAMPLE, { notification: true }))
-// 紋だけ（README・説明用）
-write(path.join(DOCS, 'crest.png'), svg(300, 300, `<rect width="300" height="300" fill="${C.BLACK}"/>` + crestBody('#8A7A55', { cx: 150, cy: 150, r: 140 })))
+write(path.join(DOCS, 'crest.png'), svg(320, 320, `<rect width="320" height="320" fill="${C.BLACK}"/>` + crestBody('#8A7A6A', { cx: 160, cy: 160, r: 152 })))
 // アプリのアイコン・ストアのカバー用
 write(path.join(IMAGES, 'preview.png'), previewSvg(SAMPLE))
 
-console.log(`Generated kamon assets in assets/bip-6/images and docs/（時刻の幅 ${timeWidth()}px）`)
+console.log('Generated kamon assets in assets/bip-6/images and docs/')

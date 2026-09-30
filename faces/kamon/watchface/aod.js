@@ -3,7 +3,7 @@ import { DIGITS, LAYOUT, SCREEN } from './layout.js'
 import { COLORS } from './theme.js'
 import { createTimeSprites } from '../../../shared/time-sprites.js'
 
-// 画面オフ時：黒い背景に、細い線の時刻と曜日・日だけ（紋・アイコン・数字のデータは出さない）
+// 画面オフ時：黒い背景に、暗い赤の時刻と、暗い色の日付だけ（紋・題字・下の段は出さない）
 export function createAodView() {
   const showLevel = ui.show_level.ONAL_AOD
   const L = LAYOUT.aod
@@ -19,16 +19,15 @@ export function createAodView() {
     gap: DIGITS.aod.gap,
     showLevel,
   })
-  const weekday = ui.createWidget(ui.widget.IMG, { ...L.weekday, src: 'images/weekday-aod/0.png', show_level: showLevel })
-  const day = [0, 1].map((i) =>
-    ui.createWidget(ui.widget.IMG, {
-      x: L.day.x + i * (DIGITS.small.w + DIGITS.small.gap),
-      y: L.day.y,
-      w: DIGITS.small.w,
-      h: DIGITS.small.h,
-      src: 'images/digits/aod-small/0.png',
-      show_level: showLevel,
-    }),
-  )
-  return { time, weekday, day }
+  const { size, ...rect } = L.date
+  const date = ui.createWidget(ui.widget.TEXT, {
+    ...rect,
+    text: '',
+    text_size: size,
+    color: COLORS.AOD_TEXT,
+    align_h: ui.align.CENTER_H,
+    align_v: ui.align.CENTER_V,
+    show_level: showLevel,
+  })
+  return { time, date }
 }
