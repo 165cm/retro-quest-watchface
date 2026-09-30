@@ -16,8 +16,6 @@ export const DIGIT_STYLE = Object.freeze({
 
 // フォントの数字（日付・歩数・電池）を画像の枠に置く時の、上下左右の余白（px）
 export const GLYPH_PAD = 1
-// フォントの数字の横幅の倍率（少し細くして、狭い枠でも縦を大きく出す）
-export const GLYPH_SQUEEZE = 0.85
 
 export const TYPE = Object.freeze({
   aodDate: 26,

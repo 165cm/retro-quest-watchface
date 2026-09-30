@@ -63,6 +63,15 @@ test('nothing with words sits under the notification icon at the top center', ()
   assert.ok(!overlaps(timeRect(), zone))
 })
 
+test('the bottom numbers stay between the icons and the divider', () => {
+  // 背景の絵で測った範囲：くつ x=40〜116、区切り x=209〜225、電池の枠 x=223〜263
+  assert.ok(LAYOUT.steps.x >= 118, 'steps start right of the shoe')
+  assert.ok(LAYOUT.steps.x + LAYOUT.steps.w <= 207, 'steps end left of the divider')
+  assert.ok(LAYOUT.battery.x >= 266, 'battery number starts right of the battery icon')
+  const f = LAYOUT.batteryFill
+  assert.ok(f.x >= 227 && f.x + f.w <= 256 && f.y >= 402 && f.y + f.h <= 417, 'battery fill stays inside the battery frame')
+})
+
 test('the date and the time do not overlap', () => {
   assert.ok(LAYOUT.date.x + LAYOUT.date.w <= timeRect().x, 'date box runs into the time')
   assert.ok(LAYOUT.weekday.x + LAYOUT.weekday.w <= timeRect().x, 'weekday box runs into the time')

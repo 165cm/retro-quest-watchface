@@ -14,15 +14,15 @@
 
 ## 次のタスク（上から優先）
 
-1. SUPER ARBEITER の小さい文字（日付・歩数・電池の数字、曜日）を、ちかフォントで描き直す。ユーザーから `chika-Regular.ttf` を受け取ったら `node faces/super-arbeiter/tools/prepare-source.mjs <素材のフォルダ> <chika-Regular.ttf>` → `npm run assets -- super-arbeiter` → テスト（いまは補助の書体 IPA ゴシックだけで描いている）
-2. SUPER ARBEITER（最終採用案）を実機 Bip 6 に入れる（ユーザーの PC で `npm run preview -- super-arbeiter`）。通知アイコンが暖簾の上の赤い余白に収まるか、セリフが読めるか、画面が点くたびにセリフが替わるか（腕を上げた時・AOD から戻った時）、通常と AOD の切り替え、歩数・電池の数字と電池の塗りの更新を確かめる
-3. SUPER ARBEITER の `appId`（仮の値 `20260930`）で実機に入れられるか確かめる。だめなら Zepp Console で新しく作った値にする
-4. Pixel Wayfarer を実機 Bip 6（または Simulator）で確認する：通常表示・AOD・12/24時間・摂氏/華氏・天気の同期・設定の変更（ユーザーの PC と時計が必要）
-5. Pixel Wayfarer の気温の表示を実機で確認する：`faces/pixel-wayfarer/watchface/index.js` で、文字の仮表示（`L --°` など）と数字の画像（`TEXT_IMG`）が同じ場所に重ねて置かれている。重なって見えないか見る
-6. Pixel Wayfarer のストア提出（`faces/pixel-wayfarer/README.md`「公開・提出」）
+1. SUPER ARBEITER（最終採用案・ちかフォント反映後）を実機 Bip 6 でもう一度確かめる（ユーザーの PC で `npm run preview -- super-arbeiter`）。通知アイコンが暖簾の上の赤い余白に収まるか、セリフが読めるか、画面が点くたびにセリフが替わるか（腕を上げた時・AOD から戻った時）、通常と AOD の切り替え、歩数・電池の数字と電池の塗りの更新を確かめる
+2. SUPER ARBEITER の `appId`（仮の値 `20260930`）で実機に入れられるか確かめる。だめなら Zepp Console で新しく作った値にする
+3. Pixel Wayfarer を実機 Bip 6（または Simulator）で確認する：通常表示・AOD・12/24時間・摂氏/華氏・天気の同期・設定の変更（ユーザーの PC と時計が必要）
+4. Pixel Wayfarer の気温の表示を実機で確認する：`faces/pixel-wayfarer/watchface/index.js` で、文字の仮表示（`L --°` など）と数字の画像（`TEXT_IMG`）が同じ場所に重ねて置かれている。重なって見えないか見る
+5. Pixel Wayfarer のストア提出（`faces/pixel-wayfarer/README.md`「公開・提出」）
 
 ## 最近終わったこと（新しい順）
 
+- 2026-09-30 ユーザーから受け取ったちかフォントで、SUPER ARBEITER の小さい文字（日付・歩数・電池の数字）を描き直した。曜日の漢字は補助の IPA ゴシック。下の段の数字を完成図に合わせて大きくした。ユーザーは実機で最終採用案を確認済み（フォント反映後にもう一度見る）（Claude）
 - 2026-09-30 最終採用案の素材集（`super-arbeiter-final-pack.zip`）で SUPER ARBEITER を作り直した：暖簾は「スーパー／アルバイター」の2段、左に日付と日本語の曜日、右に大きい時刻、下の段は「くつ 歩数｜電池 残り」だけ。BREAK（表示・スマホの設定・Side Service）と STEPS・HP のラベルはやめた。小さい文字はフォントの字形にした（ちかフォントは未受領のため、いまは IPA ゴシック）（Claude）
 - 2026-09-30 ユーザーの希望で、セリフを日替わりから「画面が点くたびに順番に次の札へ」に変えた。省電力のため、画面が点いた瞬間に1回替えるだけで、保存はしない（Claude）
 - 2026-09-30 ユーザーの改修用素材（`super-arbeiter-redesign-pack.zip`）で SUPER ARBEITER を3案目の構図に作り直した：上に通知アイコンのための余白と暖簾、真ん中に時刻（左 HP・右 日付と曜日）、丼と吹き出しのセリフ（7枚を日替わり）、下に STEPS と BREAK。`STATUS : まだいける` と `FINAL / あとちょっと` はやめた（Claude）

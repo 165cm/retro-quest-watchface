@@ -98,8 +98,8 @@ function fontFamily(file) {
 const FONT_FILES = mainFont ? [mainFont, FALLBACK_FONT] : [FALLBACK_FONT]
 const FAMILIES = FONT_FILES.map(fontFamily)
 const SIZE = 160
-// 補助の書体は細いので、同じ色の線で少し太らせる（ちかフォントはそのまま）
-const BOLD = mainFont ? 0 : SIZE * 0.07
+// 原寸（高さ20px前後）でも読めるよう、同じ色の線で少し太らせる。補助の書体はもともと細いので、さらに太く
+const BOLD = SIZE * (mainFont ? 0.06 : 0.07)
 
 function renderText(text) {
   const W = SIZE * 5

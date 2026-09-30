@@ -12,7 +12,7 @@ import path from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
 import { PNG } from 'pngjs'
 import { DIGITS, LAYOUT, NOTIFICATION, SCREEN } from '../watchface/layout.js'
-import { COLORS, DIGIT_STYLE, GLYPH_PAD, GLYPH_SQUEEZE, TYPE } from '../watchface/theme.js'
+import { COLORS, DIGIT_STYLE, GLYPH_PAD, TYPE } from '../watchface/theme.js'
 import { GLYPH_TEXT, WEEKDAYS_JA } from '../watchface/glyphs.js'
 import { QUOTES } from '../watchface/quotes.js'
 import { colonBody, digitBody, exportViews, minusBody, viewBoxText } from './brush-digits.mjs'
@@ -72,17 +72,16 @@ function tinted(file, color) {
 
 const glyphFile = (name) => path.join(SOURCE, 'glyphs', `${name}.png`)
 
-// 数字は全部同じ倍率で描く（大きさをそろえる）。字は枠の中央に、ふちに GLYPH_PAD の余白を残す
+// 数字は全部同じ高さで描く（大きさをそろえる）。字は枠の中央に、ふちに GLYPH_PAD の余白を残す
 function writeFontDigits(name, spec, color) {
   const dir = path.join(IMAGES, 'digits', name)
   const glyphs = Object.fromEntries(GLYPH_TEXT.map((ch) => [ch, tinted(glyphFile(ch === '/' ? 'slash' : ch), color)]))
   const numbers = GLYPH_TEXT.filter((ch) => /\d/.test(ch)).map((ch) => glyphs[ch])
-  const k = GLYPH_SQUEEZE
-  const scale = Math.min((spec.h - 2 * GLYPH_PAD) / numbers[0].h, (spec.w - 2 * GLYPH_PAD) / (k * Math.max(...numbers.map((g) => g.w))))
+  // 高さは全部の数字で同じ。枠より幅の広い字（0・4 など）だけ、横を少し細くして収める
+  const scale = (spec.h - 2 * GLYPH_PAD) / numbers[0].h
   const place = (g, cellW) => {
-    const s = Math.min(scale, (cellW - 2 * GLYPH_PAD) / (k * g.w))
-    const w = g.w * s * k
-    const h = g.h * s
+    const w = Math.min(g.w * scale, cellW - 2 * GLYPH_PAD)
+    const h = g.h * scale
     return `<image href="${g.href}" x="${((cellW - w) / 2).toFixed(2)}" y="${((spec.h - h) / 2).toFixed(2)}" width="${w.toFixed(2)}" height="${h.toFixed(2)}" preserveAspectRatio="none"/>`
   }
   for (let digit = 0; digit <= 9; digit += 1) write(path.join(dir, `${digit}.png`), svg(spec.w, spec.h, place(glyphs[String(digit)], spec.w)))
