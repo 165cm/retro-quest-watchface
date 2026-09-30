@@ -7,11 +7,11 @@ Zepp OS（Amazfit）向けのオリジナル文字盤をまとめたリポジト
 | 文字盤 | 対象端末 | 状態 | 詳しく |
 |---|---|---|---|
 | Pixel Wayfarer Face | Amazfit Bip 6（390×450） | ビルド確認済み・実機未確認・ストア未公開 | [faces/pixel-wayfarer](faces/pixel-wayfarer/README.md) |
-| Yuge Ramen Face（ゆげラーメン） | Amazfit Bip 6（390×450） | ビルド確認済み・実機未確認・自分用 | [faces/yuge-ramen](faces/yuge-ramen/README.md) |
+| SUPER ARBEITER | Amazfit Bip 6（390×450） | ビルド確認済み・実機未確認・自分用 | [faces/super-arbeiter](faces/super-arbeiter/README.md) |
 
-| Pixel Wayfarer Face | Yuge Ramen Face |
+| Pixel Wayfarer Face | SUPER ARBEITER |
 |---|---|
-| ![Pixel Wayfarer Face](faces/pixel-wayfarer/docs/preview-390x450.png) | ![Yuge Ramen Face](faces/yuge-ramen/docs/preview-390x450.png) |
+| ![Pixel Wayfarer Face](faces/pixel-wayfarer/docs/preview-390x450.png) | ![SUPER ARBEITER](faces/super-arbeiter/docs/preview-390x450.png) |
 
 ## 使い方
 
@@ -26,13 +26,13 @@ npm run dev     -- pixel-wayfarer     # Zepp OS Simulator で開く
 npm run preview -- pixel-wayfarer     # 実機に入れるための QR を出す
 ```
 
-文字盤の名前：`pixel-wayfarer`・`yuge-ramen`
+文字盤の名前：`pixel-wayfarer`・`super-arbeiter`
 
 ## 構成
 
 ```text
 faces/<文字盤>/     文字盤ごとの Zepp OS プロジェクト（app.json・watchface/・assets/ など一式）
-shared/             文字盤どうしで使い回す部品（天気・電池・時刻の数字・曜日）
+shared/             文字盤どうしで使い回す部品（天気・電池・時刻の数字・曜日・時刻の文字・画像で並べる文字）
 tests/              テスト（shared/ と文字盤ごと）
 tools/face.mjs      文字盤を名前で選んでビルドなどを動かす道具
 docs/               開発のルール・しくみ（AI と人の両方向け）

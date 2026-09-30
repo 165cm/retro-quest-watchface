@@ -39,6 +39,8 @@
 | `tools/face.mjs` | `npm run build -- <文字盤>` などを受けて、`faces/<文字盤>/` の中で Zeus CLI・素材づくりを動かす |
 | `shared/weather.js` | 天気コード → 背景の種類、昼夜の判定、今日の天気の取り出し |
 | `shared/battery.js` | 電池の%を0〜100にそろえる、HPのマス数・色・表示文字 |
+| `shared/clock.js` | 設定画面で入れた時刻（`15:00` など）と「0時からの分」を行き来する |
+| `shared/image-text.js` | 文字を1つずつ画像で並べる（日付・BREAK の時刻など） |
 | `shared/date.js` | 曜日の名前を引く。`getDay()` が 0=日曜 でも 7=日曜 でも正しく引ける |
 | `shared/time-sprites.js` | 時刻を数字の画像で並べ、画面の真ん中にそろえる（画面の幅は引数で受け取る） |
 | `tests/shared/` | 共通部品のテスト |
@@ -63,20 +65,21 @@
 | `docs/preview-*.png` | README 用のプレビュー（昼・夜・雨） |
 | `README.md` | この文字盤の説明・天気コードの表・既知の制限・提出手順 |
 
-### 文字盤：`faces/yuge-ramen/`（ゆげラーメン）
+### 文字盤：`faces/super-arbeiter/`（SUPER ARBEITER）
 
 | ファイル・フォルダ | 役割 |
 |---|---|
 | `app.json` | アプリの設定。appId は仮の値（`20260930`） |
-| `watchface/index.js` | 文字盤の本体。分ごとに時刻・日付・天気（背景）・シフトを、電池の変化で電池を更新する |
-| `watchface/shift.js` | シフトの残り時間と木札の文を決める計算（テストあり） |
+| `watchface/index.js` | 文字盤の本体。分ごとに時刻・日付・曜日を更新する。HP と歩数は時計のデータに直接つなぐ |
 | `watchface/layout.js`・`theme.js` | 座標・大きさ／色・文字の大きさ |
-| `watchface/aod.js` | AOD の表示（時刻・日付・シフトの残り） |
-| `setting/index.js` | Zepp アプリの設定画面（シフトのオン／オフ・はじまり・おわり） |
-| `setting/keys.js` | 設定の保存キーと、読み取り（設定画面と Side Service で共通） |
-| `app-side/index.js` | Side Service。シフトの設定を時計に渡す |
-| `tools/generate-assets.mjs` | 数字・背景（ラーメン屋の店内・天気ごとに10枚）・小物をすべて SVG で描き、`@resvg/resvg-js` で PNG にする |
-| `docs/preview-*.png` | README 用のプレビュー（シフト中・おわったあと・夜・雨） |
+| `watchface/status.js` | STATUS の文言と画像（いまは「まだいける」だけ） |
+| `watchface/aod.js` | AOD の表示（時刻・日付・HP） |
+| `setting/index.js` | Zepp アプリの設定画面（休憩の時刻） |
+| `setting/keys.js` | 設定の保存キーと、読み取り（設定画面・Side Service・文字盤で共通） |
+| `app-side/index.js` | Side Service。休憩の時刻を時計に渡す |
+| `tools/prepare-source.mjs` | 受け取った素材から、使う部分を切り出して `source/` に保存する（1回だけ） |
+| `tools/generate-assets.mjs` | `source/` とコードで描いた部品（数字・曜日・地・線）から、時計の画像とプレビューを作る |
+| `source/` | 切り出し・縮小した素材（由来は README の「素材と権利」） |
 
 ## データ
 
@@ -90,18 +93,16 @@
 - 番号は `COPY_PRESETS` の並び順。範囲外・変な値は 0（`TACTIC / SAFETY FIRST`）になる
 - 時計とスマホのやりとり：文字盤が起動時に `GET_MESSAGE_PRESET` を問い合わせる。設定が変わると Side Service から `MESSAGE_PRESET_CHANGED` が届く
 
-### ゆげラーメン
+### SUPER ARBEITER
 
 | どこ | キー | 中身 |
 |---|---|---|
-| スマホ（Settings Storage） | `shiftEnabled` | `'true'`／`'false'` |
-| スマホ（Settings Storage） | `shiftStart`・`shiftEnd` | `'11:15'` のような時刻 |
-| 時計（`hmFS.SysProSetInt`） | `yuge_shift_on` | 1＝オン、2＝オフ（0 は保存なし） |
-| 時計（`hmFS.SysProSetInt`） | `yuge_shift_start`・`yuge_shift_end` | 0時からの分＋1（0 は保存なし） |
+| スマホ（Settings Storage） | `breakTime` | `'15:00'` のような時刻 |
+| 時計（`hmFS.SysProSetInt`） | `sa_break` | 0時からの分＋1（0 は保存なし） |
 
-- 何も保存されていない時は 11:15〜17:00・オン
-- 時計とスマホのやりとり：文字盤が起動時に `GET_SHIFT` を問い合わせる。設定が変わると Side Service から `SHIFT_CHANGED` が届く
-- 歩数・いまの気温は、文字盤の部品 `TEXT_IMG` に時計のデータ（`STEP`・`WEATHER_CURRENT`）を直接つないでいる
+- 何も保存されていない時は 15:00
+- 時計とスマホのやりとり：文字盤が起動時に `GET_BREAK` を問い合わせる。設定が変わると Side Service から `BREAK_CHANGED` が届く
+- HP・歩数は、文字盤の部品 `TEXT_IMG` に時計のデータ（`BATTERY`・`STEP`）を直接つないでいる
 
 ## 時計から読む値（センサー）
 
@@ -116,5 +117,5 @@
 
 - 環境変数・秘密の値：なし
 - ビルドの道具：Zeus CLI 1.9.3（`@zeppos/zeus-cli`）。`package.json` の `overrides` で一部の依存の版を固定している。ビルドの時に Zepp のサーバー（`upload-cdn.zepp.com`）から端末の一覧を取る
-- ライブラリ：`@zeppos/zml`（時計とスマホのやりとり）、`pngjs`（Pixel Wayfarer の画像を作る時だけ）、`@resvg/resvg-js`（ゆげラーメンの SVG を PNG にする時だけ）
+- ライブラリ：`@zeppos/zml`（時計とスマホのやりとり）、`pngjs`（Pixel Wayfarer の画像を作る時だけ）、`@resvg/resvg-js`（SUPER ARBEITER の絵を作る時だけ）
 - 公開先：Zepp Console（ストア）。`appId` は文字盤ごとに Zepp Console の値を使う
