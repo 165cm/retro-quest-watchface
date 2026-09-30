@@ -9,13 +9,13 @@ export const SCREEN = Object.freeze({
 })
 
 // 数字の画像の大きさ（w×h）。colonW は「:」、slashW は「/」の幅。
-// 筆の数字の画像は左右に余白がある（theme.js の DIGIT_STYLE の margin）ので、gap は 0 か少し負にする
+// 筆の数字の画像は、太さ・傾きを入れた輪郭がちょうど収まる大きさで書き出す（tools/brush-digits.mjs の exportViews）。\n// 画像のふちに少し余白があるので、gap は 0 で字どうしがくっつかない
 export const DIGITS = Object.freeze({
-  time: { w: 54, h: 88, colonW: 20, gap: -1 },
-  hp: { w: 23, h: 38, gap: 0 },
+  time: { w: 54, h: 96, colonW: 22, gap: 0 },
+  hp: { w: 21, h: 38, gap: 0 },
   steps: { w: 23, h: 36, gap: 0 },
-  date: { w: 15, h: 26, slashW: 10, gap: -1 },
-  break: { w: 22, h: 34, colonW: 10, gap: 0 },
+  date: { w: 16, h: 26, slashW: 9, gap: -2 },
+  break: { w: 24, h: 34, colonW: 10, gap: -2 },
   aod: { w: 48, h: 76, colonW: 17, gap: 0 },
 })
 
@@ -33,10 +33,10 @@ export const LAYOUT = Object.freeze({
   lanternLeft: { x: 22, y: 22, w: 48, h: 96 },
   lanternRight: { x: 320, y: 22, w: 48, h: 96 },
   // 真ん中の段：左に HP、真ん中に時刻、右に日付
-  time: { y: 112 },
+  time: { y: 108 },
   batteryIcon: { x: 16, y: 124, w: 34, h: 19 },
   hpLabel: { x: 54, y: 127, w: 24, h: 13 },
-  hp: { x: 12, y: 146, w: 69, h: 38 },
+  hp: { x: 12, y: 146, w: 64, h: 38 },
   dateIcon: { x: 334, y: 124, w: 20, h: 20 },
   date: { x: 308, y: 146, w: 68, h: 26 }, // 右寄せ（時刻に近づけない）
   weekday: { x: 318, y: 175, w: 48, h: 22 },
@@ -45,8 +45,8 @@ export const LAYOUT = Object.freeze({
     { x1: 316, x2: 372, y: 200 },
   ],
   // 時刻の下：赤い筆の線と STATUS
-  underline: { x: 62, y: 201, w: 266, h: 24 },
-  status: { x: 110, y: 226, w: 171, h: 24 },
+  underline: { x: 62, y: 203, w: 266, h: 24 },
+  status: { x: 110, y: 228, w: 171, h: 24 },
   // 下の段：左に STEPS、真ん中に丼、右に BREAK
   shoeIcon: { x: 18, y: 256, w: 50, h: 26 },
   stepsLabel: { x: 20, y: 284, w: 62, h: 19 },
@@ -69,6 +69,9 @@ export const LAYOUT = Object.freeze({
     { name: 'burst-2', x: 338, y: 255, w: 24, h: 21, flip: true },
     { name: 'burst-3', x: 106, y: 279, w: 24, h: 21 },
     { name: 'brush-short', x: 14, y: 340, w: 112, h: 10 },
+    { name: 'brush-short', x: 124, y: 249, w: 150, h: 7 },
+    { name: 'burst-2', x: 144, y: 263, w: 16, h: 14, flip: true },
+    { name: 'burst-2', x: 230, y: 263, w: 16, h: 14 },
   ],
   // AOD（画面オフ時）：時刻・日付・HP だけ
   aod: {

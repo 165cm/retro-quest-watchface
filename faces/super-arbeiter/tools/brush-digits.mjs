@@ -19,8 +19,8 @@ export const DIGIT_STROKES = {
     { dry: true, points: [[58, 14, 34], [58, 58, 36], [56, 108, 34], [54, 148, 18]] },
   ],
   2: [
-    { dry: true, points: [[18, 50, 16], [26, 24, 26], [50, 12, 30], [74, 22, 32], [80, 48, 32], [66, 80, 30], [42, 108, 28], [20, 138, 28]] },
-    { points: [[16, 140, 28], [50, 134, 30], [80, 138, 24], [92, 136, 8]] },
+    { dry: true, points: [[20, 50, 16], [27, 24, 26], [50, 12, 30], [73, 22, 32], [79, 48, 32], [65, 80, 30], [42, 108, 28], [22, 138, 28]] },
+    { points: [[20, 140, 28], [50, 134, 30], [78, 138, 24], [88, 136, 8]] },
   ],
   3: [
     { points: [[20, 34, 16], [38, 14, 26], [66, 14, 30], [82, 34, 32], [72, 62, 28], [46, 74, 20]] },
@@ -56,8 +56,8 @@ DIGIT_STROKES[9] = DIGIT_STROKES[6].map((stroke) => ({
 // 「:」は、少しいびつな2つの点（枠 36×160）
 export const COLON_BOX = { w: 36, h: 160 }
 export const COLON_DOTS = [
-  { cx: 20, cy: 58, rx: 13, ry: 12, rot: -25 },
-  { cx: 16, cy: 118, rx: 14, ry: 12, rot: -12 },
+  { cx: 20, cy: 60, rx: 11, ry: 10, rot: -25 },
+  { cx: 17, cy: 116, rx: 12, ry: 10, rot: -12 },
 ]
 
 // 決まった順に同じ乱数を出す（字形の乱れを毎回同じにする）
@@ -93,8 +93,8 @@ function fmt(n) {
   return n.toFixed(1)
 }
 
-// 1本の画を、塗りつぶしの形（path の d）にする。入りは丸く太く、終わりは払う
-export function strokeOutline(points, seed = 1, rough = 0.9) {
+// 1本の画の輪郭の点（ring）と、入りの丸（start = [x, y, 太さ]）
+function strokeGeometry(points, seed = 1, rough = 0.9) {
   const line = smooth(points)
   const rnd = random(seed)
   const phaseL = rnd() * 6.28
@@ -116,10 +116,14 @@ export function strokeOutline(points, seed = 1, rough = 0.9) {
     left.push([x - dy * (half + jl), y + dx * (half + jl)])
     right.push([x + dy * (half + jr), y - dx * (half + jr)])
   })
-  const ring = [...left, ...right.reverse()]
+  return { ring: [...left, ...right.reverse()], start: line[0] }
+}
+
+// 1本の画を、塗りつぶしの形（path の d）にする。入りは丸く太く、終わりは払う
+export function strokeOutline(points, seed = 1, rough = 0.9) {
+  const { ring, start: [sx, sy, sw] } = strokeGeometry(points, seed, rough)
   const d = `M${ring.map(([x, y]) => `${fmt(x)} ${fmt(y)}`).join(' L')} Z`
   // 入りの丸み（筆を置いた所）
-  const [sx, sy, sw] = line[0]
   const start = `M${fmt(sx - sw / 2)} ${fmt(sy)} a${fmt(sw / 2)} ${fmt(sw / 2)} 0 1 0 ${fmt(sw)} 0 a${fmt(sw / 2)} ${fmt(sw / 2)} 0 1 0 ${fmt(-sw)} 0 Z`
   return `${d} ${start}`
 }
@@ -154,7 +158,7 @@ export function digitBody(digit, color, { dry = true, id = 'd', weight = 1, slan
   const strokes = DIGIT_STROKES[digit].map((s) => ({ ...s, points: s.points.map(([x, y, w]) => [x, y, w * weight]) }))
   const shapes = strokes.map((s, i) => `<path d="${strokeOutline(s.points, digit * 10 + i + 1)}" fill="${color}"/>`).join('')
   const lean = Math.tan((slant * Math.PI) / 180)
-  const shift = fmt(-lean * (BOX.h / 2))
+  const shift = fmt(-lean * (BOX.h / 2) + centerShift(digit, { weight, slant }))
   if (!dry) return `<g transform="translate(${shift} 0) skewX(${slant})">${shapes}</g>`
   const streaks = strokes
     .filter((s) => s.dry)
@@ -174,4 +178,131 @@ export function colonBody(color, { weight = 1, slant = SLANT } = {}) {
     const x = fmt(cx + lean * (cy - BOX.h / 2) * -1)
     return `<ellipse cx="${x}" cy="${cy}" rx="${fmt(rx * weight)}" ry="${fmt(ry * weight)}" transform="rotate(${rot} ${x} ${cy})" fill="${color}"/>`
   }).join('')
+}
+
+// ---------- 書き出す枠（切れないように） ----------
+// 太さ・前傾・入りの丸み・ふちの乱れを入れたあとの、実際の輪郭の範囲を計算する。
+// 0〜9 に共通の枠を使うので、どの数字も同じ縮尺・同じ基準線になる。
+
+// 「/」と「-」の画（100×160 の枠）
+export const SLASH_STROKE = [[62, 16, 20], [44, 80, 18], [24, 146, 12]]
+export const MINUS_STROKE = [[20, 82, 22], [80, 80, 20]]
+
+function weighted(points, weight) {
+  return points.map(([x, y, w]) => [x, y, w * weight])
+}
+
+function skewX(x, y, slant) {
+  return x + Math.tan((slant * Math.PI) / 180) * (y - BOX.h / 2)
+}
+
+function boundsOfStrokes(strokes, seedBase, { weight = 1, slant = SLANT } = {}) {
+  const b = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }
+  const add = (x, y) => {
+    const sx = skewX(x, y, slant)
+    b.x0 = Math.min(b.x0, sx)
+    b.x1 = Math.max(b.x1, sx)
+    b.y0 = Math.min(b.y0, y)
+    b.y1 = Math.max(b.y1, y)
+  }
+  strokes.forEach((points, i) => {
+    const { ring, start } = strokeGeometry(weighted(points, weight), seedBase + i + 1)
+    ring.forEach(([x, y]) => add(x, y))
+    const [cx, cy, w] = start
+    for (let k = 0; k < 16; k += 1) {
+      const a = (k / 16) * Math.PI * 2
+      add(cx + (Math.cos(a) * w) / 2, cy + (Math.sin(a) * w) / 2)
+    }
+  })
+  return b
+}
+
+function rawDigitBounds(digit, style = {}) {
+  return boundsOfStrokes(DIGIT_STROKES[digit].map((s) => s.points), digit * 10, style)
+}
+
+// 数字ごとに、横の真ん中が枠の真ん中（x=50）に来るようにずらす量
+export function centerShift(digit, style = {}) {
+  const b = rawDigitBounds(digit, style)
+  return BOX.w / 2 - (b.x0 + b.x1) / 2
+}
+
+// 横のずらしを入れたあとの、数字の輪郭の範囲
+export function digitBounds(digit, style = {}) {
+  const b = rawDigitBounds(digit, style)
+  const dx = centerShift(digit, style)
+  return { x0: b.x0 + dx, x1: b.x1 + dx, y0: b.y0, y1: b.y1 }
+}
+
+export function colonBounds({ weight = 1, slant = SLANT } = {}) {
+  const b = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }
+  for (const { cx, cy, rx, ry } of COLON_DOTS) {
+    const x = skewX(cx, cy, slant)
+    const r = Math.max(rx, ry) * weight
+    b.x0 = Math.min(b.x0, x - r)
+    b.x1 = Math.max(b.x1, x + r)
+    b.y0 = Math.min(b.y0, cy - r)
+    b.y1 = Math.max(b.y1, cy + r)
+  }
+  return b
+}
+
+// 画像1枚の大きさ（w×h）に合わせて、切れない viewBox を決める。
+// 0〜9 をすべて囲む範囲に余白をつけ、画像にちょうど収まる縮尺にする。
+// squeeze（1 以下）で横だけ細く描ける（細い枠の中で、字を縦に大きく使うため）。
+// 「:」「/」「-」は数字と同じ縮尺・同じ上下の範囲にして、幅だけそれぞれの画像に合わせる。
+// 余白は画像の上で最低 minPadPx（px）とる（小さい画像ほど、字形の単位では大きな余白になる）
+export function exportViews(spec, style, minPadPx = 2) {
+  const squeeze = style.squeeze || 1
+  const all = Array.from({ length: 10 }, (_, d) => digitBounds(d, style))
+  const u = {
+    x0: Math.min(...all.map((b) => b.x0)),
+    x1: Math.max(...all.map((b) => b.x1)),
+    y0: Math.min(...all.map((b) => b.y0)),
+    y1: Math.max(...all.map((b) => b.y1)),
+  }
+  const inkW = u.x1 - u.x0
+  const inkH = u.y1 - u.y0
+  // 縦の縮尺 sy（px／単位）、横は sx = sy × squeeze。余白を入れて少しずつ近づけて決める
+  let padX = 4
+  let padY = 4
+  let sy = 1
+  for (let i = 0; i < 6; i += 1) {
+    sy = Math.min(spec.h / (inkH + padY * 2), spec.w / ((inkW + padX * 2) * squeeze))
+    padY = Math.max(4, minPadPx / sy)
+    padX = Math.max(4, minPadPx / (sy * squeeze))
+  }
+  const sx = sy * squeeze
+  const vw = spec.w / sx
+  const vh = spec.h / sy
+  const cx = (u.x0 + u.x1) / 2
+  const y0 = (u.y0 + u.y1) / 2 - vh / 2
+  const view = (centerX, widthPx) => {
+    const w = widthPx / sx
+    return { x: centerX - w / 2, y: y0, w, h: vh }
+  }
+  const center = (b) => (b.x0 + b.x1) / 2
+  return {
+    sx,
+    sy,
+    digit: { x: cx - vw / 2, y: y0, w: vw, h: vh },
+    colon: spec.colonW ? view(center(colonBounds(style)), spec.colonW) : null,
+    slash: spec.slashW ? view(center(boundsOfStrokes([SLASH_STROKE], 91, style)), spec.slashW) : null,
+    minus: view(center(boundsOfStrokes([MINUS_STROKE], 90, style)), Math.round(spec.w * 0.7)),
+  }
+}
+
+export function viewBoxText(v) {
+  return `${fmt(v.x)} ${fmt(v.y)} ${fmt(v.w)} ${fmt(v.h)}`
+}
+
+// 「/」と「-」の SVG の中身（数字と同じ太さ・前傾）
+export function slashBody(color, { weight = 1, slant = SLANT } = {}) {
+  const lean = Math.tan((slant * Math.PI) / 180)
+  return `<g transform="translate(${fmt(-lean * (BOX.h / 2))} 0) skewX(${slant})"><path d="${strokeOutline(weighted(SLASH_STROKE, weight), 92)}" fill="${color}"/></g>`
+}
+
+export function minusBody(color, { weight = 1, slant = SLANT } = {}) {
+  const lean = Math.tan((slant * Math.PI) / 180)
+  return `<g transform="translate(${fmt(-lean * (BOX.h / 2))} 0) skewX(${slant})"><path d="${strokeOutline(weighted(MINUS_STROKE, weight), 91)}" fill="${color}"/></g>`
 }

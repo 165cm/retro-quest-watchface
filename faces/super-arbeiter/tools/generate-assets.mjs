@@ -11,9 +11,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
 import { DIGITS, LAYOUT, SCREEN, WEEKDAY } from '../watchface/layout.js'
-import { COLORS, DIGIT_STYLE, STROKE, TYPE } from '../watchface/theme.js'
+import { COLORS, DIGIT_STYLE, STROKE, TEXTURE, TYPE } from '../watchface/theme.js'
 import { STATUS_PRESETS } from '../watchface/status.js'
-import { colonBody, digitBody, strokeOutline } from './brush-digits.mjs'
+import { colonBody, digitBody, exportViews, minusBody, slashBody, viewBoxText } from './brush-digits.mjs'
 
 const ROOT = process.cwd()
 const SOURCE = path.join(ROOT, 'source')
@@ -56,22 +56,17 @@ function sourceImage(name, rect, { fit = 'meet', flip = false } = {}) {
 // 数字 0〜9 と「:」は tools/brush-digits.mjs で1字ずつ作った筆の字形。
 // 大きい時刻だけ、画の終わりにかすれを入れる。小さい数字・AOD にはかすれを入れない。
 
-// 字形（100×160）のまわりに、前傾と太さの分の余白をとる
-const digitView = (margin) => `${-margin} 0 ${100 + margin * 2} 164`
-const COLON_VIEW = '-2 0 40 164'
-const SLASH_VIEW = '-2 0 64 164'
-
+// 書き出す枠は brush-digits.mjs の exportViews で、太さ・傾きを入れたあとの輪郭が切れないように決める
 function writeBrushDigits(name, spec, color, style) {
   const dir = path.join(IMAGES, 'digits', name)
+  const views = exportViews(spec, style)
   for (let digit = 0; digit <= 9; digit += 1) {
-    write(path.join(dir, `${digit}.png`), svg(spec.w, spec.h, digitBody(digit, color, { ...style, id: `${name}${digit}` }), digitView(style.margin)))
+    write(path.join(dir, `${digit}.png`), svg(spec.w, spec.h, digitBody(digit, color, { ...style, id: `${name}${digit}` }), viewBoxText(views.digit)))
   }
   // 「-」（時計のデータがマイナスの時用。電池・歩数では出ない）
-  write(path.join(dir, 'negative.png'), svg(Math.round(spec.w * 0.6), spec.h, `<path d="${strokeOutline([[8, 80, 20], [52, 78, 18]], 90)}" fill="${color}"/>`, SLASH_VIEW))
-  if (spec.colonW) write(path.join(dir, 'colon.png'), svg(spec.colonW, spec.h, colonBody(color, style), COLON_VIEW))
-  if (spec.slashW) {
-    write(path.join(dir, 'slash.png'), svg(spec.slashW, spec.h, `<path d="${strokeOutline([[52, 16, 18], [34, 80, 16], [14, 146, 10]], 91)}" fill="${color}"/>`, SLASH_VIEW))
-  }
+  write(path.join(dir, 'negative.png'), svg(Math.round(spec.w * 0.7), spec.h, minusBody(color, style), viewBoxText(views.minus)))
+  if (spec.colonW) write(path.join(dir, 'colon.png'), svg(spec.colonW, spec.h, colonBody(color, style), viewBoxText(views.colon)))
+  if (spec.slashW) write(path.join(dir, 'slash.png'), svg(spec.slashW, spec.h, slashBody(color, style), viewBoxText(views.slash)))
 }
 
 // 曜日の英字（40×64 の枠に、はしの丸い線で描く）
@@ -109,10 +104,38 @@ function weekdaySvg(name, { color, width }) {
 
 // ---------- 背景（390×450、動かない物をすべて1枚に） ----------
 
+// 紙のまだら：固定の模様（seed 固定）。外周だけに入れ、内側（数字の後ろ）は平らにする
+function paperTexture() {
+  const { width: W, height: H } = SCREEN
+  const inset = TEXTURE.paperInset
+  return (
+    `<defs><filter id="paper" x="0" y="0" width="100%" height="100%">` +
+    `<feTurbulence type="fractalNoise" baseFrequency="0.035 0.05" numOctaves="3" seed="11"/>` +
+    `<feColorMatrix type="matrix" values="0 0 0 0 0.55  0 0 0 0 0.35  0 0 0 0 0  0 0 0 1.6 -0.55"/></filter>` +
+    `<filter id="soft"><feGaussianBlur stdDeviation="${inset / 2.5}"/></filter>` +
+    `<mask id="edge" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">` +
+    `<rect width="${W}" height="${H}" fill="#fff"/>` +
+    `<rect x="${inset}" y="${inset}" width="${W - inset * 2}" height="${H - inset * 2}" rx="${inset}" fill="#000" filter="url(#soft)"/></mask></defs>` +
+    `<rect width="${W}" height="${H}" filter="url(#paper)" mask="url(#edge)" opacity="${TEXTURE.paperOpacity * 6}"/>`
+  )
+}
+
+// BREAK の箱：縁だけ筆のように少し荒らす（中は平らな赤で、数字が読みやすいまま）
+function breakBox(box) {
+  return (
+    `<defs><filter id="boxEdge" x="-5%" y="-10%" width="110%" height="120%">` +
+    `<feTurbulence type="fractalNoise" baseFrequency="0.25" numOctaves="2" seed="5" result="n"/>` +
+    `<feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/></filter></defs>` +
+    `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="${box.radius}" fill="${C.red}" filter="url(#boxEdge)"/>` +
+    `<rect x="${box.x + 2}" y="${box.y + 2}" width="${box.w - 4}" height="${box.h - 4}" rx="${box.radius}" fill="none" stroke="#7A0000" stroke-width="2" opacity="${TEXTURE.boxEdgeOpacity}" filter="url(#boxEdge)"/>`
+  )
+}
+
 function backgroundSvg() {
   const { width: W, height: H } = SCREEN
   const L = LAYOUT
   let body = `<rect width="${W}" height="${H}" fill="${C.yellow}"/>`
+  body += paperTexture()
   // 暖簾の奥の木の梁
   body += `<rect x="0" y="4" width="${W}" height="9" fill="${C.divider}"/>`
   body += sourceImage('noren', L.noren)
@@ -137,8 +160,7 @@ function backgroundSvg() {
   // 右下：BREAK
   body += sourceImage('clock', L.clockIcon)
   body += sourceImage('label-break', L.breakLabel)
-  const box = L.breakBox
-  body += `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="${box.radius}" fill="${C.red}"/>`
+  body += breakBox(L.breakBox)
   // 下
   body += sourceImage('counter', L.counter, { fit: 'none' })
   body += sourceImage('footer-final', L.footer)

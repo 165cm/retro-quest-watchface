@@ -14,12 +14,18 @@ export const STROKE = Object.freeze({
   divider: 2, // 区切りの線
 })
 
-// 筆の数字の太さ（倍率）と前傾（度）。時刻はいちばん太く、傾きは控えめ
+// 筆の数字の太さ（倍率）・前傾（度）・横の細さ（squeeze）。時刻はいちばん太く、傾きは控えめ
 export const DIGIT_STYLE = Object.freeze({
-// margin は字形のまわりの余白（字形の枠 100×160 に対する左右の余白）。太いほど大きくして、となりの字とくっつかないようにする
-  time: { weight: 1.3, slant: -5, dry: true, margin: 10 },
-  small: { weight: 1.2, slant: -6, dry: false, margin: 10 }, // HP・STEPS・日付・BREAK
-  aod: { weight: 0.8, slant: -5, dry: false, margin: 6 }, // 画面オフ時は細く、光る所を減らす
+  time: { weight: 1.38, slant: -5, dry: true, squeeze: 0.86 },
+  small: { weight: 1.35, slant: -6, dry: false, squeeze: 0.84 }, // HP・STEPS・日付・BREAK（横を少し細くして縦に大きく）
+  aod: { weight: 0.8, slant: -5, dry: false, squeeze: 1 }, // 画面オフ時は細く、光る所を減らす
+})
+
+// 紙と筆の質感（弱く、固定の模様）。数字の後ろは平らなまま、外周と BREAK の箱の縁だけに入れる
+export const TEXTURE = Object.freeze({
+  paperOpacity: 0.07, // 黄色い地の外周のまだら
+  paperInset: 70, // 外周から何px までにまだらを入れるか（内側は平ら）
+  boxEdgeOpacity: 0.28, // BREAK の箱の縁の筆の荒れ
 })
 
 export const TYPE = Object.freeze({
