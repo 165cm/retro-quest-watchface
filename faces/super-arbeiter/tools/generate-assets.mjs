@@ -1,18 +1,19 @@
 // SUPER ARBEITER の文字盤の絵（PNG）をすべて作る。
 //   npm run assets -- super-arbeiter
 //
-// - 暖簾・提灯・丼・FINAL・ラベル・アイコン・カウンターの飾りは source/ の素材を使う
-//   （素材の由来は README の「素材と権利」。source/ は tools/prepare-source.mjs で作る）
-// - 湯気・赤い勢い線・筆の下線は、受け取った飾りの素材（source/steam-*・burst-*・brush-*）を使う
-// - 地の黄色・区切りの線・BREAK の赤い箱・数字・曜日の文字は、ここでコードから描く
-// - 数字は tools/brush-digits.mjs で1字ずつ作った筆の字形（入りが太く、終わりを払い、少し前に傾く）
-// - キャラクター・公式ロゴ・公式フォントは使わない
+// - 固定背景（暖簾・提灯・丼・吹き出し・ラベル・アイコン）は source/background.png を使う
+//   （受け取った改修用の素材。由来は README の「素材と権利」。source/ は tools/prepare-source.mjs で作る）
+// - BREAK の赤い箱は、右下の丸い角にかからない位置に、ここで描き直す
+// - セリフの札（7枚）は source/quotes/ を、吹き出しの枠に縦横比を保って収める
+// - 数字は tools/brush-digits.mjs で1字ずつ作った筆の字形。曜日の英字はここで描く
+// - キャラクター・公式ロゴ・公式フォントは使わない。通知のマークは背景に描かない
 import fs from 'node:fs'
 import path from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
-import { DIGITS, LAYOUT, SCREEN, WEEKDAY } from '../watchface/layout.js'
+import { PNG } from 'pngjs'
+import { DIGITS, LAYOUT, NOTIFICATION, SCREEN, WEEKDAY } from '../watchface/layout.js'
 import { COLORS, DIGIT_STYLE, STROKE, TEXTURE, TYPE } from '../watchface/theme.js'
-import { STATUS_PRESETS } from '../watchface/status.js'
+import { QUOTES } from '../watchface/quotes.js'
 import { colonBody, digitBody, exportViews, minusBody, slashBody, viewBoxText } from './brush-digits.mjs'
 
 const ROOT = process.cwd()
@@ -22,16 +23,12 @@ const DOCS = path.join(ROOT, 'docs')
 
 const hex = (n) => `#${n.toString(16).padStart(6, '0').toUpperCase()}`
 const C = {
-  yellow: hex(COLORS.YELLOW),
   red: hex(COLORS.RED),
   black: hex(COLORS.BLACK),
   cream: hex(COLORS.CREAM),
   aod: hex(COLORS.AOD_TEXT),
-  divider: hex(COLORS.DIVIDER),
-  noren: hex(COLORS.NOREN),
-  norenEdge: hex(COLORS.NOREN_EDGE),
-  rod: hex(COLORS.ROD),
-  rodLight: hex(COLORS.ROD_LIGHT),
+  boxEdge: hex(COLORS.BOX_EDGE),
+  notification: hex(COLORS.NOTIFICATION_CHECK),
 }
 
 // ---------- 書き出し ----------
@@ -49,18 +46,9 @@ function dataUri(file) {
   return `data:image/png;base64,${fs.readFileSync(file).toString('base64')}`
 }
 
-// fit: 'meet' は縦横比を保つ、'none' は枠いっぱいに伸ばす。flip で左右反転
-function sourceImage(name, rect, { fit = 'meet', flip = false } = {}) {
-  const ratio = fit === 'none' ? 'none' : 'xMidYMid meet'
-  const transform = flip ? ` transform="translate(${2 * rect.x + rect.w} 0) scale(-1 1)"` : ''
-  return `<image href="${dataUri(path.join(SOURCE, `${name}.png`))}" x="${rect.x}" y="${rect.y}" width="${rect.w}" height="${rect.h}" preserveAspectRatio="${ratio}"${transform}/>`
-}
-
 // ---------- 数字（筆の数字）と曜日の英字 ----------
-// 数字 0〜9 と「:」は tools/brush-digits.mjs で1字ずつ作った筆の字形。
-// 大きい時刻だけ、画の終わりにかすれを入れる。小さい数字・AOD にはかすれを入れない。
-
 // 書き出す枠は brush-digits.mjs の exportViews で、太さ・傾きを入れたあとの輪郭が切れないように決める
+
 function writeBrushDigits(name, spec, color, style) {
   const dir = path.join(IMAGES, 'digits', name)
   const views = exportViews(spec, style)
@@ -106,23 +94,7 @@ function weekdaySvg(name, { color, width }) {
   return svg(WEEKDAY.w, WEEKDAY.h, body)
 }
 
-// ---------- 背景（390×450、動かない物をすべて1枚に） ----------
-
-// 紙のまだら：固定の模様（seed 固定）。外周だけに入れ、内側（数字の後ろ）は平らにする
-function paperTexture() {
-  const { width: W, height: H } = SCREEN
-  const inset = TEXTURE.paperInset
-  return (
-    `<defs><filter id="paper" x="0" y="0" width="100%" height="100%">` +
-    `<feTurbulence type="fractalNoise" baseFrequency="0.035 0.05" numOctaves="3" seed="11"/>` +
-    `<feColorMatrix type="matrix" values="0 0 0 0 0.55  0 0 0 0 0.35  0 0 0 0 0  0 0 0 1.6 -0.55"/></filter>` +
-    `<filter id="soft"><feGaussianBlur stdDeviation="${inset / 2.5}"/></filter>` +
-    `<mask id="edge" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">` +
-    `<rect width="${W}" height="${H}" fill="#fff"/>` +
-    `<rect x="${inset}" y="${inset}" width="${W - inset * 2}" height="${H - inset * 2}" rx="${inset}" fill="#000" filter="url(#soft)"/></mask></defs>` +
-    `<rect width="${W}" height="${H}" filter="url(#paper)" mask="url(#edge)" opacity="${TEXTURE.paperOpacity * 6}"/>`
-  )
-}
+// ---------- 背景（390×450） ----------
 
 // BREAK の箱：縁だけ筆のように少し荒らす（中は平らな赤で、数字が読みやすいまま）
 function breakBox(box) {
@@ -131,65 +103,32 @@ function breakBox(box) {
     `<feTurbulence type="fractalNoise" baseFrequency="0.25" numOctaves="2" seed="5" result="n"/>` +
     `<feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/></filter></defs>` +
     `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="${box.radius}" fill="${C.red}" filter="url(#boxEdge)"/>` +
-    `<rect x="${box.x + 2}" y="${box.y + 2}" width="${box.w - 4}" height="${box.h - 4}" rx="${box.radius}" fill="none" stroke="#7A0000" stroke-width="2" opacity="${TEXTURE.boxEdgeOpacity}" filter="url(#boxEdge)"/>`
-  )
-}
-
-// 暖簾を横幅いっぱいに：竿を端から端まで通し、左右に同じ赤の布を描き足す（暖簾の絵の下に入る）
-function norenExtension() {
-  const { width: W } = SCREEN
-  const rod = LAYOUT.norenRod
-  const side = LAYOUT.norenSides
-  const flap = (x0, x1) => {
-    const y0 = side.y
-    const y1 = side.y + side.h
-    const mid = (x0 + x1) / 2
-    return (
-      `<path d="M${x0} ${y0} H${x1} V${y1 - 4} Q${mid} ${y1 + 3} ${x0} ${y1} Z" fill="${C.noren}" stroke="${C.norenEdge}" stroke-width="2.5" stroke-linejoin="round"/>` +
-      `<rect x="${mid - 5}" y="${rod.y - 1}" width="10" height="${rod.h + 6}" rx="2" fill="${C.noren}" stroke="${C.norenEdge}" stroke-width="1.5"/>`
-    )
-  }
-  return (
-    flap(-4, side.inner) +
-    flap(W - side.inner, W + 4) +
-    `<rect x="-2" y="${rod.y}" width="${W + 4}" height="${rod.h}" rx="${rod.h / 2}" fill="${C.rod}" stroke="${C.norenEdge}" stroke-width="1.5"/>` +
-    `<rect x="0" y="${rod.y + 2}" width="${W}" height="1.5" fill="${C.rodLight}" opacity="0.8"/>`
+    `<rect x="${box.x + 2}" y="${box.y + 2}" width="${box.w - 4}" height="${box.h - 4}" rx="${box.radius}" fill="none" stroke="${C.boxEdge}" stroke-width="2" opacity="${TEXTURE.boxEdgeOpacity}" filter="url(#boxEdge)"/>`
   )
 }
 
 function backgroundSvg() {
   const { width: W, height: H } = SCREEN
-  const L = LAYOUT
-  let body = `<rect width="${W}" height="${H}" fill="${C.yellow}"/>`
-  body += paperTexture()
-  body += norenExtension()
-  body += sourceImage('noren', L.noren)
-  body += sourceImage('lantern-open', L.lanternLeft)
-  body += sourceImage('lantern-yoshi', L.lanternRight)
-  for (const d of L.decor) body += sourceImage(d.name, d, { fit: 'none', flip: d.flip })
-  body += sourceImage('brush-long', L.underline, { fit: 'none' })
-  // 真ん中の段：左に HP、右に日付
-  body += sourceImage('battery', L.batteryIcon)
-  body += sourceImage('label-hp', L.hpLabel)
-  body += sourceImage('calendar', L.dateIcon)
-  for (const line of L.columnLines) {
-    body += `<path d="M${line.x1} ${line.y} H${line.x2}" stroke="${C.black}" stroke-width="${STROKE.divider}" stroke-linecap="round"/>`
-  }
-  // 下の段：左に STEPS
-  body += sourceImage('shoe', L.shoeIcon)
-  body += sourceImage('label-steps', L.stepsLabel)
-  // 中央下
-  const divider = (d) => `<path d="M${d.x} ${d.y} V${d.y + d.h}" stroke="${C.divider}" stroke-width="${STROKE.divider}" stroke-linecap="round"/>`
-  body += divider(L.dividerLeft) + divider(L.dividerRight)
-  body += sourceImage('ramen-bowl', L.bowl)
-  // 右下：BREAK
-  body += sourceImage('clock', L.clockIcon)
-  body += sourceImage('label-break', L.breakLabel)
-  body += breakBox(L.breakBox)
-  // 下
-  body += sourceImage('counter', L.counter, { fit: 'none' })
-  body += sourceImage('footer-final', L.footer)
+  let body = `<image href="${dataUri(path.join(SOURCE, 'background.png'))}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="none"/>`
+  body += breakBox(LAYOUT.breakBox)
   return svg(W, H, body)
+}
+
+// ---------- セリフの札（吹き出しの枠の大きさ。まわりは平らなクリーム） ----------
+
+function quoteSvg(file) {
+  const { w, h } = LAYOUT.quote
+  const png = PNG.sync.read(fs.readFileSync(file))
+  // 縦横比を保って枠に収める（文字をゆがめない）
+  const scale = Math.min(w / png.width, h / png.height)
+  const dw = png.width * scale
+  const dh = png.height * scale
+  return svg(
+    w,
+    h,
+    `<rect width="${w}" height="${h}" fill="${C.cream}"/>` +
+      `<image href="${dataUri(file)}" x="${((w - dw) / 2).toFixed(2)}" y="${((h - dh) / 2).toFixed(2)}" width="${dw.toFixed(2)}" height="${dh.toFixed(2)}" preserveAspectRatio="none"/>`,
+  )
 }
 
 // ---------- プレビュー（文字盤全体をまとめて描く） ----------
@@ -214,17 +153,28 @@ function roundedMask() {
   return `<path d="M0 0 H${W} V${H} H0 Z M${r} 0 H${W - r} A${r} ${r} 0 0 1 ${W} ${r} V${H - r} A${r} ${r} 0 0 1 ${W - r} ${H} H${r} A${r} ${r} 0 0 1 0 ${H - r} V${r} A${r} ${r} 0 0 1 ${r} 0 Z" fill="#000" fill-rule="evenodd"/>`
 }
 
-function previewSvg({ time, hp, steps, date, weekday, breakTime }) {
+// 確認図だけに重ねる：実機で測った通知のマーク（x=178〜212・y=10〜44 の丸）と、文字を置かない範囲
+function notificationLayer() {
+  const n = NOTIFICATION
+  return (
+    `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" fill="none" stroke="${C.notification}" stroke-width="1.5" stroke-dasharray="4 3"/>` +
+    `<circle cx="195" cy="27" r="17" fill="#EEF2F4" stroke="${C.notification}" stroke-width="4"/>` +
+    `<path d="M195 27 L205 19" stroke="#555" stroke-width="2" stroke-linecap="round"/>`
+  )
+}
+
+function previewSvg({ time, hp, steps, date, weekday, breakTime, quote }, { notification = false } = {}) {
   const L = LAYOUT
   const img = (file, rect) => `<image href="${dataUri(path.join(IMAGES, file))}" x="${rect.x}" y="${rect.y}" width="${rect.w}" height="${rect.h}"/>`
   let body = img('background.png', { x: 0, y: 0, w: SCREEN.width, h: SCREEN.height })
-  body += img('status/0.png', L.status)
+  body += img(`quotes/${quote}.png`, L.quote)
   body += spriteRow(time, 'time', { x: 0, y: L.time.y, w: SCREEN.width, h: DIGITS.time.h }, DIGITS.time, 'center')
   body += spriteRow(String(hp), 'hp', L.hp, DIGITS.hp)
   body += spriteRow(String(steps), 'steps', L.steps, DIGITS.steps)
   body += spriteRow(date, 'date', L.date, DIGITS.date, 'right')
   body += img(`weekday/${WEEKDAY_NAMES.indexOf(weekday)}.png`, L.weekday)
   body += spriteRow(breakTime, 'break', L.breakTime, DIGITS.break, 'center')
+  if (notification) body += notificationLayer()
   return svg(SCREEN.width, SCREEN.height, body + roundedMask())
 }
 
@@ -240,7 +190,7 @@ function aodPreviewSvg({ time, date, weekday, hp }) {
 
 // ---------- 実行 ----------
 
-if (!fs.existsSync(path.join(SOURCE, 'noren.png'))) {
+if (!fs.existsSync(path.join(SOURCE, 'background.png'))) {
   console.error('source/ がありません。先に tools/prepare-source.mjs を実行してください（README の「素材と権利」）')
   process.exit(1)
 }
@@ -256,18 +206,23 @@ WEEKDAY_NAMES.forEach((name, index) => {
   write(path.join(IMAGES, 'weekday', `${index}.png`), weekdaySvg(name, { color: C.black, width: STROKE.small }))
 })
 
-// STATUS（プリセットごとに1枚。いまは source/status.png の「STATUS : まだいける」だけ）
-STATUS_PRESETS.forEach((preset, index) => {
-  const r = LAYOUT.status
-  write(path.join(IMAGES, 'status', `${index}.png`), svg(r.w, r.h, sourceImage('status', { x: 0, y: 0, w: r.w, h: r.h })))
+// セリフの札：QUOTES の番号（1〜7）と source/quotes/quote-0N.png を対応させる
+QUOTES.forEach((quote, index) => {
+  const file = path.join(SOURCE, 'quotes', `quote-${String(index + 1).padStart(2, '0')}.png`)
+  write(path.join(IMAGES, quote.image.replace(/^images\//, '')), quoteSvg(file))
 })
 
 write(path.join(IMAGES, 'background.png'), backgroundSvg())
 
-const SAMPLE = { time: '18:42', hp: 73, steps: 9150, date: '9/30', weekday: 'TUE', breakTime: '14:58' }
+// 完成見本：通常（セリフ7種）・電池少なめ・AOD・通知のマークを重ねた確認図
+const SAMPLE = { time: '18:42', hp: 79, steps: 4449, date: '9/30', weekday: 'WED', breakTime: '15:00', quote: 1 }
 write(path.join(DOCS, 'preview-390x450.png'), previewSvg(SAMPLE))
-write(path.join(DOCS, 'preview-low-390x450.png'), previewSvg({ time: '21:07', hp: 12, steps: 21408, date: '12/31', weekday: 'SUN', breakTime: '15:00' }))
+QUOTES.forEach((_, i) => {
+  write(path.join(DOCS, `preview-quote-${i + 1}.png`), previewSvg({ ...SAMPLE, quote: i + 1 }))
+})
+write(path.join(DOCS, 'preview-low-390x450.png'), previewSvg({ time: '21:07', hp: 9, steps: 21408, date: '12/31', weekday: 'SUN', breakTime: '23:59', quote: 6 }))
 write(path.join(DOCS, 'preview-aod-390x450.png'), aodPreviewSvg(SAMPLE))
+write(path.join(DOCS, 'check-notification.png'), previewSvg(SAMPLE, { notification: true }))
 // アプリのアイコン・ストアのカバー用
 write(path.join(IMAGES, 'preview.png'), previewSvg(SAMPLE))
 
@@ -275,10 +230,11 @@ write(path.join(IMAGES, 'preview.png'), previewSvg(SAMPLE))
 //   SA_CHECK_DIR=/tmp/check npm run assets -- super-arbeiter
 if (process.env.SA_CHECK_DIR) {
   const cases = [
-    { time: '9:08', hp: 0, steps: 0, date: '1/1', weekday: 'MON', breakTime: '0:00' },
-    { time: '0:00', hp: 100, steps: 99999, date: '12/31', weekday: 'WED', breakTime: '23:59' },
-    { time: '11:11', hp: 100, steps: 11111, date: '11/11', weekday: 'SAT', breakTime: '11:11' },
-    { time: '23:59', hp: 8, steps: 88888, date: '8/28', weekday: 'THU', breakTime: '18:58' },
+    { time: '9:08', hp: 0, steps: 0, date: '1/1', weekday: 'MON', breakTime: '0:00', quote: 2 },
+    { time: '0:00', hp: 100, steps: 99999, date: '12/31', weekday: 'WED', breakTime: '23:59', quote: 3 },
+    { time: '11:11', hp: 10, steps: 10000, date: '11/11', weekday: 'SAT', breakTime: '11:11', quote: 5 },
+    { time: '20:04', hp: 99, steps: 9999, date: '8/28', weekday: 'THU', breakTime: '18:58', quote: 7 },
+    { time: '23:59', hp: 9, steps: 88888, date: '10/10', weekday: 'FRI', breakTime: '12:00', quote: 4 },
   ]
   cases.forEach((state, i) => write(path.join(process.env.SA_CHECK_DIR, `check-${i}.png`), previewSvg(state)))
 }

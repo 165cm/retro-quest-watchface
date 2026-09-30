@@ -3,7 +3,7 @@ import { Battery, Time, TIME_HOUR_FORMAT_12 } from '@zos/sensor'
 import { log } from '@zos/utils'
 import { BasePage } from '@zeppos/zml/base-page'
 import { DIGITS, LAYOUT, SCREEN } from './layout.js'
-import { getStatus } from './status.js'
+import { QUOTES, quoteIndexFor } from './quotes.js'
 import { createAodView } from './aod.js'
 import { formatBreak, normalizeBreakMinutes } from '../setting/keys.js'
 import { normalizeBattery } from '../../../shared/battery.js'
@@ -14,7 +14,6 @@ import { createImageText } from '../../../shared/image-text.js'
 const logger = log.getLogger('super-arbeiter')
 const NORMAL = ui.show_level.ONLY_NORMAL
 const WEEKDAYS_EN = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
-const STATUS_INDEX = 0 // いまは「まだいける」だけ（watchface/status.js）
 const BREAK_STORE_KEY = 'sa_break' // 時計に控える休憩の時刻。値は「分＋1」（0 は保存なし）
 
 // 古い API が使えない端末でも、時刻の表示だけは残す
@@ -66,6 +65,7 @@ WatchFace(
       time: null,
       battery: null,
       breakMinutes: null,
+      quoteIndex: null,
       widgets: {},
       aod: null,
       minuteCallback: null,
@@ -100,11 +100,12 @@ WatchFace(
       })
     },
 
-    // 背景の絵に、暖簾・提灯・丼・FINAL・ラベル・アイコン・BREAK の赤い箱まで入っている
+    // 背景の絵に、暖簾・提灯・丼・吹き出し・ラベル・アイコン・BREAK の赤い箱まで入っている
     drawNormalView() {
       const w = this.state.widgets
       image({ x: 0, y: 0, w: SCREEN.width, h: SCREEN.height }, 'images/background.png')
-      image(LAYOUT.status, getStatus(STATUS_INDEX).image)
+      // セリフの札は1枚だけ置き、日付が変わった時に画像を入れ替える（7枚を同時に描かない）
+      w.quote = image(LAYOUT.quote, QUOTES[0].image)
 
       w.time = createTimeSprites({
         screenWidth: SCREEN.width,
@@ -154,6 +155,12 @@ WatchFace(
       const dateText = `${time.getMonth()}/${time.getDate()}`
       const day = weekdayIndex(time.getDay())
       w.date.update(dateText)
+      // セリフ：日替わり。同じ日のうちは入れ替えない
+      const quote = quoteIndexFor(time.getFullYear(), time.getMonth(), time.getDate())
+      if (quote !== this.state.quoteIndex) {
+        this.state.quoteIndex = quote
+        w.quote.setProperty(ui.prop.SRC, QUOTES[quote].image)
+      }
       w.weekday.setProperty(ui.prop.VISIBLE, day !== null)
       if (day !== null) w.weekday.setProperty(ui.prop.SRC, `images/weekday/${day}.png`)
       this.state.aod.date.setProperty(ui.prop.TEXT, `${dateText} ${day === null ? '' : WEEKDAYS_EN[day]}`.trim())

@@ -70,16 +70,16 @@
 | ファイル・フォルダ | 役割 |
 |---|---|
 | `app.json` | アプリの設定。appId は仮の値（`20260930`） |
-| `watchface/index.js` | 文字盤の本体。分ごとに時刻・日付・曜日を更新する。HP と歩数は時計のデータに直接つなぐ |
+| `watchface/index.js` | 文字盤の本体。分ごと（と画面が戻った時）に時刻・日付・曜日・日替わりのセリフを更新する。HP と歩数は時計のデータに直接つなぐ |
 | `watchface/layout.js`・`theme.js` | 座標・大きさ／色・文字の大きさ |
-| `watchface/status.js` | STATUS の文言と画像（いまは「まだいける」だけ） |
+| `watchface/quotes.js` | セリフ7枚の並びと、日替わりの札の選び方（通算日 ÷ 7 の余り） |
 | `watchface/aod.js` | AOD の表示（時刻・日付・HP） |
 | `setting/index.js` | Zepp アプリの設定画面（休憩の時刻） |
 | `setting/keys.js` | 設定の保存キーと、読み取り（設定画面・Side Service・文字盤で共通） |
 | `app-side/index.js` | Side Service。休憩の時刻を時計に渡す |
-| `tools/prepare-source.mjs` | 受け取った素材から、使う部分を切り出して `source/` に保存する（1回だけ） |
+| `tools/prepare-source.mjs` | 受け取った改修用の素材（背景・セリフの札）を整えて `source/` に保存する（1回だけ） |
 | `tools/brush-digits.mjs` | 筆の数字 0〜9 と「:」の字形。1字ずつ、筆の通る点と太さで決めてある |
-| `tools/generate-assets.mjs` | `source/`・筆の数字・コードで描いた部品（曜日・地・線）から、時計の画像とプレビューを作る |
+| `tools/generate-assets.mjs` | `source/`・筆の数字・コードで描いた部品（曜日・BREAK の箱）から、時計の画像とプレビュー（セリフ7枚・電池少なめ・AOD・通知の確認図）を作る |
 | `source/` | 切り出し・縮小した素材（由来は README の「素材と権利」） |
 
 ## データ
@@ -104,6 +104,7 @@
 - 何も保存されていない時は 15:00
 - 時計とスマホのやりとり：文字盤が起動時に `GET_BREAK` を問い合わせる。設定が変わると Side Service から `BREAK_CHANGED` が届く
 - HP・歩数は、文字盤の部品 `TEXT_IMG` に時計のデータ（`BATTERY`・`STEP`）を直接つないでいる
+- セリフは保存しない。時計の日付から毎回決める（`quotes.js` の `quoteIndexFor`）
 
 ## 時計から読む値（センサー）
 
