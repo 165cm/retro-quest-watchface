@@ -16,6 +16,7 @@
     "@zeppos/zml": "^0.0.38"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@zeppos/device-types": "^3.0.0",
     "@zeppos/zeus-cli": "1.9.3",
     "pngjs": "^7.0.0"

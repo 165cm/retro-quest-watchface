@@ -13,10 +13,11 @@ import {
 } from '../../../shared/battery.js'
 import { getTodayWeather, isNightAt, resolveWeatherTheme } from '../../../shared/weather.js'
 import { createTimeSprites } from '../../../shared/time-sprites.js'
+import { formatWeekday } from '../../../shared/date.js'
 import { createAodView } from './aod.js'
 
 const logger = log.getLogger('pixel-wayfarer-face')
-const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
 const BATTERY_COLORS = {
   green: COLORS.HP_GREEN,
@@ -367,7 +368,7 @@ WatchFace(
     const amPm = is12Hour ? (rawHour < 12 ? 'AM' : 'PM') : ''
     this.state.amPm.setProperty(ui.prop.TEXT, amPm)
 
-    const weekday = WEEKDAYS[time.getDay() - 1] || '---'
+    const weekday = formatWeekday(time.getDay(), WEEKDAYS)
     const dateText = `${time.getMonth()}/${time.getDate()} ${weekday}`
     this.state.date.setProperty(ui.prop.TEXT, dateText)
     this.state.aod.date.setProperty(ui.prop.TEXT, dateText)

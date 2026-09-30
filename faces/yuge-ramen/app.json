@@ -1,19 +1,23 @@
 {
   "configVersion": "v3",
   "app": {
-    "appId": 1121508,
-    "appName": "Pixel Wayfarer Face",
+    "appId": 20260930,
+    "appName": "Yuge Obake Face",
     "appType": "watchface",
     "version": {
       "code": 1,
       "name": "0.1.0"
     },
     "vender": "independent",
-    "description": "Original retro pixel-art weather watchface for Amazfit Bip 6",
+    "description": "Original pastel ramen-steam watchface with a shift countdown for Amazfit Bip 6",
     "icon": "images/preview.png",
-    "cover": ["images/preview.png"]
+    "cover": [
+      "images/preview.png"
+    ]
   },
-  "permissions": ["device:os.local_storage"],
+  "permissions": [
+    "device:os.local_storage"
+  ],
   "runtime": {
     "apiVersion": {
       "compatible": "4.2",
@@ -56,12 +60,12 @@
   },
   "i18n": {
     "en-US": {
-      "name": "Pixel Wayfarer Face"
+      "name": "Yuge Obake Face"
     },
     "ja-JP": {
-      "name": "Pixel Wayfarer Face"
+      "name": "ゆげおばけ"
     }
   },
-  "defaultLanguage": "en-US",
+  "defaultLanguage": "ja-JP",
   "debug": false
 }
