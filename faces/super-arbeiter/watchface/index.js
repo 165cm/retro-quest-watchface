@@ -3,7 +3,7 @@ import { Battery, Time, TIME_HOUR_FORMAT_12 } from '@zos/sensor'
 import { log } from '@zos/utils'
 import { BasePage } from '@zeppos/zml/base-page'
 import { DIGITS, LAYOUT, SCREEN } from './layout.js'
-import { QUOTES, quoteIndexFor } from './quotes.js'
+import { QUOTES, nextQuoteIndex } from './quotes.js'
 import { createAodView } from './aod.js'
 import { formatBreak, normalizeBreakMinutes } from '../setting/keys.js'
 import { normalizeBattery } from '../../../shared/battery.js'
@@ -65,7 +65,7 @@ WatchFace(
       time: null,
       battery: null,
       breakMinutes: null,
-      quoteIndex: null,
+      quoteIndex: 0,
       widgets: {},
       aod: null,
       minuteCallback: null,
@@ -93,6 +93,7 @@ WatchFace(
 
       ui.createWidget(ui.widget.WIDGET_DELEGATE, {
         resume_call: () => {
+          this.nextQuote()
           this.updateMinute()
           this.updateBattery()
         },
@@ -104,8 +105,8 @@ WatchFace(
     drawNormalView() {
       const w = this.state.widgets
       image({ x: 0, y: 0, w: SCREEN.width, h: SCREEN.height }, 'images/background.png')
-      // セリフの札は1枚だけ置き、日付が変わった時に画像を入れ替える（7枚を同時に描かない）
-      w.quote = image(LAYOUT.quote, QUOTES[0].image)
+      // セリフの札は1枚だけ置き、画面が点くたびに画像を入れ替える（7枚を同時に描かない）
+      w.quote = image(LAYOUT.quote, QUOTES[this.state.quoteIndex].image)
 
       w.time = createTimeSprites({
         screenWidth: SCREEN.width,
@@ -155,15 +156,15 @@ WatchFace(
       const dateText = `${time.getMonth()}/${time.getDate()}`
       const day = weekdayIndex(time.getDay())
       w.date.update(dateText)
-      // セリフ：日替わり。同じ日のうちは入れ替えない
-      const quote = quoteIndexFor(time.getFullYear(), time.getMonth(), time.getDate())
-      if (quote !== this.state.quoteIndex) {
-        this.state.quoteIndex = quote
-        w.quote.setProperty(ui.prop.SRC, QUOTES[quote].image)
-      }
       w.weekday.setProperty(ui.prop.VISIBLE, day !== null)
       if (day !== null) w.weekday.setProperty(ui.prop.SRC, `images/weekday/${day}.png`)
       this.state.aod.date.setProperty(ui.prop.TEXT, `${dateText} ${day === null ? '' : WEEKDAYS_EN[day]}`.trim())
+    },
+
+    // 画面が点いた時だけ、セリフを次の札に替える（画面が消えている間は何もしない）
+    nextQuote() {
+      this.state.quoteIndex = nextQuoteIndex(this.state.quoteIndex)
+      this.state.widgets.quote.setProperty(ui.prop.SRC, QUOTES[this.state.quoteIndex].image)
     },
 
     // HP の数字（通常表示）は時計のデータに直接つないでいる。ここでは AOD の HP だけ更新する

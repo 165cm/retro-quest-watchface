@@ -7,7 +7,7 @@ import {
   normalizeBreakMinutes,
   readBreakMinutes,
 } from '../../faces/super-arbeiter/setting/keys.js'
-import { QUOTES, quoteIndexFor } from '../../faces/super-arbeiter/watchface/quotes.js'
+import { QUOTES, nextQuoteIndex } from '../../faces/super-arbeiter/watchface/quotes.js'
 import { BAKED_TEXT, DIGITS, LAYOUT, NOTIFICATION, SCREEN, timeWidth } from '../../faces/super-arbeiter/watchface/layout.js'
 
 test('the break time comes from the phone settings, 15:00 by default', () => {
@@ -82,27 +82,16 @@ test('there are 7 quotes in a fixed order', () => {
   })
 })
 
-test('the quote changes once a day and comes back after 7 days', () => {
-  // 同じ日なら同じ（month は時計の Time と同じ 1〜12）
-  const today = quoteIndexFor(2026, 9, 30)
-  assert.equal(quoteIndexFor(2026, 9, 30), today)
-  const ymd = (t) => [t.getFullYear(), t.getMonth() + 1, t.getDate()]
-  // 次の日は1つ進み、7日で1周する（月・年またぎも）
-  const seen = new Set()
-  for (let d = 0; d < 7; d += 1) {
-    const t = new Date(2026, 11, 28 + d)
-    const i = quoteIndexFor(...ymd(t))
-    assert.ok(i >= 0 && i < 7)
-    if (d > 0) {
-      const p = new Date(2026, 11, 27 + d)
-      assert.equal(i, (quoteIndexFor(...ymd(p)) + 1) % 7)
-    }
-    seen.add(i)
+test('each time the screen turns on, the next quote comes, and it goes around all 7', () => {
+  const seen = []
+  let i = 0
+  for (let k = 0; k < 7; k += 1) {
+    seen.push(i)
+    i = nextQuoteIndex(i)
   }
-  assert.equal(seen.size, 7)
-  assert.equal(quoteIndexFor(2026, 10, 7), today)
-  assert.equal(quoteIndexFor(undefined, 1, 1), 0)
-  assert.equal(quoteIndexFor(2026, NaN, 1), 0)
+  assert.deepEqual(seen, [0, 1, 2, 3, 4, 5, 6])
+  assert.equal(i, 0)
+  for (const bad of [null, undefined, -1, 7, 1.5, NaN]) assert.equal(nextQuoteIndex(bad), 0)
 })
 
 test('the widest values fit in their boxes', () => {
