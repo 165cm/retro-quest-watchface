@@ -5,7 +5,7 @@ import {
   getBatteryColorKey,
   getFilledSegments,
   normalizeBattery,
-} from '../watchface/battery.js'
+} from '../../shared/battery.js'
 
 test('battery values are clamped and invalid values are preserved as null', () => {
   assert.equal(normalizeBattery(-4), 0)

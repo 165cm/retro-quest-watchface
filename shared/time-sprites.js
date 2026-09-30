@@ -1,11 +1,11 @@
 import ui from '@zos/ui'
-import { SCREEN } from './layout.js'
 
 function spritePath(root, value) {
   return `${root}/${value}.png`
 }
 
 export function createTimeSprites({
+  screenWidth,
   y,
   digitPath,
   digitW,
@@ -45,7 +45,7 @@ export function createTimeSprites({
       const items = hasLeadingHour ? 5 : 4
       const width =
         (hasLeadingHour ? 4 : 3) * digitW + colonW + (items - 1) * gap
-      let x = Math.round((SCREEN.width - width) / 2)
+      let x = Math.round((screenWidth - width) / 2)
       digits[0].setProperty(ui.prop.VISIBLE, hasLeadingHour)
 
       const hourDigits = hasLeadingHour ? hourText : `0${hourText}`

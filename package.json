@@ -1,15 +1,15 @@
 {
-  "name": "pixel-wayfarer-face",
+  "name": "165cm-watchfaces",
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "description": "Original retro pixel-art watchface for Amazfit Bip 6",
+  "description": "Original Zepp OS watchfaces (Amazfit Bip 6)",
   "scripts": {
-    "assets": "node tools/generate-assets.mjs",
-    "check": "node --test tests/*.test.mjs",
-    "build": "zeus build",
-    "dev": "zeus dev",
-    "preview": "zeus preview"
+    "assets": "node tools/face.mjs assets",
+    "check": "node --test tests/*/*.test.mjs",
+    "build": "node tools/face.mjs build",
+    "dev": "node tools/face.mjs dev",
+    "preview": "node tools/face.mjs preview"
   },
   "license": "MIT",
   "dependencies": {
