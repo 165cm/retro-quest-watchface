@@ -7,7 +7,7 @@ import {
   readBreakMinutes,
 } from '../../faces/super-arbeiter/setting/keys.js'
 import { getStatus, STATUS_PRESETS } from '../../faces/super-arbeiter/watchface/status.js'
-import { LAYOUT, SCREEN } from '../../faces/super-arbeiter/watchface/layout.js'
+import { DIGITS, LAYOUT, SCREEN, TEXT_IN_ART, timeWidth } from '../../faces/super-arbeiter/watchface/layout.js'
 
 test('the break time comes from the phone settings, 15:00 by default', () => {
   const from = (values) => (key) => values[key]
@@ -24,28 +24,56 @@ test('the status starts with まだいける and ignores unknown numbers', () =>
   assert.equal(getStatus(99).text, 'まだいける')
 })
 
-// 角丸（半径105px）の内側かどうか
-function inside(x, y) {
-  const r = SCREEN.cornerRadius
-  const cx = x < r ? r : x > SCREEN.width - r ? SCREEN.width - r : x
-  const cy = y < r ? r : y > SCREEN.height - r ? SCREEN.height - r : y
-  return (x - cx) ** 2 + (y - cy) ** 2 <= r ** 2
+// 画面の外形（四隅の半径105px）から、さらに端12pxだけ内側に縮めた形の中にあるか
+function insideSafeArea(x, y) {
+  const { width: W, height: H, cornerRadius: R, safe: S } = SCREEN
+  if (x < S || x > W - S || y < S || y > H - S) return false
+  const cx = Math.min(Math.max(x, R), W - R)
+  const cy = Math.min(Math.max(y, R), H - R)
+  return (x - cx) ** 2 + (y - cy) ** 2 <= (R - S) ** 2
 }
 
-test('the information stays inside the rounded screen and away from the edges', () => {
-  // 飾り（暖簾・提灯・カウンター・FINAL の筆）は端にかかってよい。数字と文字は内側に収める
-  const important = ['time', 'status', 'hp', 'hpLabel', 'steps', 'stepsLabel', 'date', 'weekday', 'breakLabel', 'breakTime']
-  for (const key of important) {
-    const r = LAYOUT[key]
-    const rect = key === 'time' ? { x: 50, y: r.y, w: 290, h: 94 } : r
-    for (const [x, y] of [
-      [rect.x, rect.y],
-      [rect.x + rect.w, rect.y],
-      [rect.x, rect.y + rect.h],
-      [rect.x + rect.w, rect.y + rect.h],
-    ]) {
-      assert.ok(inside(x, y), `${key} (${x}, ${y}) is cut off by the rounded corner`)
-      assert.ok(x >= SCREEN.safe && x <= SCREEN.width - SCREEN.safe, `${key} x=${x} is too close to the edge`)
-    }
+function corners(rect) {
+  return [
+    [rect.x, rect.y],
+    [rect.x + rect.w, rect.y],
+    [rect.x, rect.y + rect.h],
+    [rect.x + rect.w, rect.y + rect.h],
+  ]
+}
+
+function assertSafe(name, rect) {
+  for (const [x, y] of corners(rect)) {
+    assert.ok(insideSafeArea(x, y), `${name} (${x}, ${y}) is outside the safe area`)
   }
+}
+
+test('numbers and words stay inside the rounded screen, 12px away from the edge', () => {
+  // 時刻：いちばん広い「2桁の時」の幅を DIGITS から求める
+  const w = timeWidth()
+  assertSafe('time', { x: Math.round((SCREEN.width - w) / 2), y: LAYOUT.time.y, w, h: DIGITS.time.h })
+  const aodW = timeWidth(DIGITS.aod)
+  assertSafe('aod time', { x: Math.round((SCREEN.width - aodW) / 2), y: LAYOUT.aod.timeY, w: aodW, h: DIGITS.aod.h })
+  for (const key of ['status', 'hp', 'hpLabel', 'steps', 'stepsLabel', 'date', 'weekday', 'breakLabel', 'breakTime']) {
+    assertSafe(key, LAYOUT[key])
+  }
+  assertSafe('aod date', LAYOUT.aod.date)
+  assertSafe('aod hp', LAYOUT.aod.hp)
+  // 暖簾・提灯・FINAL の絵の中の文字
+  for (const [key, part] of Object.entries(TEXT_IN_ART)) {
+    const r = LAYOUT[key]
+    assertSafe(`${key} text`, { x: r.x + r.w * part.x, y: r.y + r.h * part.y, w: r.w * part.w, h: r.h * part.h })
+  }
+})
+
+test('the widest values fit in their boxes', () => {
+  const fits = (text, spec, box) => {
+    const width = text.split('').reduce((sum, ch) => sum + (ch === ':' ? spec.colonW : ch === '/' ? spec.slashW : spec.w), 0)
+    return width + spec.gap * (text.length - 1) <= box.w
+  }
+  assert.ok(fits('100', DIGITS.hp, LAYOUT.hp))
+  assert.ok(fits('99999', DIGITS.steps, LAYOUT.steps))
+  assert.ok(fits('12/31', DIGITS.date, LAYOUT.date))
+  assert.ok(fits('23:59', DIGITS.break, LAYOUT.breakTime))
+  assert.ok(DIGITS.time.h > DIGITS.hp.h * 2, 'the time must stay the biggest')
 })

@@ -3,12 +3,15 @@
 //
 // - 暖簾・提灯・丼・FINAL・ラベル・アイコン・カウンターの飾りは source/ の素材を使う
 //   （素材の由来は README の「素材と権利」。source/ は tools/prepare-source.mjs で作る）
-// - 地の黄色・区切りの線・赤い勢い線・BREAK の赤い箱・数字・曜日の文字は、ここでコードから描く
+// - 湯気・赤い勢い線・筆の下線は、受け取った飾りの素材（source/steam-*・burst-*・brush-*）を使う
+// - 地の黄色・区切りの線・BREAK の赤い箱・数字・曜日の文字は、ここでコードから描く
+// - 時刻の数字は筆のように：太さが変わる（平たい筆先を斜めに当てた形）、少し前に傾く、ふちが少し荒れる
 // - キャラクター・公式ロゴ・公式フォントは使わない
 import fs from 'node:fs'
 import path from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
 import { DIGITS, LAYOUT, SCREEN, WEEKDAY } from '../watchface/layout.js'
+import { COLORS, STROKE, TYPE } from '../watchface/theme.js'
 import { STATUS_PRESETS } from '../watchface/status.js'
 
 const ROOT = process.cwd()
@@ -16,13 +19,14 @@ const SOURCE = path.join(ROOT, 'source')
 const IMAGES = path.join(ROOT, 'assets', 'bip-6', 'images')
 const DOCS = path.join(ROOT, 'docs')
 
+const hex = (n) => `#${n.toString(16).padStart(6, '0').toUpperCase()}`
 const C = {
-  yellow: '#FFE033',
-  red: '#E10606',
-  black: '#000000',
-  cream: '#FFF5D6',
-  aod: '#8C8676',
-  divider: '#6B4A1E',
+  yellow: hex(COLORS.YELLOW),
+  red: hex(COLORS.RED),
+  black: hex(COLORS.BLACK),
+  cream: hex(COLORS.CREAM),
+  aod: hex(COLORS.AOD_TEXT),
+  divider: hex(COLORS.DIVIDER),
 }
 
 // ---------- 書き出し ----------
@@ -40,8 +44,11 @@ function dataUri(file) {
   return `data:image/png;base64,${fs.readFileSync(file).toString('base64')}`
 }
 
-function sourceImage(name, rect) {
-  return `<image href="${dataUri(path.join(SOURCE, `${name}.png`))}" x="${rect.x}" y="${rect.y}" width="${rect.w}" height="${rect.h}" preserveAspectRatio="xMidYMid meet"/>`
+// fit: 'meet' は縦横比を保つ、'none' は枠いっぱいに伸ばす。flip で左右反転
+function sourceImage(name, rect, { fit = 'meet', flip = false } = {}) {
+  const ratio = fit === 'none' ? 'none' : 'xMidYMid meet'
+  const transform = flip ? ` transform="translate(${2 * rect.x + rect.w} 0) scale(-1 1)"` : ''
+  return `<image href="${dataUri(path.join(SOURCE, `${name}.png`))}" x="${rect.x}" y="${rect.y}" width="${rect.w}" height="${rect.h}" preserveAspectRatio="${ratio}"${transform}/>`
 }
 
 // ---------- 数字と文字（太い筆のような丸い線） ----------
@@ -52,11 +59,11 @@ const GLYPHS = {
   1: '<path d="M11 17 L22 8 V56"/>',
   2: '<path d="M8 19 C8 5 33 4 33 19 C33 31 14 41 7 56 H34"/>',
   3: '<path d="M8 13 C13 4 33 4 32 18 C31 27 23 30 18 30 C27 30 34 35 33 45 C32 60 12 60 7 51"/>',
-  4: '<path d="M27 56 V8 L6 42 H35"/>',
+  4: '<path d="M28 57 V7 L4 41 H37"/>',
   5: '<path d="M32 8 H12 L9 29 C15 24 33 24 33 41 C33 58 12 60 7 51"/>',
   6: '<path d="M30 10 C18 5 7 19 7 38 C7 52 13 58 21 58 C29 58 33 51 33 43 C33 35 28 29 20 29 C13 29 8 34 7 40"/>',
   7: '<path d="M7 8 H33 C24 22 18 38 16 56"/>',
-  8: '<ellipse cx="20" cy="19" rx="11" ry="11"/><ellipse cx="20" cy="43" rx="13" ry="14"/>',
+  8: '<ellipse cx="20" cy="18" rx="12" ry="12"/><ellipse cx="20" cy="43" rx="14" ry="14.5"/>',
   9: '<path transform="rotate(180 20 32)" d="M30 10 C18 5 7 19 7 38 C7 52 13 58 21 58 C29 58 33 51 33 43 C33 35 28 29 20 29 C13 29 8 34 7 40"/>',
   negative: '<path d="M8 32 H32"/>',
   slash: '<path d="M30 6 L10 58"/>',
@@ -87,6 +94,48 @@ function glyphSvg(shape, w, h, { color, width }) {
   return svg(w, h, strokes(shape, color, width), '-6 -6 52 76')
 }
 
+// 筆の時刻の数字。平たい筆先（幅 NIB）を斜め（NIB_ANGLE）に当てて線を引いた形にする。
+// 線の向きで太さが変わり、縦の画は太く、斜めの画は細くなる。少し前に傾け（SLANT）、ふちを少し荒らす。
+// 形は毎回同じ（乱れ方も固定）。
+const BRUSH = { nib: 9, core: 5.5, angle: -38, slant: -9, rough: 1.4 }
+
+function brushStrokes(shape, color) {
+  const rad = (BRUSH.angle * Math.PI) / 180
+  const steps = 14
+  let copies = ''
+  for (let i = 0; i <= steps; i += 1) {
+    const t = i / steps - 0.5
+    const dx = (Math.cos(rad) * BRUSH.nib * t).toFixed(2)
+    const dy = (Math.sin(rad) * BRUSH.nib * t).toFixed(2)
+    copies += `<g transform="translate(${dx} ${dy})">${shape}</g>`
+  }
+  const lean = Math.tan((BRUSH.slant * Math.PI) / 180)
+  return (
+    `<defs><filter id="rough" x="-10%" y="-10%" width="120%" height="120%">` +
+    `<feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="7" result="n"/>` +
+    `<feDisplacementMap in="SourceGraphic" in2="n" scale="${BRUSH.rough}" xChannelSelector="R" yChannelSelector="G"/></filter></defs>` +
+    `<g filter="url(#rough)" transform="translate(${(-lean * 32).toFixed(2)} 0) skewX(${BRUSH.slant})">` +
+    `<g fill="none" stroke="${color}" stroke-width="${BRUSH.core}" stroke-linecap="round" stroke-linejoin="round">${copies}</g></g>`
+  )
+}
+
+function brushGlyphSvg(shape, w, h, color) {
+  return svg(w, h, brushStrokes(shape, color), '-9 -9 58 82')
+}
+
+function brushColonSvg(w, h, color) {
+  const dot = (cx, cy, rx, ry, rot) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(${rot} ${cx} ${cy})" fill="${color}"/>`
+  return svg(w, h, dot(w * 0.58, h * 0.35, w * 0.3, w * 0.26, -25) + dot(w * 0.44, h * 0.69, w * 0.31, w * 0.25, -15))
+}
+
+function writeBrushDigits(name, spec, color) {
+  const dir = path.join(IMAGES, 'digits', name)
+  for (let digit = 0; digit <= 9; digit += 1) {
+    write(path.join(dir, `${digit}.png`), brushGlyphSvg(GLYPHS[digit], spec.w, spec.h, color))
+  }
+  write(path.join(dir, 'colon.png'), brushColonSvg(spec.colonW, spec.h, color))
+}
+
 function colonSvg(w, h, color) {
   const r = Math.max(2, w * 0.24)
   return svg(w, h, `<circle cx="${w / 2}" cy="${h * 0.34}" r="${r}" fill="${color}"/><circle cx="${w / 2}" cy="${h * 0.7}" r="${r}" fill="${color}"/>`)
@@ -113,33 +162,24 @@ function weekdaySvg(name, { color, width }) {
 
 // ---------- 背景（390×450、動かない物をすべて1枚に） ----------
 
-// 赤い勢い線（時刻の左右）
-function bursts() {
-  const line = (x1, y1, x2, y2) => `<path d="M${x1} ${y1} L${x2} ${y2}" stroke="${C.red}" stroke-width="4" stroke-linecap="round"/>`
-  return (
-    line(20, 150, 36, 158) + line(18, 170, 38, 170) + line(20, 190, 36, 182) +
-    line(370, 150, 354, 158) + line(372, 170, 352, 170) + line(370, 190, 354, 182)
-  )
-}
-
 function backgroundSvg() {
   const { width: W, height: H } = SCREEN
   const L = LAYOUT
   let body = `<rect width="${W}" height="${H}" fill="${C.yellow}"/>`
   // 暖簾の奥の木の梁
-  body += `<rect x="0" y="4" width="${W}" height="9" fill="#7A4E1E"/>`
+  body += `<rect x="0" y="4" width="${W}" height="9" fill="${C.divider}"/>`
   body += sourceImage('noren', L.noren)
   body += sourceImage('lantern-open', L.lanternLeft)
   body += sourceImage('lantern-yoshi', L.lanternRight)
-  body += bursts()
-  body += sourceImage('underline-time', L.underline)
+  for (const d of L.decor) body += sourceImage(d.name, d, { fit: 'none', flip: d.flip })
+  body += sourceImage('brush-long', L.underline, { fit: 'none' })
   // 左下
   body += sourceImage('battery', L.batteryIcon)
   body += sourceImage('label-hp', L.hpLabel)
   body += sourceImage('shoe', L.shoeIcon)
   body += sourceImage('label-steps', L.stepsLabel)
   // 中央下
-  const divider = (d) => `<path d="M${d.x} ${d.y} V${d.y + d.h}" stroke="${C.divider}" stroke-width="2" stroke-linecap="round"/>`
+  const divider = (d) => `<path d="M${d.x} ${d.y} V${d.y + d.h}" stroke="${C.divider}" stroke-width="${STROKE.divider}" stroke-linecap="round"/>`
   body += divider(L.dividerLeft) + divider(L.dividerRight)
   body += sourceImage('ramen-bowl', L.bowl)
   // 右下
@@ -147,9 +187,9 @@ function backgroundSvg() {
   body += sourceImage('clock', L.clockIcon)
   body += sourceImage('label-break', L.breakLabel)
   const box = L.breakBox
-  body += `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="5" fill="${C.red}"/>`
+  body += `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="${box.radius}" fill="${C.red}"/>`
   // 下
-  body += sourceImage('counter', L.counter)
+  body += sourceImage('counter', L.counter, { fit: 'none' })
   body += sourceImage('footer-final', L.footer)
   return svg(W, H, body)
 }
@@ -193,7 +233,7 @@ function previewSvg({ time, hp, steps, date, weekday, breakTime }) {
 function aodPreviewSvg({ time, date, weekday, hp }) {
   const L = LAYOUT.aod
   const text = (value, rect) =>
-    `<text x="${rect.x + rect.w / 2}" y="${rect.y + rect.h / 2 + 9}" font-size="26" fill="${C.aod}" text-anchor="middle" font-family="sans-serif">${value}</text>`
+    `<text x="${rect.x + rect.w / 2}" y="${rect.y + rect.h / 2 + TYPE.aodDate * 0.35}" font-size="${TYPE.aodDate}" fill="${C.aod}" text-anchor="middle" font-family="sans-serif">${value}</text>`
   let body = `<rect width="${SCREEN.width}" height="${SCREEN.height}" fill="#000"/>`
   body += spriteRow(time, 'aod', { x: 0, y: L.timeY, w: SCREEN.width, h: DIGITS.aod.h }, DIGITS.aod, 'center')
   body += text(`${date} ${weekday}`, L.date) + text(`HP ${hp}`, L.hp)
@@ -208,14 +248,14 @@ if (!fs.existsSync(path.join(SOURCE, 'noren.png'))) {
 }
 fs.rmSync(IMAGES, { recursive: true, force: true })
 
-writeDigits('time', DIGITS.time, { color: C.black, width: 15 })
-writeDigits('hp', DIGITS.hp, { color: C.red, width: 12 })
-writeDigits('steps', DIGITS.steps, { color: C.black, width: 11 })
-writeDigits('date', DIGITS.date, { color: C.black, width: 11 })
-writeDigits('break', DIGITS.break, { color: C.cream, width: 11 })
-writeDigits('aod', DIGITS.aod, { color: C.aod, width: 6 })
+writeBrushDigits('time', DIGITS.time, C.black)
+writeDigits('hp', DIGITS.hp, { color: C.red, width: STROKE.small + 1 })
+writeDigits('steps', DIGITS.steps, { color: C.black, width: STROKE.small })
+writeDigits('date', DIGITS.date, { color: C.black, width: STROKE.small })
+writeDigits('break', DIGITS.break, { color: C.cream, width: STROKE.small })
+writeDigits('aod', DIGITS.aod, { color: C.aod, width: STROKE.aod })
 WEEKDAY_NAMES.forEach((name, index) => {
-  write(path.join(IMAGES, 'weekday', `${index}.png`), weekdaySvg(name, { color: C.black, width: 11 }))
+  write(path.join(IMAGES, 'weekday', `${index}.png`), weekdaySvg(name, { color: C.black, width: STROKE.small }))
 })
 
 // STATUS（プリセットごとに1枚。いまは source/status.png の「STATUS : まだいける」だけ）
@@ -232,5 +272,17 @@ write(path.join(DOCS, 'preview-low-390x450.png'), previewSvg({ time: '21:07', hp
 write(path.join(DOCS, 'preview-aod-390x450.png'), aodPreviewSvg(SAMPLE))
 // アプリのアイコン・ストアのカバー用
 write(path.join(IMAGES, 'preview.png'), previewSvg(SAMPLE))
+
+// 確認用：極端な値のプレビューを別のフォルダに書く（リポジトリには入れない）
+//   SA_CHECK_DIR=/tmp/check npm run assets -- super-arbeiter
+if (process.env.SA_CHECK_DIR) {
+  const cases = [
+    { time: '9:08', hp: 0, steps: 0, date: '1/1', weekday: 'MON', breakTime: '0:00' },
+    { time: '0:00', hp: 100, steps: 99999, date: '12/31', weekday: 'WED', breakTime: '23:59' },
+    { time: '11:11', hp: 100, steps: 11111, date: '11/11', weekday: 'SAT', breakTime: '11:11' },
+    { time: '23:59', hp: 8, steps: 88888, date: '8/28', weekday: 'THU', breakTime: '18:58' },
+  ]
+  cases.forEach((state, i) => write(path.join(process.env.SA_CHECK_DIR, `check-${i}.png`), previewSvg(state)))
+}
 
 console.log('Generated super-arbeiter assets in assets/bip-6/images and docs/')
