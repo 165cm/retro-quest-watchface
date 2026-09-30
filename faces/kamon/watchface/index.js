@@ -1,0 +1,167 @@
+import ui from '@zos/ui'
+import { Battery, Time, TIME_HOUR_FORMAT_12 } from '@zos/sensor'
+import { log } from '@zos/utils'
+import { DIGITS, LAYOUT, SCREEN } from './layout.js'
+import { COLORS, LOW_BATTERY } from './theme.js'
+import { createAodView } from './aod.js'
+import { dayText, hourText } from './format.js'
+import { normalizeBattery } from '../../../shared/battery.js'
+import { weekdayIndex } from '../../../shared/date.js'
+import { createTimeSprites } from '../../../shared/time-sprites.js'
+
+const logger = log.getLogger('kamon')
+const NORMAL = ui.show_level.ONLY_NORMAL
+const SMALL = 'images/digits/small'
+
+// 古い API が使えない端末でも、時刻の表示だけは残す
+function tolerate(operation, fallback) {
+  try {
+    return operation()
+  } catch (error) {
+    logger.log('API unavailable, using fallback')
+    return fallback
+  }
+}
+
+function digitArray(path) {
+  return Array.from({ length: 10 }, (_, index) => `${path}/${index}.png`)
+}
+
+// 時計のデータ（気温・電池・歩数・心拍）を、数字の画像で直接出す。データが無い時は「--」
+function dataNumber(rect, type, extra = {}) {
+  return tolerate(() =>
+    ui.createWidget(ui.widget.TEXT_IMG, {
+      ...rect,
+      type,
+      font_array: digitArray(SMALL),
+      h_space: DIGITS.small.gap,
+      align_h: ui.align.LEFT,
+      invalid_image: `${SMALL}/invalid.png`,
+      show_level: NORMAL,
+      ...extra,
+    }),
+  )
+}
+
+// 「°」は摂氏・華氏で同じ画像（単位は時計の設定に従う）
+const DEGREE = `${SMALL}/degree.png`
+const TEMPERATURE = {
+  negative_image: `${SMALL}/negative.png`,
+  unit_sc: DEGREE,
+  unit_tc: DEGREE,
+  unit_en: DEGREE,
+  imperial_unit_sc: DEGREE,
+  imperial_unit_tc: DEGREE,
+  imperial_unit_en: DEGREE,
+}
+
+WatchFace({
+  state: {
+    time: null,
+    battery: null,
+    widgets: {},
+    aod: null,
+    minuteCallback: null,
+    batteryCallback: null,
+  },
+
+  onInit() {
+    this.state.time = new Time()
+    this.state.battery = new Battery()
+  },
+
+  build() {
+    this.drawNormalView()
+    this.state.aod = createAodView()
+    this.updateMinute()
+    this.updateBattery()
+
+    this.state.minuteCallback = () => this.updateMinute()
+    this.state.batteryCallback = () => this.updateBattery()
+    this.state.time.onPerMinute(this.state.minuteCallback)
+    this.state.battery.onChange(this.state.batteryCallback)
+
+    ui.createWidget(ui.widget.WIDGET_DELEGATE, {
+      resume_call: () => {
+        this.updateMinute()
+        this.updateBattery()
+      },
+      pause_call: () => {},
+    })
+  },
+
+  // 背景の絵に、紋・アイコン・区切り・電池の枠まで入っている
+  drawNormalView() {
+    const w = this.state.widgets
+    const L = LAYOUT
+    ui.createWidget(ui.widget.IMG, { x: 0, y: 0, w: SCREEN.width, h: SCREEN.height, src: 'images/background.png', show_level: NORMAL })
+    // 電池の枠の中の塗り（残りに合わせて左から）
+    w.batteryFill = ui.createWidget(ui.widget.FILL_RECT, { ...L.batteryFill, color: COLORS.GOLD, show_level: NORMAL })
+
+    w.time = createTimeSprites({
+      screenWidth: SCREEN.width,
+      y: L.timeY,
+      digitPath: 'images/digits/time',
+      digitW: DIGITS.time.w,
+      digitH: DIGITS.time.h,
+      colonW: DIGITS.time.colonW,
+      gap: DIGITS.time.gap,
+      showLevel: NORMAL,
+    })
+
+    w.weekday = ui.createWidget(ui.widget.IMG, { ...L.weekday, src: 'images/weekday/0.png', show_level: NORMAL })
+    w.day = [0, 1].map((i) =>
+      ui.createWidget(ui.widget.IMG, {
+        x: L.day.x + i * (DIGITS.small.w + DIGITS.small.gap),
+        y: L.day.y,
+        w: DIGITS.small.w,
+        h: DIGITS.small.h,
+        src: `${SMALL}/0.png`,
+        show_level: NORMAL,
+      }),
+    )
+
+    dataNumber(L.temp, ui.data_type.WEATHER_CURRENT, TEMPERATURE)
+    dataNumber(L.battery, ui.data_type.BATTERY)
+    dataNumber(L.steps, ui.data_type.STEP)
+    dataNumber(L.heart, ui.data_type.HEART)
+  },
+
+  // 分ごと：時刻・曜日・日
+  updateMinute() {
+    const time = this.state.time
+    const w = this.state.widgets
+    const aod = this.state.aod
+    const hours = hourText(time.getHours(), time.getHourFormat() === TIME_HOUR_FORMAT_12, time.getFormatHour())
+    const minutes = String(time.getMinutes()).padStart(2, '0')
+    w.time.update(hours, minutes)
+    aod.time.update(hours, minutes)
+
+    const day = dayText(time.getDate())
+    const weekday = weekdayIndex(time.getDay())
+    for (const view of [w, aod]) {
+      view.weekday.setProperty(ui.prop.VISIBLE, weekday !== null)
+      if (weekday !== null) view.weekday.setProperty(ui.prop.SRC, `${view === aod ? 'images/weekday-aod' : 'images/weekday'}/${weekday}.png`)
+      view.day.forEach((digit, i) => digit.setProperty(ui.prop.SRC, `${view === aod ? 'images/digits/aod-small' : SMALL}/${day[i]}.png`))
+    }
+  },
+
+  // 電池の数字は時計のデータに直接つないでいる。ここでは枠の中の塗りだけを更新する（少ない時は朱）
+  updateBattery() {
+    const value = normalizeBattery(this.state.battery.getCurrent())
+    const fill = LAYOUT.batteryFill
+    const width = Math.round((fill.w * (value === null ? 0 : value)) / 100)
+    const color = value !== null && value <= LOW_BATTERY ? COLORS.LOW : COLORS.GOLD
+    this.state.widgets.batteryFill.setProperty(ui.prop.VISIBLE, width > 0)
+    if (width > 0) this.state.widgets.batteryFill.setProperty(ui.prop.MORE, { ...fill, w: width, color })
+  },
+
+  onDestroy() {
+    if (this.state.battery && this.state.batteryCallback) {
+      this.state.battery.offChange(this.state.batteryCallback)
+    }
+    if (this.state.time && this.state.minuteCallback) {
+      tolerate(() => this.state.time.offPerMinute(this.state.minuteCallback))
+    }
+  },
+})

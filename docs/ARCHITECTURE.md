@@ -80,6 +80,18 @@
 | `tools/generate-assets.mjs` | `source/`・筆の数字から、時計の画像とプレビュー（セリフ7枚・電池少なめ・AOD・通知の確認図）を作る |
 | `source/` | 整えた素材と字形（由来は README の「素材と権利」） |
 
+### 文字盤：`faces/kamon/`（KAMON・仮の名前）
+
+| ファイル・フォルダ | 役割 |
+|---|---|
+| `app.json` | アプリの設定。appId は仮の値（`20261001`）。文字盤だけ（スマホの設定・Side Service はない） |
+| `watchface/index.js` | 文字盤の本体。分ごと（と画面が戻った時）に時刻・曜日・日を更新する。気温・電池・歩数・心拍の数字は時計のデータに直接つなぐ。電池の枠の塗りは電池の変化で更新 |
+| `watchface/layout.js`・`theme.js` | 座標・大きさ・紋の位置／色 |
+| `watchface/format.js` | 時刻と日の文字（桁のそろえ方） |
+| `watchface/aod.js` | AOD の表示（時刻・曜日と日） |
+| `tools/strokes.mjs` | 数字 0〜9 と曜日の英字の字形（線の点の並び） |
+| `tools/generate-assets.mjs` | 紋・アイコンの背景、数字・曜日、プレビューを作る |
+
 ## データ
 
 ### Pixel Wayfarer
@@ -98,6 +110,11 @@
 - 歩数・電池の数字は、文字盤の部品 `TEXT_IMG` に時計のデータ（`STEP`・`BATTERY`）を直接つないでいる
 - セリフの何枚目かは保存しない（時計の記憶だけ。書き込みの電気を使わないため）。文字盤を入れ直すと1枚目から
 
+### KAMON
+
+- 保存するデータはない（スマホの設定もない）
+- 気温（`WEATHER_CURRENT`）・電池（`BATTERY`）・歩数（`STEP`）・心拍（`HEART`）は、文字盤の部品 `TEXT_IMG` に時計のデータを直接つないでいる
+
 ## 時計から読む値（センサー）
 
 - 時刻：`Time`（分ごとの通知・12/24時間の設定）
@@ -111,5 +128,5 @@
 
 - 環境変数・秘密の値：なし
 - ビルドの道具：Zeus CLI 1.9.3（`@zeppos/zeus-cli`）。`package.json` の `overrides` で一部の依存の版を固定している。ビルドの時に Zepp のサーバー（`upload-cdn.zepp.com`）から端末の一覧を取る
-- ライブラリ：`@zeppos/zml`（時計とスマホのやりとり）、`pngjs`（Pixel Wayfarer の画像を作る時だけ）、`@resvg/resvg-js`（SUPER ARBEITER の絵を作る時だけ）
+- ライブラリ：`@zeppos/zml`（時計とスマホのやりとり）、`pngjs`（Pixel Wayfarer の画像を作る時だけ）、`@resvg/resvg-js`（SUPER ARBEITER・KAMON の絵を作る時だけ）
 - 公開先：Zepp Console（ストア）。`appId` は文字盤ごとに Zepp Console の値を使う
