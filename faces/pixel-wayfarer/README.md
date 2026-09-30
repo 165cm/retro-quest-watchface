@@ -146,13 +146,12 @@ shared/time-sprites.js   可変幅を抑えた画像数字描画
 - 現在気温はファームウェアの`WEATHER_CURRENT`へ直接バインドするため、JavaScript側から値を単体テストできません。
 - 温度単位はシステム設定へ追従しますが、表示を簡潔にするため摂氏・華氏とも単位画像は`°`です。
 - AODの焼き付き対策は発光面積10%未満を意図した固定レイアウトです。端末固有のピクセルシフトはファームウェア動作を実機確認してください。
-- `appId`は開発用の仮値です。ストア提出前にZepp Consoleで割り当てられた値へ置き換えてください。
 - Zeus CLIの推移依存に既知の監査警告があります。`npm audit fix --force`はCLI互換性を壊すため自動適用していません。
 
 ## 公開・提出
 
 1. 実機テスト項目を完了します。
-2. Zepp ConsoleでWatchfaceを作成し、割り当てられた`appId`へ更新します。
+2. `app.json`の`appId`がZepp Consoleの値（`1121508`）と同じか確認します。違うとConsoleがZABを認識しません。
 3. ストア用プレビューが`10:09`であること、権利表示、対象端末を確認します。
 4. `npm run assets -- pixel-wayfarer && npm run check && npm run build -- pixel-wayfarer`を実行します。
 5. `faces/pixel-wayfarer/dist/`のZABをZepp Consoleへアップロードし、対象国・英語名・説明・独自制作物の申告を設定します。

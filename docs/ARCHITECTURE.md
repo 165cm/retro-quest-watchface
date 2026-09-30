@@ -39,7 +39,10 @@
 | `tools/face.mjs` | `npm run build -- <文字盤>` などを受けて、`faces/<文字盤>/` の中で Zeus CLI・素材づくりを動かす |
 | `shared/weather.js` | 天気コード → 背景の種類、昼夜の判定、今日の天気の取り出し |
 | `shared/battery.js` | 電池の%を0〜100にそろえる、HPのマス数・色・表示文字 |
-| `shared/time-sprites.js` | 時刻を数字の画像で並べ、画面の真ん中にそろえる（画面の幅は引数で受け取る） |
+| `shared/clock.js` | 設定画面で入れた時刻（`15:00` など）と「0時からの分」を行き来する |
+| `shared/image-text.js` | 文字を1つずつ画像で並べる（日付など） |
+| `shared/date.js` | 曜日の名前を引く。`getDay()` が 0=日曜 でも 7=日曜 でも正しく引ける |
+| `shared/time-sprites.js` | 時刻を数字の画像で並べ、画面（または x から指定の幅の範囲）の真ん中にそろえる |
 | `tests/shared/` | 共通部品のテスト |
 | `tests/<文字盤>/` | 文字盤ごとのテスト |
 | `AGENTS.md`・`CLAUDE.md`・`docs/` | AI と開発のルール（正本）。`.github/AGENTS.md` は中央マニュアル・作品ティアの案内だけ |
@@ -62,6 +65,21 @@
 | `docs/preview-*.png` | README 用のプレビュー（昼・夜・雨） |
 | `README.md` | この文字盤の説明・天気コードの表・既知の制限・提出手順 |
 
+### 文字盤：`faces/super-arbeiter/`（SUPER ARBEITER）
+
+| ファイル・フォルダ | 役割 |
+|---|---|
+| `app.json` | アプリの設定。appId は仮の値（`20260930`）。文字盤だけ（スマホの設定・Side Service はない） |
+| `watchface/index.js` | 文字盤の本体。分ごと（と画面が戻った時）に時刻・日付・曜日を更新する。セリフは画面が点いた時だけ次の札へ替える。歩数と電池の数字は時計のデータに直接つなぎ、電池の枠の塗りは電池の変化で更新する |
+| `watchface/layout.js`・`theme.js` | 座標・大きさ／色・筆の数字の太さ |
+| `watchface/quotes.js` | セリフ7枚の並びと、次の札の選び方（`nextQuoteIndex`） |
+| `watchface/glyphs.js` | フォントで描く小さい文字（数字・「/」・日本語の曜日） |
+| `watchface/aod.js` | AOD の表示（時刻・日付と曜日・HP） |
+| `tools/prepare-source.mjs` | 受け取った最終採用案の素材（背景・セリフの札）を整え、小さい文字の字形をフォントで描いて `source/` に保存する（1回だけ） |
+| `tools/brush-digits.mjs` | 筆の数字 0〜9 と「:」の字形。1字ずつ、筆の通る点と太さで決めてある |
+| `tools/generate-assets.mjs` | `source/`・筆の数字から、時計の画像とプレビュー（セリフ7枚・電池少なめ・AOD・通知の確認図）を作る |
+| `source/` | 整えた素材と字形（由来は README の「素材と権利」） |
+
 ## データ
 
 ### Pixel Wayfarer
@@ -73,6 +91,12 @@
 
 - 番号は `COPY_PRESETS` の並び順。範囲外・変な値は 0（`TACTIC / SAFETY FIRST`）になる
 - 時計とスマホのやりとり：文字盤が起動時に `GET_MESSAGE_PRESET` を問い合わせる。設定が変わると Side Service から `MESSAGE_PRESET_CHANGED` が届く
+
+### SUPER ARBEITER
+
+- 保存するデータはない（スマホの設定もない）
+- 歩数・電池の数字は、文字盤の部品 `TEXT_IMG` に時計のデータ（`STEP`・`BATTERY`）を直接つないでいる
+- セリフの何枚目かは保存しない（時計の記憶だけ。書き込みの電気を使わないため）。文字盤を入れ直すと1枚目から
 
 ## 時計から読む値（センサー）
 
@@ -87,5 +111,5 @@
 
 - 環境変数・秘密の値：なし
 - ビルドの道具：Zeus CLI 1.9.3（`@zeppos/zeus-cli`）。`package.json` の `overrides` で一部の依存の版を固定している。ビルドの時に Zepp のサーバー（`upload-cdn.zepp.com`）から端末の一覧を取る
-- ライブラリ：`@zeppos/zml`（時計とスマホのやりとり）、`pngjs`（画像を作る時だけ）
+- ライブラリ：`@zeppos/zml`（時計とスマホのやりとり）、`pngjs`（Pixel Wayfarer の画像を作る時だけ）、`@resvg/resvg-js`（SUPER ARBEITER の絵を作る時だけ）
 - 公開先：Zepp Console（ストア）。`appId` は文字盤ごとに Zepp Console の値を使う
