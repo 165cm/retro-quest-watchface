@@ -69,7 +69,8 @@
 - 数字：`tools/brush-digits.mjs` で1字ずつ作った筆の字形（塗りつぶし）。太さと傾きは `watchface/theme.js` の `DIGIT_STYLE`。時刻は黒でいちばん太く、かすれ入り。HP（赤）・STEPS（黒）・日付（黒）・BREAK（クリーム）はかすれなし。AOD は細く、かすれなし
 - 数字の穴（0・4・6・8・9）は原寸でもつぶれないこと。数字の画像は、太さ・傾きを入れた輪郭がちょうど収まる枠で書き出し、ふちで切らないこと（`tools/brush-digits.mjs` の `exportViews`）。となりの数字とくっつかないこと（`DIGITS` の gap と `DIGIT_STYLE` の squeeze で調整する）。どれもテストで確かめている（全時刻・全月日・HP 100）
 - 質感：黄色い地の外周に弱い紙のまだら、BREAK の箱の縁に筆の荒れ。数字の後ろは平らなまま（`theme.js` の `TEXTURE`）
-- 飾り：暖簾の下の左右に湯気の渦、STEPS・BREAK・丼のまわりに赤い勢い線、時刻・STATUS・STEPS の下に赤い筆の線。置き場所は `watchface/layout.js` の `decor`
+- 暖簾：「SUPER ARBEITER」を強く見せるため、横幅いっぱいにする。暖簾の絵は縦横比を保って大きく置き（文字をゆがめない）、足りない左右は同じ赤の布と竿を描き足す。提灯は暖簾の手前に少し重ねて立体感を出す。提灯は暖簾の文字に重ねない
+- 飾り：STEPS・BREAK・丼のまわりに赤い勢い線、時刻・STATUS・STEPS の下に赤い筆の線。置き場所は `watchface/layout.js` の `decor`
 - HP は色だけでなく数字で出す
 - 四隅：Bip 6 は四隅が大きく丸い（半径およそ105px）。数字と文字は四隅と端12pxの内側に収める（テストで確かめている）。飾りは少し欠けてよい
 - AOD：黒い背景に、時刻・日付・HP（暗いクリーム）だけ。暖簾・提灯・丼・STATUS・BREAK・STEPS・FINAL は出さない

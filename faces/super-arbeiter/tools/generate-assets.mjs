@@ -28,6 +28,10 @@ const C = {
   cream: hex(COLORS.CREAM),
   aod: hex(COLORS.AOD_TEXT),
   divider: hex(COLORS.DIVIDER),
+  noren: hex(COLORS.NOREN),
+  norenEdge: hex(COLORS.NOREN_EDGE),
+  rod: hex(COLORS.ROD),
+  rodLight: hex(COLORS.ROD_LIGHT),
 }
 
 // ---------- 書き出し ----------
@@ -131,13 +135,34 @@ function breakBox(box) {
   )
 }
 
+// 暖簾を横幅いっぱいに：竿を端から端まで通し、左右に同じ赤の布を描き足す（暖簾の絵の下に入る）
+function norenExtension() {
+  const { width: W } = SCREEN
+  const rod = LAYOUT.norenRod
+  const side = LAYOUT.norenSides
+  const flap = (x0, x1) => {
+    const y0 = side.y
+    const y1 = side.y + side.h
+    const mid = (x0 + x1) / 2
+    return (
+      `<path d="M${x0} ${y0} H${x1} V${y1 - 4} Q${mid} ${y1 + 3} ${x0} ${y1} Z" fill="${C.noren}" stroke="${C.norenEdge}" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<rect x="${mid - 5}" y="${rod.y - 1}" width="10" height="${rod.h + 6}" rx="2" fill="${C.noren}" stroke="${C.norenEdge}" stroke-width="1.5"/>`
+    )
+  }
+  return (
+    flap(-4, side.inner) +
+    flap(W - side.inner, W + 4) +
+    `<rect x="-2" y="${rod.y}" width="${W + 4}" height="${rod.h}" rx="${rod.h / 2}" fill="${C.rod}" stroke="${C.norenEdge}" stroke-width="1.5"/>` +
+    `<rect x="0" y="${rod.y + 2}" width="${W}" height="1.5" fill="${C.rodLight}" opacity="0.8"/>`
+  )
+}
+
 function backgroundSvg() {
   const { width: W, height: H } = SCREEN
   const L = LAYOUT
   let body = `<rect width="${W}" height="${H}" fill="${C.yellow}"/>`
   body += paperTexture()
-  // 暖簾の奥の木の梁
-  body += `<rect x="0" y="4" width="${W}" height="9" fill="${C.divider}"/>`
+  body += norenExtension()
   body += sourceImage('noren', L.noren)
   body += sourceImage('lantern-open', L.lanternLeft)
   body += sourceImage('lantern-yoshi', L.lanternRight)

@@ -28,10 +28,13 @@ export function timeWidth(spec = DIGITS.time, hourDigits = 2) {
 }
 
 export const LAYOUT = Object.freeze({
-  // 上：暖簾と提灯（背景の絵）
-  noren: { x: 80, y: 0, w: 230, h: 77 },
-  lanternLeft: { x: 22, y: 22, w: 48, h: 96 },
-  lanternRight: { x: 320, y: 22, w: 48, h: 96 },
+  // 上：暖簾と提灯（背景の絵）。暖簾の絵は縦横比を保って大きく置き、
+  // 足りない左右は同じ赤の布と竿を描き足して横幅いっぱいにする。提灯は暖簾の手前に重ねる
+  noren: { x: 45, y: -2, w: 300, h: 100 },
+  norenRod: { y: 1, h: 8 }, // 横幅いっぱいの竿
+  norenSides: { y: 6, h: 84, inner: 60 }, // 左右に描き足す布（端から inner px まで。暖簾の絵の下に入る）
+  lanternLeft: { x: 24, y: 24, w: 44, h: 88 },
+  lanternRight: { x: 322, y: 24, w: 44, h: 88 },
   // 真ん中の段：左に HP、真ん中に時刻、右に日付
   time: { y: 108 },
   batteryIcon: { x: 16, y: 124, w: 34, h: 19 },
@@ -63,8 +66,6 @@ export const LAYOUT = Object.freeze({
   footer: { x: 50, y: 390, w: 290, h: 55 },
   // 勢いの飾り（背景の絵。受け取った飾りの素材）。flip は左右反転
   decor: [
-    { name: 'steam-a', x: 74, y: 82, w: 38, h: 25 },
-    { name: 'steam-b', x: 278, y: 82, w: 38, h: 25, flip: true },
     { name: 'burst-2', x: 98, y: 257, w: 26, h: 22 },
     { name: 'burst-2', x: 338, y: 255, w: 24, h: 21, flip: true },
     { name: 'burst-3', x: 106, y: 279, w: 24, h: 21 },
@@ -84,7 +85,7 @@ export const LAYOUT = Object.freeze({
 // 飾りの絵の中で、文字が入っている範囲（絵の枠に対する割合）。四隅に欠けないかのテストで使う。
 // FINAL の文字の範囲は、テストで素材の画素から測って確かめる
 export const TEXT_IN_ART = Object.freeze({
-  noren: { x: 0.1, y: 0.3, w: 0.8, h: 0.45 },
+  noren: { x: 0.089, y: 0.227, w: 0.833, h: 0.676 }, // 素材の画素から測った、文字と丼の印の範囲
   lanternLeft: { x: 0.2, y: 0.3, w: 0.6, h: 0.5 },
   lanternRight: { x: 0.2, y: 0.3, w: 0.6, h: 0.5 },
 })

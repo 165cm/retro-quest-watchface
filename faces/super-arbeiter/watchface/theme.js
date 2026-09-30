@@ -5,7 +5,11 @@ export const COLORS = Object.freeze({
   BLACK: 0x000000,
   CREAM: 0xfff5d6,
   AOD_TEXT: 0x8c8676, // 画面オフ時の文字（暗いクリーム）
-  DIVIDER: 0x6b4a1e, // 区切りの線・暖簾の奥の梁
+  DIVIDER: 0x6b4a1e, // 区切りの線
+  NOREN: 0xc60606, // 暖簾の布（描き足す左右の布。暖簾の絵の赤に合わせる）
+  NOREN_EDGE: 0x140000, // 暖簾の布のふち
+  ROD: 0x9a5a1e, // 暖簾の竿
+  ROD_LIGHT: 0xe0a143, // 竿のつや
 })
 
 // 絵の線の太さ（曜日の英字は 40×64 の枠に対する太さ。数字は tools/brush-digits.mjs の字形）
