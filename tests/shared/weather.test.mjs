@@ -4,7 +4,7 @@ import {
   WEATHER_THEME,
   isNightAt,
   resolveWeatherTheme,
-} from '../watchface/weather.js'
+} from '../../shared/weather.js'
 
 test('sunrise and sunset take priority over the fixed fallback hours', () => {
   const sunrise = { hour: 7, minute: 10 }

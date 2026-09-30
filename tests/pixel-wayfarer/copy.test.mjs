@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { COPY_PRESETS, getCopyPreset, normalizePresetIndex } from '../watchface/copy.js'
+import { COPY_PRESETS, getCopyPreset, normalizePresetIndex } from '../../faces/pixel-wayfarer/watchface/copy.js'
 
 test('copy presets retain the requested defaults and safe bounds', () => {
   assert.deepEqual(getCopyPreset(undefined), {

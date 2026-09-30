@@ -10,9 +10,9 @@ import {
   getBatteryColorKey,
   getFilledSegments,
   normalizeBattery,
-} from './battery.js'
-import { getTodayWeather, isNightAt, resolveWeatherTheme } from './weather.js'
-import { createTimeSprites } from './time-sprites.js'
+} from '../../../shared/battery.js'
+import { getTodayWeather, isNightAt, resolveWeatherTheme } from '../../../shared/weather.js'
+import { createTimeSprites } from '../../../shared/time-sprites.js'
 import { createAodView } from './aod.js'
 
 const logger = log.getLogger('pixel-wayfarer-face')
@@ -266,6 +266,7 @@ WatchFace(
     )
 
     this.state.mainTime = createTimeSprites({
+      screenWidth: SCREEN.width,
       y: LAYOUT.time.y,
       digitPath: 'images/digits/time',
       digitW: 44,

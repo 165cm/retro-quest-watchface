@@ -1,7 +1,7 @@
 import ui from '@zos/ui'
 import { LAYOUT, SCREEN } from './layout.js'
 import { COLORS, TYPE } from './theme.js'
-import { createTimeSprites } from './time-sprites.js'
+import { createTimeSprites } from '../../../shared/time-sprites.js'
 
 export function createAodView() {
   ui.createWidget(ui.widget.FILL_RECT, {
@@ -14,6 +14,7 @@ export function createAodView() {
   })
 
   const time = createTimeSprites({
+    screenWidth: SCREEN.width,
     y: LAYOUT.aod.timeY,
     digitPath: 'images/digits/aod',
     digitW: 32,
