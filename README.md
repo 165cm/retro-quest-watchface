@@ -8,10 +8,11 @@ Zepp OS（Amazfit）向けのオリジナル文字盤をまとめたリポジト
 |---|---|---|---|
 | Pixel Wayfarer Face | Amazfit Bip 6（390×450） | ビルド確認済み・実機未確認・ストア未公開 | [faces/pixel-wayfarer](faces/pixel-wayfarer/README.md) |
 | SUPER ARBEITER | Amazfit Bip 6（390×450） | ビルド確認済み・実機未確認・自分用 | [faces/super-arbeiter](faces/super-arbeiter/README.md) |
+| KAMONT | Amazfit Bip 6（390×450） | 動作確認済み（一部）・ストア公開予定 | [faces/kamon](faces/kamon/README.md) |
 
-| Pixel Wayfarer Face | SUPER ARBEITER |
-|---|---|
-| ![Pixel Wayfarer Face](faces/pixel-wayfarer/docs/preview-390x450.png) | ![SUPER ARBEITER](faces/super-arbeiter/docs/preview-390x450.png) |
+| Pixel Wayfarer Face | SUPER ARBEITER | KAMONT |
+|---|---|---|
+| ![Pixel Wayfarer Face](faces/pixel-wayfarer/docs/preview-390x450.png) | ![SUPER ARBEITER](faces/super-arbeiter/docs/preview-390x450.png) | ![KAMONT](faces/kamon/docs/preview-390x450.png) |
 
 ## 使い方
 
@@ -26,7 +27,7 @@ npm run dev     -- pixel-wayfarer     # Zepp OS Simulator で開く
 npm run preview -- pixel-wayfarer     # 実機に入れるための QR を出す
 ```
 
-文字盤の名前：`pixel-wayfarer`・`super-arbeiter`
+文字盤の名前：`pixel-wayfarer`・`super-arbeiter`・`kamon`
 
 ## 構成
 
