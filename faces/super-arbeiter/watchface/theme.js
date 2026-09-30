@@ -8,11 +8,18 @@ export const COLORS = Object.freeze({
   DIVIDER: 0x6b4a1e, // 区切りの線・暖簾の奥の梁
 })
 
-// 絵の線の太さ（数字の枠 40×64 に対する太さ）
+// 絵の線の太さ（曜日の英字は 40×64 の枠に対する太さ。数字は tools/brush-digits.mjs の字形）
 export const STROKE = Object.freeze({
-  small: 12, // HP・STEPS・日付・BREAK・曜日
-  aod: 6, // 画面オフ時の時刻（細くして光る所を減らす）
-  divider: 2,
+  small: 12, // 曜日の英字
+  divider: 2, // 区切りの線
+})
+
+// 筆の数字の太さ（倍率）と前傾（度）。時刻はいちばん太く、傾きは控えめ
+export const DIGIT_STYLE = Object.freeze({
+// margin は字形のまわりの余白（字形の枠 100×160 に対する左右の余白）。太いほど大きくして、となりの字とくっつかないようにする
+  time: { weight: 1.3, slant: -5, dry: true, margin: 10 },
+  small: { weight: 1.2, slant: -6, dry: false, margin: 10 }, // HP・STEPS・日付・BREAK
+  aod: { weight: 0.8, slant: -5, dry: false, margin: 6 }, // 画面オフ時は細く、光る所を減らす
 })
 
 export const TYPE = Object.freeze({

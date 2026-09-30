@@ -1,4 +1,6 @@
+import fs from 'node:fs'
 import test from 'node:test'
+import { PNG } from 'pngjs'
 import assert from 'node:assert/strict'
 import {
   DEFAULT_BREAK_MIN,
@@ -64,6 +66,55 @@ test('numbers and words stay inside the rounded screen, 12px away from the edge'
     const r = LAYOUT[key]
     assertSafe(`${key} text`, { x: r.x + r.w * part.x, y: r.y + r.h * part.y, w: r.w * part.w, h: r.h * part.h })
   }
+})
+
+// 素材の画素から、FINAL の黒い筆の中にある文字（赤・クリーム）の範囲を測る。
+// 絵は縦横比を保って枠の中央に置かれる（generate-assets.mjs の sourceImage）
+function footerTextRect() {
+  const png = PNG.sync.read(fs.readFileSync(new URL('../../faces/super-arbeiter/source/footer-final.png', import.meta.url)))
+  const at = (x, y) => (png.width * y + x) << 2
+  let bx0 = png.width, by0 = png.height, bx1 = 0, by1 = 0
+  for (let y = 0; y < png.height; y += 1) {
+    for (let x = 0; x < png.width; x += 1) {
+      const i = at(x, y)
+      const dark = png.data[i + 3] > 200 && png.data[i] < 60 && png.data[i + 1] < 60 && png.data[i + 2] < 60
+      if (dark) { bx0 = Math.min(bx0, x); by0 = Math.min(by0, y); bx1 = Math.max(bx1, x); by1 = Math.max(by1, y) }
+    }
+  }
+  // 筆の中で、黒でない（文字の）画素の範囲。左右どちらにも近くに黒い筆がある画素だけを文字とみなす
+  // （筆の外にある赤い勢い線を数えないため）
+  const isDark = (x, y) => {
+    const i = at(x, y)
+    return png.data[i + 3] > 200 && png.data[i] < 60 && png.data[i + 1] < 60 && png.data[i + 2] < 60
+  }
+  const darkWithin = (x, y, dir) => {
+    for (let k = 1; k <= 30; k += 1) {
+      const xx = x + dir * k
+      if (xx < 0 || xx >= png.width) return false
+      if (isDark(xx, y)) return true
+    }
+    return false
+  }
+  let tx0 = png.width, ty0 = png.height, tx1 = 0, ty1 = 0
+  for (let y = by0; y <= by1; y += 1) {
+    for (let x = bx0; x <= bx1; x += 1) {
+      const i = at(x, y)
+      const text =
+        png.data[i + 3] > 200 && (png.data[i] > 150 || png.data[i + 1] > 150) && darkWithin(x, y, -1) && darkWithin(x, y, 1)
+      if (text) { tx0 = Math.min(tx0, x); ty0 = Math.min(ty0, y); tx1 = Math.max(tx1, x); ty1 = Math.max(ty1, y) }
+    }
+  }
+  const box = LAYOUT.footer
+  const scale = Math.min(box.w / png.width, box.h / png.height)
+  const ox = box.x + (box.w - png.width * scale) / 2
+  const oy = box.y + (box.h - png.height * scale) / 2
+  return { x: ox + tx0 * scale, y: oy + ty0 * scale, w: (tx1 - tx0) * scale, h: (ty1 - ty0) * scale }
+}
+
+test('the words FINAL / あとちょっと are fully inside the safe area', () => {
+  const r = footerTextRect()
+  assert.ok(r.w > LAYOUT.footer.w * 0.4, 'the text area was found in the footer art')
+  assertSafe('footer text', r)
 })
 
 test('the widest values fit in their boxes', () => {

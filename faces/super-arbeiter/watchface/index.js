@@ -126,6 +126,7 @@ WatchFace(
         glyph: spriteGlyph('date'),
         width: spriteWidth(DIGITS.date),
         gap: DIGITS.date.gap,
+        align: 'right',
         showLevel: NORMAL,
       })
       w.weekday = image(LAYOUT.weekday, 'images/weekday/0.png')

@@ -78,7 +78,8 @@
 | `setting/keys.js` | 設定の保存キーと、読み取り（設定画面・Side Service・文字盤で共通） |
 | `app-side/index.js` | Side Service。休憩の時刻を時計に渡す |
 | `tools/prepare-source.mjs` | 受け取った素材から、使う部分を切り出して `source/` に保存する（1回だけ） |
-| `tools/generate-assets.mjs` | `source/` とコードで描いた部品（数字・曜日・地・線）から、時計の画像とプレビューを作る |
+| `tools/brush-digits.mjs` | 筆の数字 0〜9 と「:」の字形。1字ずつ、筆の通る点と太さで決めてある |
+| `tools/generate-assets.mjs` | `source/`・筆の数字・コードで描いた部品（曜日・地・線）から、時計の画像とプレビューを作る |
 | `source/` | 切り出し・縮小した素材（由来は README の「素材と権利」） |
 
 ## データ

@@ -5,14 +5,15 @@
 //   （素材の由来は README の「素材と権利」。source/ は tools/prepare-source.mjs で作る）
 // - 湯気・赤い勢い線・筆の下線は、受け取った飾りの素材（source/steam-*・burst-*・brush-*）を使う
 // - 地の黄色・区切りの線・BREAK の赤い箱・数字・曜日の文字は、ここでコードから描く
-// - 時刻の数字は筆のように：太さが変わる（平たい筆先を斜めに当てた形）、少し前に傾く、ふちが少し荒れる
+// - 数字は tools/brush-digits.mjs で1字ずつ作った筆の字形（入りが太く、終わりを払い、少し前に傾く）
 // - キャラクター・公式ロゴ・公式フォントは使わない
 import fs from 'node:fs'
 import path from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
 import { DIGITS, LAYOUT, SCREEN, WEEKDAY } from '../watchface/layout.js'
-import { COLORS, STROKE, TYPE } from '../watchface/theme.js'
+import { COLORS, DIGIT_STYLE, STROKE, TYPE } from '../watchface/theme.js'
 import { STATUS_PRESETS } from '../watchface/status.js'
+import { colonBody, digitBody, strokeOutline } from './brush-digits.mjs'
 
 const ROOT = process.cwd()
 const SOURCE = path.join(ROOT, 'source')
@@ -51,23 +52,30 @@ function sourceImage(name, rect, { fit = 'meet', flip = false } = {}) {
   return `<image href="${dataUri(path.join(SOURCE, `${name}.png`))}" x="${rect.x}" y="${rect.y}" width="${rect.w}" height="${rect.h}" preserveAspectRatio="${ratio}"${transform}/>`
 }
 
-// ---------- 数字と文字（太い筆のような丸い線） ----------
-// 40×64 の枠に、線（stroke）で描く。はしを丸くして、太めにする。
+// ---------- 数字（筆の数字）と曜日の英字 ----------
+// 数字 0〜9 と「:」は tools/brush-digits.mjs で1字ずつ作った筆の字形。
+// 大きい時刻だけ、画の終わりにかすれを入れる。小さい数字・AOD にはかすれを入れない。
 
-const GLYPHS = {
-  0: '<ellipse cx="20" cy="32" rx="13" ry="23"/>',
-  1: '<path d="M11 17 L22 8 V56"/>',
-  2: '<path d="M8 19 C8 5 33 4 33 19 C33 31 14 41 7 56 H34"/>',
-  3: '<path d="M8 13 C13 4 33 4 32 18 C31 27 23 30 18 30 C27 30 34 35 33 45 C32 60 12 60 7 51"/>',
-  4: '<path d="M28 57 V7 L4 41 H37"/>',
-  5: '<path d="M32 8 H12 L9 29 C15 24 33 24 33 41 C33 58 12 60 7 51"/>',
-  6: '<path d="M30 10 C18 5 7 19 7 38 C7 52 13 58 21 58 C29 58 33 51 33 43 C33 35 28 29 20 29 C13 29 8 34 7 40"/>',
-  7: '<path d="M7 8 H33 C24 22 18 38 16 56"/>',
-  8: '<ellipse cx="20" cy="18" rx="12" ry="12"/><ellipse cx="20" cy="43" rx="14" ry="14.5"/>',
-  9: '<path transform="rotate(180 20 32)" d="M30 10 C18 5 7 19 7 38 C7 52 13 58 21 58 C29 58 33 51 33 43 C33 35 28 29 20 29 C13 29 8 34 7 40"/>',
-  negative: '<path d="M8 32 H32"/>',
-  slash: '<path d="M30 6 L10 58"/>',
-  // 曜日の英字
+// 字形（100×160）のまわりに、前傾と太さの分の余白をとる
+const digitView = (margin) => `${-margin} 0 ${100 + margin * 2} 164`
+const COLON_VIEW = '-2 0 40 164'
+const SLASH_VIEW = '-2 0 64 164'
+
+function writeBrushDigits(name, spec, color, style) {
+  const dir = path.join(IMAGES, 'digits', name)
+  for (let digit = 0; digit <= 9; digit += 1) {
+    write(path.join(dir, `${digit}.png`), svg(spec.w, spec.h, digitBody(digit, color, { ...style, id: `${name}${digit}` }), digitView(style.margin)))
+  }
+  // 「-」（時計のデータがマイナスの時用。電池・歩数では出ない）
+  write(path.join(dir, 'negative.png'), svg(Math.round(spec.w * 0.6), spec.h, `<path d="${strokeOutline([[8, 80, 20], [52, 78, 18]], 90)}" fill="${color}"/>`, SLASH_VIEW))
+  if (spec.colonW) write(path.join(dir, 'colon.png'), svg(spec.colonW, spec.h, colonBody(color, style), COLON_VIEW))
+  if (spec.slashW) {
+    write(path.join(dir, 'slash.png'), svg(spec.slashW, spec.h, `<path d="${strokeOutline([[52, 16, 18], [34, 80, 16], [14, 146, 10]], 91)}" fill="${color}"/>`, SLASH_VIEW))
+  }
+}
+
+// 曜日の英字（40×64 の枠に、はしの丸い線で描く）
+const LETTERS = {
   S: '<path d="M32 14 C27 5 8 5 8 18 C8 30 32 30 32 44 C32 59 10 60 6 50"/>',
   U: '<path d="M8 8 V42 C8 60 32 60 32 42 V8"/>',
   N: '<path d="M8 56 V8 L32 56 V8"/>',
@@ -86,76 +94,15 @@ const GLYPHS = {
 
 const WEEKDAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
-function strokes(shape, color, width) {
-  return `<g fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round">${shape}</g>`
-}
-
-function glyphSvg(shape, w, h, { color, width }) {
-  return svg(w, h, strokes(shape, color, width), '-6 -6 52 76')
-}
-
-// 筆の時刻の数字。平たい筆先（幅 NIB）を斜め（NIB_ANGLE）に当てて線を引いた形にする。
-// 線の向きで太さが変わり、縦の画は太く、斜めの画は細くなる。少し前に傾け（SLANT）、ふちを少し荒らす。
-// 形は毎回同じ（乱れ方も固定）。
-const BRUSH = { nib: 9, core: 5.5, angle: -38, slant: -9, rough: 1.4 }
-
-function brushStrokes(shape, color) {
-  const rad = (BRUSH.angle * Math.PI) / 180
-  const steps = 14
-  let copies = ''
-  for (let i = 0; i <= steps; i += 1) {
-    const t = i / steps - 0.5
-    const dx = (Math.cos(rad) * BRUSH.nib * t).toFixed(2)
-    const dy = (Math.sin(rad) * BRUSH.nib * t).toFixed(2)
-    copies += `<g transform="translate(${dx} ${dy})">${shape}</g>`
-  }
-  const lean = Math.tan((BRUSH.slant * Math.PI) / 180)
-  return (
-    `<defs><filter id="rough" x="-10%" y="-10%" width="120%" height="120%">` +
-    `<feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="7" result="n"/>` +
-    `<feDisplacementMap in="SourceGraphic" in2="n" scale="${BRUSH.rough}" xChannelSelector="R" yChannelSelector="G"/></filter></defs>` +
-    `<g filter="url(#rough)" transform="translate(${(-lean * 32).toFixed(2)} 0) skewX(${BRUSH.slant})">` +
-    `<g fill="none" stroke="${color}" stroke-width="${BRUSH.core}" stroke-linecap="round" stroke-linejoin="round">${copies}</g></g>`
-  )
-}
-
-function brushGlyphSvg(shape, w, h, color) {
-  return svg(w, h, brushStrokes(shape, color), '-9 -9 58 82')
-}
-
-function brushColonSvg(w, h, color) {
-  const dot = (cx, cy, rx, ry, rot) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(${rot} ${cx} ${cy})" fill="${color}"/>`
-  return svg(w, h, dot(w * 0.58, h * 0.35, w * 0.3, w * 0.26, -25) + dot(w * 0.44, h * 0.69, w * 0.31, w * 0.25, -15))
-}
-
-function writeBrushDigits(name, spec, color) {
-  const dir = path.join(IMAGES, 'digits', name)
-  for (let digit = 0; digit <= 9; digit += 1) {
-    write(path.join(dir, `${digit}.png`), brushGlyphSvg(GLYPHS[digit], spec.w, spec.h, color))
-  }
-  write(path.join(dir, 'colon.png'), brushColonSvg(spec.colonW, spec.h, color))
-}
-
-function colonSvg(w, h, color) {
-  const r = Math.max(2, w * 0.24)
-  return svg(w, h, `<circle cx="${w / 2}" cy="${h * 0.34}" r="${r}" fill="${color}"/><circle cx="${w / 2}" cy="${h * 0.7}" r="${r}" fill="${color}"/>`)
-}
-
-function writeDigits(name, spec, style) {
-  const dir = path.join(IMAGES, 'digits', name)
-  for (let digit = 0; digit <= 9; digit += 1) {
-    write(path.join(dir, `${digit}.png`), glyphSvg(GLYPHS[digit], spec.w, spec.h, style))
-  }
-  write(path.join(dir, 'negative.png'), glyphSvg(GLYPHS.negative, Math.round(spec.w * 0.7), spec.h, style))
-  if (spec.colonW) write(path.join(dir, 'colon.png'), colonSvg(spec.colonW, spec.h, style.color))
-  if (spec.slashW) write(path.join(dir, 'slash.png'), glyphSvg(GLYPHS.slash, spec.slashW, spec.h, style))
-}
-
 function weekdaySvg(name, { color, width }) {
   const letterW = Math.floor(WEEKDAY.w / 3)
   const body = name
     .split('')
-    .map((ch, i) => `<svg x="${i * letterW}" y="0" width="${letterW}" height="${WEEKDAY.h}" viewBox="-6 -6 52 76" preserveAspectRatio="none">${strokes(GLYPHS[ch], color, width)}</svg>`)
+    .map(
+      (ch, i) =>
+        `<svg x="${i * letterW}" y="0" width="${letterW}" height="${WEEKDAY.h}" viewBox="-6 -6 52 76" preserveAspectRatio="none">` +
+        `<g fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round">${LETTERS[ch]}</g></svg>`,
+    )
     .join('')
   return svg(WEEKDAY.w, WEEKDAY.h, body)
 }
@@ -173,17 +120,21 @@ function backgroundSvg() {
   body += sourceImage('lantern-yoshi', L.lanternRight)
   for (const d of L.decor) body += sourceImage(d.name, d, { fit: 'none', flip: d.flip })
   body += sourceImage('brush-long', L.underline, { fit: 'none' })
-  // 左下
+  // 真ん中の段：左に HP、右に日付
   body += sourceImage('battery', L.batteryIcon)
   body += sourceImage('label-hp', L.hpLabel)
+  body += sourceImage('calendar', L.dateIcon)
+  for (const line of L.columnLines) {
+    body += `<path d="M${line.x1} ${line.y} H${line.x2}" stroke="${C.black}" stroke-width="${STROKE.divider}" stroke-linecap="round"/>`
+  }
+  // 下の段：左に STEPS
   body += sourceImage('shoe', L.shoeIcon)
   body += sourceImage('label-steps', L.stepsLabel)
   // 中央下
   const divider = (d) => `<path d="M${d.x} ${d.y} V${d.y + d.h}" stroke="${C.divider}" stroke-width="${STROKE.divider}" stroke-linecap="round"/>`
   body += divider(L.dividerLeft) + divider(L.dividerRight)
   body += sourceImage('ramen-bowl', L.bowl)
-  // 右下
-  body += sourceImage('calendar', L.calendarIcon)
+  // 右下：BREAK
   body += sourceImage('clock', L.clockIcon)
   body += sourceImage('label-break', L.breakLabel)
   const box = L.breakBox
@@ -224,7 +175,7 @@ function previewSvg({ time, hp, steps, date, weekday, breakTime }) {
   body += spriteRow(time, 'time', { x: 0, y: L.time.y, w: SCREEN.width, h: DIGITS.time.h }, DIGITS.time, 'center')
   body += spriteRow(String(hp), 'hp', L.hp, DIGITS.hp)
   body += spriteRow(String(steps), 'steps', L.steps, DIGITS.steps)
-  body += spriteRow(date, 'date', L.date, DIGITS.date)
+  body += spriteRow(date, 'date', L.date, DIGITS.date, 'right')
   body += img(`weekday/${WEEKDAY_NAMES.indexOf(weekday)}.png`, L.weekday)
   body += spriteRow(breakTime, 'break', L.breakTime, DIGITS.break, 'center')
   return svg(SCREEN.width, SCREEN.height, body + roundedMask())
@@ -248,12 +199,12 @@ if (!fs.existsSync(path.join(SOURCE, 'noren.png'))) {
 }
 fs.rmSync(IMAGES, { recursive: true, force: true })
 
-writeBrushDigits('time', DIGITS.time, C.black)
-writeDigits('hp', DIGITS.hp, { color: C.red, width: STROKE.small + 1 })
-writeDigits('steps', DIGITS.steps, { color: C.black, width: STROKE.small })
-writeDigits('date', DIGITS.date, { color: C.black, width: STROKE.small })
-writeDigits('break', DIGITS.break, { color: C.cream, width: STROKE.small })
-writeDigits('aod', DIGITS.aod, { color: C.aod, width: STROKE.aod })
+writeBrushDigits('time', DIGITS.time, C.black, DIGIT_STYLE.time)
+writeBrushDigits('hp', DIGITS.hp, C.red, DIGIT_STYLE.small)
+writeBrushDigits('steps', DIGITS.steps, C.black, DIGIT_STYLE.small)
+writeBrushDigits('date', DIGITS.date, C.black, DIGIT_STYLE.small)
+writeBrushDigits('break', DIGITS.break, C.cream, DIGIT_STYLE.small)
+writeBrushDigits('aod', DIGITS.aod, C.aod, DIGIT_STYLE.aod)
 WEEKDAY_NAMES.forEach((name, index) => {
   write(path.join(IMAGES, 'weekday', `${index}.png`), weekdaySvg(name, { color: C.black, width: STROKE.small }))
 })
