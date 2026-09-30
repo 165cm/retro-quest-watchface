@@ -11,6 +11,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
+import { PNG } from 'pngjs'
 import { CREST, DIGITS, LAYOUT, NOTIFICATION, SCREEN, TITLE, CORNER_INSET } from '../watchface/layout.js'
 import { CRESTS } from '../watchface/crests.js'
 import { CREST_SHAPES } from './crest-shapes.mjs'
@@ -262,5 +263,25 @@ write(path.join(DOCS, 'preview-aod-390x450.png'), aodPreviewSvg(SAMPLE))
 write(path.join(DOCS, 'check-notification.png'), previewSvg(SAMPLE, { notification: true }))
 // アプリのアイコン・ストアのカバー用
 write(path.join(IMAGES, 'preview.png'), previewSvg(SAMPLE))
+
+// ストアのスクリーンショット：画面の形の外（丸い四隅）を透明にする（ストアの決まり：背景は塗らない）
+function writeStoreShot(file, source) {
+  write(file, source)
+  const png = PNG.sync.read(fs.readFileSync(file))
+  for (let y = 0; y < png.height; y += 1) {
+    const inset = CORNER_INSET[Math.min(y, png.height - 1 - y)] ?? 0
+    for (let x = 0; x < png.width; x += 1) {
+      if (x < inset || x >= png.width - inset) png.data[((png.width * y + x) << 2) + 3] = 0
+    }
+  }
+  fs.writeFileSync(file, PNG.sync.write(png))
+}
+const STORE = path.join(DOCS, 'store')
+fs.rmSync(STORE, { recursive: true, force: true })
+writeStoreShot(path.join(STORE, '1-eternal.png'), previewSvg(SAMPLE))
+writeStoreShot(path.join(STORE, '2-valor.png'), previewSvg({ ...SAMPLE, time: '07:30', weekday: 1, day: 6, month: 10, temp: 18, steps: 1204, heart: 64, battery: 92, crest: 1 }))
+writeStoreShot(path.join(STORE, '3-momentum.png'), previewSvg({ ...SAMPLE, time: '18:45', weekday: 5, day: 16, month: 10, temp: 24, steps: 11873, heart: 112, battery: 48, crest: 5 }))
+writeStoreShot(path.join(STORE, '4-zenith-rare.png'), previewSvg({ ...SAMPLE, crest: CRESTS.findIndex((c) => c.rare) }))
+writeStoreShot(path.join(STORE, '5-aod.png'), aodPreviewSvg(SAMPLE))
 
 console.log(`Generated KAMONT assets in assets/bip-6/images and docs/（紋 ${CRESTS.length} 種類）`)
