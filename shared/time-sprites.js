@@ -4,8 +4,10 @@ function spritePath(root, value) {
   return `${root}/${value}.png`
 }
 
+// screenWidth の幅の中央にそろえる。x を渡すと、x から screenWidth の範囲の中央にそろえる
 export function createTimeSprites({
   screenWidth,
+  x: left = 0,
   y,
   digitPath,
   digitW,
@@ -45,7 +47,7 @@ export function createTimeSprites({
       const items = hasLeadingHour ? 5 : 4
       const width =
         (hasLeadingHour ? 4 : 3) * digitW + colonW + (items - 1) * gap
-      let x = Math.round((screenWidth - width) / 2)
+      let x = left + Math.round((screenWidth - width) / 2)
       digits[0].setProperty(ui.prop.VISIBLE, hasLeadingHour)
 
       const hourDigits = hasLeadingHour ? hourText : `0${hourText}`

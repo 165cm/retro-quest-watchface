@@ -1,23 +1,13 @@
 import fs from 'node:fs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {
-  DEFAULT_BREAK_MIN,
-  formatBreak,
-  normalizeBreakMinutes,
-  readBreakMinutes,
-} from '../../faces/super-arbeiter/setting/keys.js'
+import { PNG } from 'pngjs'
 import { QUOTES, nextQuoteIndex } from '../../faces/super-arbeiter/watchface/quotes.js'
 import { BAKED_TEXT, DIGITS, LAYOUT, NOTIFICATION, SCREEN, timeWidth } from '../../faces/super-arbeiter/watchface/layout.js'
+import { COLORS } from '../../faces/super-arbeiter/watchface/theme.js'
 
-test('the break time comes from the phone settings, 15:00 by default', () => {
-  const from = (values) => (key) => values[key]
-  assert.equal(readBreakMinutes(from({})), DEFAULT_BREAK_MIN)
-  assert.equal(readBreakMinutes(from({ breakTime: '14:58' })), 898)
-  assert.equal(readBreakMinutes(from({ breakTime: 'だめ' })), DEFAULT_BREAK_MIN)
-  assert.equal(normalizeBreakMinutes(-5), DEFAULT_BREAK_MIN)
-  assert.equal(formatBreak(898), '14:58')
-})
+const FACE = new URL('../../faces/super-arbeiter/', import.meta.url)
+const readPng = (file) => PNG.sync.read(fs.readFileSync(new URL(file, FACE)))
 
 // 画面の外形（四隅の半径105px）から、さらに端12pxだけ内側に縮めた形の中にあるか
 function insideSafeArea(x, y, S = SCREEN.safe) {
@@ -43,20 +33,22 @@ function assertSafe(name, rect) {
   }
 }
 
-test('numbers and words stay inside the rounded screen, 12px away from the edge', () => {
-  // 時刻：いちばん広い「2桁の時」の幅を DIGITS から求める
+// 時刻：2桁の時のいちばん広い幅を、時刻の範囲の中央に置いた時の枠
+function timeRect() {
   const w = timeWidth()
-  assertSafe('time', { x: Math.round((SCREEN.width - w) / 2), y: LAYOUT.time.y, w, h: DIGITS.time.h })
+  return { x: LAYOUT.time.x + Math.round((LAYOUT.time.w - w) / 2), y: LAYOUT.time.y, w, h: DIGITS.time.h }
+}
+
+test('numbers and words stay inside the rounded screen, 12px away from the edge', () => {
+  assertSafe('time', timeRect())
   const aodW = timeWidth(DIGITS.aod)
   assertSafe('aod time', { x: Math.round((SCREEN.width - aodW) / 2), y: LAYOUT.aod.timeY, w: aodW, h: DIGITS.aod.h })
-  for (const key of ['hp', 'steps', 'date', 'weekday', 'quote', 'breakTime']) {
+  for (const key of ['date', 'weekday', 'quote', 'steps', 'battery', 'batteryFill']) {
     assertSafe(key, LAYOUT[key])
   }
-  // BREAK の赤い箱は飾りなので、端12pxの余白には少しかかってよい。ただし画面の丸みで欠けないこと
-  for (const [x, y] of corners(LAYOUT.breakBox)) assert.ok(insideSafeArea(x, y, 0), `breakBox (${x}, ${y}) is cut by the corner`)
   assertSafe('aod date', LAYOUT.aod.date)
   assertSafe('aod hp', LAYOUT.aod.hp)
-  // 背景の絵に入っている文字（暖簾・提灯・ラベル）
+  // 背景の絵に入っている文字（暖簾・提灯）
   for (const [key, rect] of Object.entries(BAKED_TEXT)) assertSafe(`${key} text`, rect)
 })
 
@@ -65,11 +57,37 @@ const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h
 test('nothing with words sits under the notification icon at the top center', () => {
   const zone = NOTIFICATION
   for (const [key, rect] of Object.entries(BAKED_TEXT)) assert.ok(!overlaps(rect, zone), `${key} text is under the notification icon`)
-  for (const key of ['hp', 'date', 'weekday', 'quote', 'steps', 'breakTime']) {
+  for (const key of ['date', 'weekday', 'quote', 'steps', 'battery']) {
     assert.ok(!overlaps(LAYOUT[key], zone), `${key} is under the notification icon`)
   }
-  const w = timeWidth()
-  assert.ok(!overlaps({ x: (SCREEN.width - w) / 2, y: LAYOUT.time.y, w, h: DIGITS.time.h }, zone))
+  assert.ok(!overlaps(timeRect(), zone))
+})
+
+test('the date and the time do not overlap', () => {
+  assert.ok(LAYOUT.date.x + LAYOUT.date.w <= timeRect().x, 'date box runs into the time')
+  assert.ok(LAYOUT.weekday.x + LAYOUT.weekday.w <= timeRect().x, 'weekday box runs into the time')
+})
+
+test('the quote cards only draw on the cream inside of the speech bubble (the black frame stays visible)', () => {
+  const bg = readPng('source/background.png')
+  const cream = [(COLORS.CREAM >> 16) & 255, (COLORS.CREAM >> 8) & 255, COLORS.CREAM & 255]
+  const { x: qx, y: qy } = LAYOUT.quote
+  QUOTES.forEach((q, n) => {
+    const card = readPng(`assets/bip-6/${q.image}`)
+    assert.equal(card.width, LAYOUT.quote.w)
+    assert.equal(card.height, LAYOUT.quote.h)
+    let ink = 0
+    for (let y = 0; y < card.height; y += 1) {
+      for (let x = 0; x < card.width; x += 1) {
+        if (card.data[((card.width * y + x) << 2) + 3] === 0) continue
+        ink += 1
+        const i = (bg.width * (qy + y) + qx + x) << 2
+        const under = [bg.data[i], bg.data[i + 1], bg.data[i + 2]]
+        assert.deepEqual(under, cream, `quote ${n + 1} covers (${qx + x}, ${qy + y}), which is not the inside of the bubble`)
+      }
+    }
+    assert.ok(ink > 500, `quote ${n + 1} has its words`)
+  })
 })
 
 test('there are 7 quotes in a fixed order', () => {
@@ -99,9 +117,9 @@ test('the widest values fit in their boxes', () => {
     const width = text.split('').reduce((sum, ch) => sum + (ch === ':' ? spec.colonW : ch === '/' ? spec.slashW : spec.w), 0)
     return width + spec.gap * (text.length - 1) <= box.w
   }
-  assert.ok(fits('100', DIGITS.hp, LAYOUT.hp))
-  assert.ok(fits('99999', DIGITS.steps, LAYOUT.steps))
   assert.ok(fits('12/31', DIGITS.date, LAYOUT.date))
-  assert.ok(fits('23:59', DIGITS.break, LAYOUT.breakTime))
-  assert.ok(DIGITS.time.h > DIGITS.hp.h * 2, 'the time must stay the biggest')
+  assert.ok(fits('999999', DIGITS.steps, LAYOUT.steps), 'steps up to 6 digits')
+  assert.ok(fits('100', DIGITS.battery, LAYOUT.battery))
+  assert.ok(timeWidth() <= LAYOUT.time.w)
+  assert.ok(DIGITS.time.h > DIGITS.battery.h * 2, 'the time must stay the biggest')
 })

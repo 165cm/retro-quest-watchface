@@ -14,14 +14,16 @@
 
 ## 次のタスク（上から優先）
 
-1. SUPER ARBEITER（3案目の構図）を実機 Bip 6 に入れる（ユーザーの PC で `npm run preview -- super-arbeiter`）。通知アイコンが暖簾の上の赤い余白に収まるか、セリフが読めるか、画面が点くたびにセリフが替わるか（腕を上げた時・AOD から戻った時）、通常と AOD の切り替え、HP と歩数の更新、BREAK の設定の同期を確かめる
-2. SUPER ARBEITER の `appId`（仮の値 `20260930`）で実機に入れられるか確かめる。だめなら Zepp Console で新しく作った値にする
-3. Pixel Wayfarer を実機 Bip 6（または Simulator）で確認する：通常表示・AOD・12/24時間・摂氏/華氏・天気の同期・設定の変更（ユーザーの PC と時計が必要）
-4. Pixel Wayfarer の気温の表示を実機で確認する：`faces/pixel-wayfarer/watchface/index.js` で、文字の仮表示（`L --°` など）と数字の画像（`TEXT_IMG`）が同じ場所に重ねて置かれている。重なって見えないか見る
-5. Pixel Wayfarer のストア提出（`faces/pixel-wayfarer/README.md`「公開・提出」）
+1. SUPER ARBEITER の小さい文字（日付・歩数・電池の数字、曜日）を、ちかフォントで描き直す。ユーザーから `chika-Regular.ttf` を受け取ったら `node faces/super-arbeiter/tools/prepare-source.mjs <素材のフォルダ> <chika-Regular.ttf>` → `npm run assets -- super-arbeiter` → テスト（いまは補助の書体 IPA ゴシックだけで描いている）
+2. SUPER ARBEITER（最終採用案）を実機 Bip 6 に入れる（ユーザーの PC で `npm run preview -- super-arbeiter`）。通知アイコンが暖簾の上の赤い余白に収まるか、セリフが読めるか、画面が点くたびにセリフが替わるか（腕を上げた時・AOD から戻った時）、通常と AOD の切り替え、歩数・電池の数字と電池の塗りの更新を確かめる
+3. SUPER ARBEITER の `appId`（仮の値 `20260930`）で実機に入れられるか確かめる。だめなら Zepp Console で新しく作った値にする
+4. Pixel Wayfarer を実機 Bip 6（または Simulator）で確認する：通常表示・AOD・12/24時間・摂氏/華氏・天気の同期・設定の変更（ユーザーの PC と時計が必要）
+5. Pixel Wayfarer の気温の表示を実機で確認する：`faces/pixel-wayfarer/watchface/index.js` で、文字の仮表示（`L --°` など）と数字の画像（`TEXT_IMG`）が同じ場所に重ねて置かれている。重なって見えないか見る
+6. Pixel Wayfarer のストア提出（`faces/pixel-wayfarer/README.md`「公開・提出」）
 
 ## 最近終わったこと（新しい順）
 
+- 2026-09-30 最終採用案の素材集（`super-arbeiter-final-pack.zip`）で SUPER ARBEITER を作り直した：暖簾は「スーパー／アルバイター」の2段、左に日付と日本語の曜日、右に大きい時刻、下の段は「くつ 歩数｜電池 残り」だけ。BREAK（表示・スマホの設定・Side Service）と STEPS・HP のラベルはやめた。小さい文字はフォントの字形にした（ちかフォントは未受領のため、いまは IPA ゴシック）（Claude）
 - 2026-09-30 ユーザーの希望で、セリフを日替わりから「画面が点くたびに順番に次の札へ」に変えた。省電力のため、画面が点いた瞬間に1回替えるだけで、保存はしない（Claude）
 - 2026-09-30 ユーザーの改修用素材（`super-arbeiter-redesign-pack.zip`）で SUPER ARBEITER を3案目の構図に作り直した：上に通知アイコンのための余白と暖簾、真ん中に時刻（左 HP・右 日付と曜日）、丼と吹き出しのセリフ（7枚を日替わり）、下に STEPS と BREAK。`STATUS : まだいける` と `FINAL / あとちょっと` はやめた（Claude）
 - 2026-09-30 実機で見たユーザーの希望で、暖簾を横幅いっぱいにし（文字は約1.3倍）、提灯を暖簾の手前に重ねた。湯気の渦の飾りは暖簾の下になるのでやめた（Claude）
@@ -50,8 +52,9 @@
 - 「生成AIの画像は使わない」は Pixel Wayfarer だけの決めごと。SUPER ARBEITER は、ユーザーから受け取った生成の素材を使ってよい（ユーザー確認済み。由来は README に書く）
 - SUPER ARBEITER は「390×450 の完成見本を先に固め、数字 0〜9 を個別の筆文字として作る」作り方にする（ユーザーの指示）。見本は参考画像の構図に合わせる
 - SUPER ARBEITER のセリフは7枚を、画面が点くたび（`resume_call`）に順番に次の札へ替える（ユーザーの希望。指示書の日替わりから変更）。画面が消えている間・分ごとには替えない。何枚目かは保存しない。札の画像は1枚だけ置く。セリフを使うので自分用にし、ストアには出さない（2026-09-30 改修用素材の指示書）
-- SUPER ARBEITER の上のまん中（y 0〜48 あたり）は通知アイコンのために文字を置かない。通知アイコンは背景に描き込まない
-- SUPER ARBEITER の BREAK は、スマホの設定で入れた休憩の時刻を出す（指示書の「固定・疑似表示でもよい」より一歩進めた。時計での操作はなし）
+- SUPER ARBEITER の上のまん中（y 0〜46）は通知アイコンのために文字を置かない。通知アイコンは背景に描き込まない
+- SUPER ARBEITER は最終採用案（`faces/super-arbeiter/docs/reference-approved.png`）に合わせる。BREAK はやめた（それまでのスマホの設定 `breakTime`／`sa_break` も消した）。下の段にラベルや単位は出さない
+- SUPER ARBEITER の小さい文字はフォントの字形（ちかフォント＋補助の IPA ゴシック）。フォント本体はリポジトリに入れず、描いた字形の画像だけを `source/glyphs/` に置く
 - PR のマージは squash にそろえる（共通ルールどおり。中央マニュアルの「通常は merge commit」より優先）
 - `.github/AGENTS.md` は、中央マニュアルとティアの案内だけを残す短い入口にした。ルールの正本はルートの `AGENTS.md` と `docs/`
 - Zeus CLI 1.9.3 の依存の不具合は `package.json` の `overrides` で固定して回避。`npm audit fix --force` は CLI が壊れるので使わない
@@ -63,8 +66,6 @@
 
 SUPER ARBEITER（`faces/super-arbeiter/`）：
 
-- 保存のキー名：`breakTime`（スマホ）・`sa_break`（時計）
-- 時計とスマホのやりとりの名前：`GET_BREAK`・`BREAK_CHANGED`
 - `QUOTES`（`watchface/quotes.js`）の並び順（この順に替わるため。足す時は末尾）
 
 Pixel Wayfarer（`faces/pixel-wayfarer/`）：

@@ -1,6 +1,7 @@
-// 画面の座標・大きさ（Amazfit Bip 6：390×450）。改修版（3案目）の完成見本（docs/preview-390x450.png）の配置。
-// 上から：赤い通知の余白と暖簾 → 時刻（左に HP、右に日付と曜日）→ 左に丼・右にセリフの吹き出し → 下の段に STEPS と BREAK。
-// 暖簾・提灯・丼・吹き出し・ラベル・アイコンは固定背景（source/background.png）に入っている。
+// 画面の座標・大きさ（Amazfit Bip 6：390×450）。最終採用案（完成図）の配置。
+// 上から：赤い通知の余白と暖簾「スーパー／アルバイター」→ 左に日付と曜日・右に時刻 → 左に丼・右にセリフの吹き出し
+// → 下の段に「くつ 歩数｜電池 残り」。
+// 暖簾・提灯・カレンダー・丼・吹き出し・雷紋・くつ・区切り・電池の枠は固定背景（source/background.png）に入っている。
 // Bip 6 の画面は四隅が大きく丸い（実効の半径およそ105px）。大事な表示は四隅と端12px以内に置かない。
 export const SCREEN = Object.freeze({
   width: 390,
@@ -10,59 +11,44 @@ export const SCREEN = Object.freeze({
 })
 
 // 上の真ん中は、時計本体が通知のマーク（タイマーなど）を出す所。文字を置かない。
-// 実機の画面写真で測ったマークは x=178〜212、y=10〜44。少し広めにとる
-export const NOTIFICATION = Object.freeze({ x: 170, y: 0, w: 50, h: 50 })
+// 実機の画面写真で測ったマークは x=178〜212、y=10〜44。暖簾の文字は y=47 から
+export const NOTIFICATION = Object.freeze({ x: 170, y: 0, w: 50, h: 46 })
 
 // 数字の画像の大きさ（w×h）。colonW は「:」、slashW は「/」の幅。
-// 筆の数字の画像は、太さ・傾きを入れた輪郭がちょうど収まる大きさで書き出す（tools/brush-digits.mjs の exportViews）。
-// 画像のふちに少し余白があるので、gap は 0 で字どうしがくっつかない
+// 時刻と AOD は筆の数字（tools/brush-digits.mjs）。太さ・傾きを入れた輪郭がちょうど収まる大きさで書き出す。
+// 日付・歩数・電池はフォントの数字（source/glyphs/）。字は画像の中央に、ふちに余白を残して置く
 export const DIGITS = Object.freeze({
-  time: { w: 52, h: 88, colonW: 20, gap: 0 },
-  hp: { w: 18, h: 32, gap: 0 },
-  steps: { w: 18, h: 26, gap: 0 },
-  date: { w: 12, h: 20, slashW: 8, gap: -1 },
-  break: { w: 16, h: 24, colonW: 8, gap: 0 },
+  time: { w: 66, h: 94, colonW: 24, gap: 0 },
   aod: { w: 48, h: 76, colonW: 17, gap: 0 },
+  date: { w: 14, h: 22, slashW: 9, gap: -1 },
+  steps: { w: 14, h: 26, gap: 0 },
+  battery: { w: 16, h: 26, gap: 0 },
 })
-
-export const WEEKDAY = Object.freeze({ w: 42, h: 18 })
 
 // 時刻の数字列の幅（2桁の時：4桁＋「:」）
 export function timeWidth(spec = DIGITS.time, hourDigits = 2) {
-  const items = hourDigits + 3
-  return (hourDigits + 2) * spec.w + spec.colonW + (items - 1) * spec.gap
+  return (hourDigits + 2) * spec.w + spec.colonW + spec.gap * (hourDigits + 2)
 }
 
 export const LAYOUT = Object.freeze({
-  // 真ん中の段：左に HP、真ん中に時刻、右に日付と曜日
-  time: { y: 110 },
-  hp: { x: 15, y: 150, w: 56, h: 32 },
-  date: { x: 318, y: 150, w: 58, h: 20 }, // 右寄せ（時刻に近づけない）
-  weekday: { x: 327, y: 174, w: 42, h: 18 },
-  // 吹き出しの中のセリフの札（吹き出しの内側は背景で平らなクリームにしてある）
-  quote: { x: 199, y: 240, w: 171, h: 108 }, // 吹き出しの平らなクリームの中（背景の画素から測った x=197〜372・y=238〜350 の内側）
-  // 下の段：STEPS の数字と BREAK の時刻
-  steps: { x: 108, y: 391, w: 92, h: 26 },
-  breakBox: { x: 264, y: 390, w: 78, h: 30, radius: 5 },
-  breakTime: { x: 266, y: 393, w: 74, h: 24 },
-  // 背景の BREAK の赤い箱は右下の丸い角にかかるので消して、内側に描き直す。
-  // 消す範囲と、写してくる黄色い地の範囲（時刻の後ろの、何も描いていない所）
-  breakBoxErase: { x: 266, y: 384, w: 112, h: 46, from: { x: 90, y: 146, w: 110, h: 40 } },
-  // AOD（画面オフ時）：時刻・日付・HP だけ
-  aod: {
-    timeY: 150,
-    date: { x: 70, y: 240, w: 250, h: 34 },
-    hp: { x: 70, y: 280, w: 250, h: 34 },
-  },
+  // 時刻：この範囲の中央にそろえる（完成図の x=83〜374、y=117〜211）
+  time: { x: 83, y: 117, w: 291 },
+  // 日付（中央ぞろえ）と曜日。カレンダーのアイコン（x=26〜54、y=126〜152）の下
+  date: { x: 14, y: 157, w: 64, h: 22 },
+  weekday: { x: 14, y: 184, w: 64, h: 22 },
+  // セリフの札（174×116、下地は透明）。吹き出しの内側（測った値 x=183〜377、y=244〜356）
+  quote: { x: 195, y: 241, w: 174, h: 116 },
+  // 下の段：くつ（x=40〜116）の右に歩数、区切り（x=209〜225）、電池の枠（x=223〜263）の右に残り
+  steps: { x: 119, y: 395, w: 86, h: 26 }, // 6桁（999999）まで区切りの手前に収まる
+  battery: { x: 272, y: 395, w: 60, h: 26 },
+  // 電池の枠の中（測った内側 x=227〜255、y=402〜416）。残りに合わせて左から塗る
+  batteryFill: { x: 229, y: 404, w: 25, h: 11 },
+  aod: { timeY: 150, date: { x: 70, y: 240, w: 250, h: 34 }, hp: { x: 70, y: 280, w: 250, h: 34 } },
 })
 
-// 固定背景に入っている文字の範囲（390×450 の座標。背景の画素から測った値）。
-// 四隅に欠けないか・通知のマークにかからないかのテストで使う
+// 固定背景の絵に入っている文字（素材の画素から測った範囲）。四隅と端12px・通知のマークの所に入らないこと
 export const BAKED_TEXT = Object.freeze({
-  noren: { x: 83, y: 50, w: 230, h: 43 }, // SUPER ARBEITER
-  lanternLeft: { x: 37, y: 46, w: 21, h: 50 }, // 営業中
-  lanternRight: { x: 333, y: 46, w: 20, h: 50 }, // よし!
-  hpLabel: { x: 51, y: 126, w: 23, h: 14 },
-  stepsLabel: { x: 60, y: 394, w: 42, h: 14 },
-  breakLabel: { x: 214, y: 405, w: 39, h: 18 },
+  title: { x: 97, y: 47, w: 194, h: 58 }, // スーパー／アルバイター
+  lanternLeft: { x: 36, y: 47, w: 22, h: 46 }, // 営業中
+  lanternRight: { x: 332, y: 46, w: 22, h: 48 }, // よし!
 })

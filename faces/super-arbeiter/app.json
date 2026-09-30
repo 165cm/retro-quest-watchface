@@ -15,9 +15,7 @@
       "images/preview.png"
     ]
   },
-  "permissions": [
-    "device:os.local_storage"
-  ],
+  "permissions": [],
   "runtime": {
     "apiVersion": {
       "compatible": "4.2",
@@ -33,12 +31,6 @@
           "main": 1,
           "editable": 0,
           "lockscreen": 1
-        },
-        "app-side": {
-          "path": "app-side/index"
-        },
-        "setting": {
-          "path": "setting/index"
         }
       },
       "platforms": [

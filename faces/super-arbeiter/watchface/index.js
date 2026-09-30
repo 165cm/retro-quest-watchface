@@ -1,11 +1,11 @@
 import ui from '@zos/ui'
 import { Battery, Time, TIME_HOUR_FORMAT_12 } from '@zos/sensor'
 import { log } from '@zos/utils'
-import { BasePage } from '@zeppos/zml/base-page'
 import { DIGITS, LAYOUT, SCREEN } from './layout.js'
 import { QUOTES, nextQuoteIndex } from './quotes.js'
+import { WEEKDAYS_JA } from './glyphs.js'
+import { COLORS } from './theme.js'
 import { createAodView } from './aod.js'
-import { formatBreak, normalizeBreakMinutes } from '../setting/keys.js'
 import { normalizeBattery } from '../../../shared/battery.js'
 import { weekdayIndex } from '../../../shared/date.js'
 import { createTimeSprites } from '../../../shared/time-sprites.js'
@@ -13,8 +13,6 @@ import { createImageText } from '../../../shared/image-text.js'
 
 const logger = log.getLogger('super-arbeiter')
 const NORMAL = ui.show_level.ONLY_NORMAL
-const WEEKDAYS_EN = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
-const BREAK_STORE_KEY = 'sa_break' // 時計に控える休憩の時刻。値は「分＋1」（0 は保存なし）
 
 // 古い API が使えない端末でも、時刻の表示だけは残す
 function tolerate(operation, fallback) {
@@ -30,7 +28,7 @@ function digitArray(path) {
   return Array.from({ length: 10 }, (_, index) => `${path}/${index}.png`)
 }
 
-// 時計のデータ（電池・歩数）を、数字の画像で直接出す
+// 時計のデータ（歩数・電池）を、数字の画像で直接出す
 function dataNumber(rect, type, path, gap) {
   return ui.createWidget(ui.widget.TEXT_IMG, {
     ...rect,
@@ -46,160 +44,122 @@ function image(rect, src) {
   return ui.createWidget(ui.widget.IMG, { ...rect, src, show_level: NORMAL })
 }
 
-function spriteWidth(spec) {
-  return (ch) => (ch === ':' ? spec.colonW : ch === '/' ? spec.slashW : spec.w)
-}
+const dateWidth = (ch) => (ch === '/' ? DIGITS.date.slashW : DIGITS.date.w)
+const dateGlyph = (ch) => `images/digits/date/${ch === '/' ? 'slash' : ch}.png`
 
-function spriteGlyph(dir) {
-  return (ch) => `images/digits/${dir}/${ch === ':' ? 'colon' : ch === '/' ? 'slash' : ch}.png`
-}
+WatchFace({
+  state: {
+    time: null,
+    battery: null,
+    quoteIndex: 0,
+    widgets: {},
+    aod: null,
+    minuteCallback: null,
+    batteryCallback: null,
+  },
 
-function readStoredBreak() {
-  const raw = tolerate(() => hmFS.SysProGetInt(BREAK_STORE_KEY), 0) || 0
-  return normalizeBreakMinutes(raw > 0 ? raw - 1 : undefined)
-}
+  onInit() {
+    this.state.time = new Time()
+    this.state.battery = new Battery()
+  },
 
-WatchFace(
-  BasePage({
-    state: {
-      time: null,
-      battery: null,
-      breakMinutes: null,
-      quoteIndex: 0,
-      widgets: {},
-      aod: null,
-      minuteCallback: null,
-      batteryCallback: null,
-    },
+  build() {
+    this.drawNormalView()
+    this.state.aod = createAodView()
+    this.updateMinute()
+    this.updateBattery()
 
-    onInit() {
-      this.state.time = new Time()
-      this.state.battery = new Battery()
-      this.state.breakMinutes = readStoredBreak()
-    },
+    this.state.minuteCallback = () => this.updateMinute()
+    this.state.batteryCallback = () => this.updateBattery()
+    this.state.time.onPerMinute(this.state.minuteCallback)
+    this.state.battery.onChange(this.state.batteryCallback)
 
-    build() {
-      this.drawNormalView()
-      this.state.aod = createAodView()
-      this.updateMinute()
-      this.updateBattery()
-      this.updateBreak()
-      this.loadBreak()
+    ui.createWidget(ui.widget.WIDGET_DELEGATE, {
+      resume_call: () => {
+        this.nextQuote()
+        this.updateMinute()
+        this.updateBattery()
+      },
+      pause_call: () => {},
+    })
+  },
 
-      this.state.minuteCallback = () => this.updateMinute()
-      this.state.batteryCallback = () => this.updateBattery()
-      this.state.time.onPerMinute(this.state.minuteCallback)
-      this.state.battery.onChange(this.state.batteryCallback)
+  // 背景の絵に、暖簾・提灯・カレンダー・丼・吹き出し・雷紋・くつ・区切り・電池の枠まで入っている
+  drawNormalView() {
+    const w = this.state.widgets
+    image({ x: 0, y: 0, w: SCREEN.width, h: SCREEN.height }, 'images/background.png')
+    // セリフの札は1枚だけ置き、画面が点くたびに画像を入れ替える（7枚を同時に描かない）
+    w.quote = image(LAYOUT.quote, QUOTES[this.state.quoteIndex].image)
 
-      ui.createWidget(ui.widget.WIDGET_DELEGATE, {
-        resume_call: () => {
-          this.nextQuote()
-          this.updateMinute()
-          this.updateBattery()
-        },
-        pause_call: () => {},
-      })
-    },
+    w.time = createTimeSprites({
+      screenWidth: LAYOUT.time.w,
+      x: LAYOUT.time.x,
+      y: LAYOUT.time.y,
+      digitPath: 'images/digits/time',
+      digitW: DIGITS.time.w,
+      digitH: DIGITS.time.h,
+      colonW: DIGITS.time.colonW,
+      gap: DIGITS.time.gap,
+      showLevel: NORMAL,
+    })
 
-    // 背景の絵に、暖簾・提灯・丼・吹き出し・ラベル・アイコン・BREAK の赤い箱まで入っている
-    drawNormalView() {
-      const w = this.state.widgets
-      image({ x: 0, y: 0, w: SCREEN.width, h: SCREEN.height }, 'images/background.png')
-      // セリフの札は1枚だけ置き、画面が点くたびに画像を入れ替える（7枚を同時に描かない）
-      w.quote = image(LAYOUT.quote, QUOTES[this.state.quoteIndex].image)
+    w.date = createImageText({
+      rect: LAYOUT.date,
+      slots: 5,
+      glyph: dateGlyph,
+      width: dateWidth,
+      gap: DIGITS.date.gap,
+      align: 'center',
+      showLevel: NORMAL,
+    })
+    w.weekday = image(LAYOUT.weekday, 'images/weekday/0.png')
 
-      w.time = createTimeSprites({
-        screenWidth: SCREEN.width,
-        y: LAYOUT.time.y,
-        digitPath: 'images/digits/time',
-        digitW: DIGITS.time.w,
-        digitH: DIGITS.time.h,
-        colonW: DIGITS.time.colonW,
-        gap: DIGITS.time.gap,
-        showLevel: NORMAL,
-      })
+    dataNumber(LAYOUT.steps, ui.data_type.STEP, 'images/digits/steps', DIGITS.steps.gap)
+    dataNumber(LAYOUT.battery, ui.data_type.BATTERY, 'images/digits/battery', DIGITS.battery.gap)
+    // 電池の枠の中の塗り（残りに合わせて左から）
+    w.batteryFill = ui.createWidget(ui.widget.FILL_RECT, { ...LAYOUT.batteryFill, color: COLORS.RED, show_level: NORMAL })
+  },
 
-      dataNumber(LAYOUT.hp, ui.data_type.BATTERY, 'images/digits/hp', DIGITS.hp.gap)
-      dataNumber(LAYOUT.steps, ui.data_type.STEP, 'images/digits/steps', DIGITS.steps.gap)
+  // 分ごと：時刻・日付・曜日
+  updateMinute() {
+    const time = this.state.time
+    const w = this.state.widgets
+    const hour = time.getHours()
+    const hourText = String(time.getHourFormat() === TIME_HOUR_FORMAT_12 ? time.getFormatHour() : hour)
+    const minuteText = String(time.getMinutes()).padStart(2, '0')
+    w.time.update(hourText, minuteText)
+    this.state.aod.time.update(hourText, minuteText)
 
-      w.date = createImageText({
-        rect: LAYOUT.date,
-        slots: 5,
-        glyph: spriteGlyph('date'),
-        width: spriteWidth(DIGITS.date),
-        gap: DIGITS.date.gap,
-        align: 'right',
-        showLevel: NORMAL,
-      })
-      w.weekday = image(LAYOUT.weekday, 'images/weekday/0.png')
-      w.breakTime = createImageText({
-        rect: LAYOUT.breakTime,
-        slots: 5,
-        glyph: spriteGlyph('break'),
-        width: spriteWidth(DIGITS.break),
-        gap: DIGITS.break.gap,
-        align: 'center',
-        showLevel: NORMAL,
-      })
-    },
+    const dateText = `${time.getMonth()}/${time.getDate()}`
+    const day = weekdayIndex(time.getDay())
+    w.date.update(dateText)
+    w.weekday.setProperty(ui.prop.VISIBLE, day !== null)
+    if (day !== null) w.weekday.setProperty(ui.prop.SRC, `images/weekday/${day}.png`)
+    this.state.aod.date.setProperty(ui.prop.TEXT, day === null ? dateText : `${dateText}(${WEEKDAYS_JA[day]})`)
+  },
 
-    // 分ごと：時刻・日付・曜日
-    updateMinute() {
-      const time = this.state.time
-      const w = this.state.widgets
-      const hour = time.getHours()
-      const hourText = String(time.getHourFormat() === TIME_HOUR_FORMAT_12 ? time.getFormatHour() : hour)
-      const minuteText = String(time.getMinutes()).padStart(2, '0')
-      w.time.update(hourText, minuteText)
-      this.state.aod.time.update(hourText, minuteText)
+  // 画面が点いた時だけ、セリフを次の札に替える（画面が消えている間は何もしない）
+  nextQuote() {
+    this.state.quoteIndex = nextQuoteIndex(this.state.quoteIndex)
+    this.state.widgets.quote.setProperty(ui.prop.SRC, QUOTES[this.state.quoteIndex].image)
+  },
 
-      const dateText = `${time.getMonth()}/${time.getDate()}`
-      const day = weekdayIndex(time.getDay())
-      w.date.update(dateText)
-      w.weekday.setProperty(ui.prop.VISIBLE, day !== null)
-      if (day !== null) w.weekday.setProperty(ui.prop.SRC, `images/weekday/${day}.png`)
-      this.state.aod.date.setProperty(ui.prop.TEXT, `${dateText} ${day === null ? '' : WEEKDAYS_EN[day]}`.trim())
-    },
+  // 電池の数字（通常表示）は時計のデータに直接つないでいる。ここでは電池の枠の塗りと、AOD の HP を更新する
+  updateBattery() {
+    const value = normalizeBattery(this.state.battery.getCurrent())
+    const fill = LAYOUT.batteryFill
+    const width = Math.round((fill.w * (value === null ? 0 : value)) / 100)
+    this.state.widgets.batteryFill.setProperty(ui.prop.VISIBLE, width > 0)
+    if (width > 0) this.state.widgets.batteryFill.setProperty(ui.prop.MORE, { ...fill, w: width, color: COLORS.RED })
+    this.state.aod.hp.setProperty(ui.prop.TEXT, `HP ${value === null ? '--' : value}`)
+  },
 
-    // 画面が点いた時だけ、セリフを次の札に替える（画面が消えている間は何もしない）
-    nextQuote() {
-      this.state.quoteIndex = nextQuoteIndex(this.state.quoteIndex)
-      this.state.widgets.quote.setProperty(ui.prop.SRC, QUOTES[this.state.quoteIndex].image)
-    },
-
-    // HP の数字（通常表示）は時計のデータに直接つないでいる。ここでは AOD の HP だけ更新する
-    updateBattery() {
-      const value = normalizeBattery(this.state.battery.getCurrent())
-      this.state.aod.hp.setProperty(ui.prop.TEXT, `HP ${value === null ? '--' : value}`)
-    },
-
-    updateBreak() {
-      this.state.widgets.breakTime.update(formatBreak(this.state.breakMinutes))
-    },
-
-    applyBreak(minutes) {
-      this.state.breakMinutes = normalizeBreakMinutes(minutes)
-      tolerate(() => hmFS.SysProSetInt(BREAK_STORE_KEY, this.state.breakMinutes + 1))
-      this.updateBreak()
-    },
-
-    loadBreak() {
-      this.request({ method: 'GET_BREAK' })
-        .then(({ breakMinutes }) => this.applyBreak(breakMinutes))
-        .catch(() => logger.log('Using cached break time'))
-    },
-
-    onCall(data) {
-      if (data && data.type === 'BREAK_CHANGED') this.applyBreak(data.breakMinutes)
-    },
-
-    onDestroy() {
-      if (this.state.battery && this.state.batteryCallback) {
-        this.state.battery.offChange(this.state.batteryCallback)
-      }
-      if (this.state.time && this.state.minuteCallback) {
-        tolerate(() => this.state.time.offPerMinute(this.state.minuteCallback))
-      }
-    },
-  }),
-)
+  onDestroy() {
+    if (this.state.battery && this.state.batteryCallback) {
+      this.state.battery.offChange(this.state.batteryCallback)
+    }
+    if (this.state.time && this.state.minuteCallback) {
+      tolerate(() => this.state.time.offPerMinute(this.state.minuteCallback))
+    }
+  },
+})

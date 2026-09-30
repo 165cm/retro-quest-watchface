@@ -40,9 +40,9 @@
 | `shared/weather.js` | 天気コード → 背景の種類、昼夜の判定、今日の天気の取り出し |
 | `shared/battery.js` | 電池の%を0〜100にそろえる、HPのマス数・色・表示文字 |
 | `shared/clock.js` | 設定画面で入れた時刻（`15:00` など）と「0時からの分」を行き来する |
-| `shared/image-text.js` | 文字を1つずつ画像で並べる（日付・BREAK の時刻など） |
+| `shared/image-text.js` | 文字を1つずつ画像で並べる（日付など） |
 | `shared/date.js` | 曜日の名前を引く。`getDay()` が 0=日曜 でも 7=日曜 でも正しく引ける |
-| `shared/time-sprites.js` | 時刻を数字の画像で並べ、画面の真ん中にそろえる（画面の幅は引数で受け取る） |
+| `shared/time-sprites.js` | 時刻を数字の画像で並べ、画面（または x から指定の幅の範囲）の真ん中にそろえる |
 | `tests/shared/` | 共通部品のテスト |
 | `tests/<文字盤>/` | 文字盤ごとのテスト |
 | `AGENTS.md`・`CLAUDE.md`・`docs/` | AI と開発のルール（正本）。`.github/AGENTS.md` は中央マニュアル・作品ティアの案内だけ |
@@ -69,18 +69,16 @@
 
 | ファイル・フォルダ | 役割 |
 |---|---|
-| `app.json` | アプリの設定。appId は仮の値（`20260930`） |
-| `watchface/index.js` | 文字盤の本体。分ごと（と画面が戻った時）に時刻・日付・曜日を更新する。セリフは画面が点いた時だけ次の札へ替える。HP と歩数は時計のデータに直接つなぐ |
-| `watchface/layout.js`・`theme.js` | 座標・大きさ／色・文字の大きさ |
+| `app.json` | アプリの設定。appId は仮の値（`20260930`）。文字盤だけ（スマホの設定・Side Service はない） |
+| `watchface/index.js` | 文字盤の本体。分ごと（と画面が戻った時）に時刻・日付・曜日を更新する。セリフは画面が点いた時だけ次の札へ替える。歩数と電池の数字は時計のデータに直接つなぎ、電池の枠の塗りは電池の変化で更新する |
+| `watchface/layout.js`・`theme.js` | 座標・大きさ／色・筆の数字の太さ |
 | `watchface/quotes.js` | セリフ7枚の並びと、次の札の選び方（`nextQuoteIndex`） |
-| `watchface/aod.js` | AOD の表示（時刻・日付・HP） |
-| `setting/index.js` | Zepp アプリの設定画面（休憩の時刻） |
-| `setting/keys.js` | 設定の保存キーと、読み取り（設定画面・Side Service・文字盤で共通） |
-| `app-side/index.js` | Side Service。休憩の時刻を時計に渡す |
-| `tools/prepare-source.mjs` | 受け取った改修用の素材（背景・セリフの札）を整えて `source/` に保存する（1回だけ） |
+| `watchface/glyphs.js` | フォントで描く小さい文字（数字・「/」・日本語の曜日） |
+| `watchface/aod.js` | AOD の表示（時刻・日付と曜日・HP） |
+| `tools/prepare-source.mjs` | 受け取った最終採用案の素材（背景・セリフの札）を整え、小さい文字の字形をフォントで描いて `source/` に保存する（1回だけ） |
 | `tools/brush-digits.mjs` | 筆の数字 0〜9 と「:」の字形。1字ずつ、筆の通る点と太さで決めてある |
-| `tools/generate-assets.mjs` | `source/`・筆の数字・コードで描いた部品（曜日・BREAK の箱）から、時計の画像とプレビュー（セリフ7枚・電池少なめ・AOD・通知の確認図）を作る |
-| `source/` | 切り出し・縮小した素材（由来は README の「素材と権利」） |
+| `tools/generate-assets.mjs` | `source/`・筆の数字から、時計の画像とプレビュー（セリフ7枚・電池少なめ・AOD・通知の確認図）を作る |
+| `source/` | 整えた素材と字形（由来は README の「素材と権利」） |
 
 ## データ
 
@@ -96,14 +94,8 @@
 
 ### SUPER ARBEITER
 
-| どこ | キー | 中身 |
-|---|---|---|
-| スマホ（Settings Storage） | `breakTime` | `'15:00'` のような時刻 |
-| 時計（`hmFS.SysProSetInt`） | `sa_break` | 0時からの分＋1（0 は保存なし） |
-
-- 何も保存されていない時は 15:00
-- 時計とスマホのやりとり：文字盤が起動時に `GET_BREAK` を問い合わせる。設定が変わると Side Service から `BREAK_CHANGED` が届く
-- HP・歩数は、文字盤の部品 `TEXT_IMG` に時計のデータ（`BATTERY`・`STEP`）を直接つないでいる
+- 保存するデータはない（スマホの設定もない）
+- 歩数・電池の数字は、文字盤の部品 `TEXT_IMG` に時計のデータ（`STEP`・`BATTERY`）を直接つないでいる
 - セリフの何枚目かは保存しない（時計の記憶だけ。書き込みの電気を使わないため）。文字盤を入れ直すと1枚目から
 
 ## 時計から読む値（センサー）
