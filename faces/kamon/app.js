@@ -5,9 +5,9 @@ const logger = log.getLogger('kamon')
 App({
   globalData: {},
   onCreate() {
-    logger.log('KAMON started')
+    logger.log('KAMONT started')
   },
   onDestroy() {
-    logger.log('KAMON stopped')
+    logger.log('KAMONT stopped')
   },
 })

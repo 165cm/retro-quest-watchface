@@ -8,11 +8,11 @@ Zepp OS（Amazfit）向けのオリジナル文字盤をまとめたリポジト
 |---|---|---|---|
 | Pixel Wayfarer Face | Amazfit Bip 6（390×450） | ビルド確認済み・実機未確認・ストア未公開 | [faces/pixel-wayfarer](faces/pixel-wayfarer/README.md) |
 | SUPER ARBEITER | Amazfit Bip 6（390×450） | ビルド確認済み・実機未確認・自分用 | [faces/super-arbeiter](faces/super-arbeiter/README.md) |
-| KAMON（仮） | Amazfit Bip 6（390×450） | 動作確認済み（一部）・ストア公開予定 | [faces/kamon](faces/kamon/README.md) |
+| KAMONT | Amazfit Bip 6（390×450） | 動作確認済み（一部）・ストア公開予定 | [faces/kamon](faces/kamon/README.md) |
 
-| Pixel Wayfarer Face | SUPER ARBEITER | KAMON（仮） |
+| Pixel Wayfarer Face | SUPER ARBEITER | KAMONT |
 |---|---|---|
-| ![Pixel Wayfarer Face](faces/pixel-wayfarer/docs/preview-390x450.png) | ![SUPER ARBEITER](faces/super-arbeiter/docs/preview-390x450.png) | ![KAMON](faces/kamon/docs/preview-390x450.png) |
+| ![Pixel Wayfarer Face](faces/pixel-wayfarer/docs/preview-390x450.png) | ![SUPER ARBEITER](faces/super-arbeiter/docs/preview-390x450.png) | ![KAMONT](faces/kamon/docs/preview-390x450.png) |
 
 ## 使い方
 

@@ -2,14 +2,14 @@
   "configVersion": "v3",
   "app": {
     "appId": 20261001,
-    "appName": "KAMON",
+    "appName": "KAMONT",
     "appType": "watchface",
     "version": {
       "code": 1,
       "name": "0.1.0"
     },
     "vender": "independent",
-    "description": "Original Japanese family-crest (kamon) watchface for Amazfit Bip 6",
+    "description": "KAMONT = KAMON (Japanese family crest) + Time. A new crest and a motivating word each time you raise your wrist (Amazfit Bip 6)",
     "icon": "images/preview.png",
     "cover": [
       "images/preview.png"
@@ -52,10 +52,10 @@
   },
   "i18n": {
     "en-US": {
-      "name": "KAMON"
+      "name": "KAMONT"
     },
     "ja-JP": {
-      "name": "KAMON"
+      "name": "KAMONT"
     }
   },
   "defaultLanguage": "en-US",

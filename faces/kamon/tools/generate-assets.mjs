@@ -1,9 +1,9 @@
-// KAMON の文字盤の絵（PNG）をすべて作る。
+// KAMONT の文字盤の絵（PNG）をすべて作る。
 //   npm run assets -- kamon
 //
 // 元のデザイン（ユーザーのドラマ風の時計）の配置・色・大きさをそのまま使い、問題のあった所だけを置き換えている：
-// - 題字「VIVANT」→「KAMON」（同じ字間・同じ位置）
-// - ドラマのマーク（輪の中の六角形）→ 家紋の七宝（同じ太い輪・同じ墨色）
+// - 題字「VIVANT」→ 紋ごとの英単語（同じ字間・同じ位置。images/titles/）
+// - ドラマのマーク（輪の中の六角形）→ 家紋（同じ太い輪・同じ墨色。9種類。images/crests/）
 // - 出どころのわからない数字の字形 → Liberation Sans Bold（SIL Open Font License 1.1。source/fonts/）
 // - いつも「晴れ」の太陽のアイコン → 温度計
 // - いつも3本の電池の目盛り → 残りに合わせて時計が塗る（背景には枠だけ）
@@ -12,6 +12,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
 import { CREST, DIGITS, LAYOUT, NOTIFICATION, SCREEN, TITLE, CORNER_INSET } from '../watchface/layout.js'
+import { CRESTS } from '../watchface/crests.js'
+import { CREST_SHAPES } from './crest-shapes.mjs'
 import { COLORS } from '../watchface/theme.js'
 import { dateText } from '../watchface/format.js'
 
@@ -52,42 +54,36 @@ function text(value, { x, top, size, color, weight = 'bold', spacing = 0, anchor
   return `<text x="${x}" y="${baseline.toFixed(2)}" font-family="${FONT}" font-weight="${weight}" font-size="${size}" letter-spacing="${spacing}" fill="${color}" text-anchor="${anchor}">${value}</text>`
 }
 
-// ---------- 紋（太い輪に七宝） ----------
-// 七宝：正方形から、四隅を中心にした4つの円をくり抜いた四つ星。まん中に花菱の形をくり抜く
-// 四つ星の先は上下左右に来る。その先を通る円を重ねて「七宝」の形にする
+// ---------- 紋 ----------
+// 太い輪は背景に。輪の中の紋は、紋ごとの透明な画像（CREST.image の大きさ）に描く
 
-function diamond(x, y, rx, ry, angle, color) {
-  return `<path d="M0 ${-ry} L${rx} 0 L0 ${ry} L${-rx} 0 Z" transform="translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${angle})" fill="${color}"/>`
+function ringBody(color = C.SUMI, { cx = CREST.cx, cy = CREST.cy, r = CREST.r, ring = CREST.ring } = {}) {
+  return `<circle cx="${cx}" cy="${cy}" r="${r - ring / 2}" fill="none" stroke="${color}" stroke-width="${ring}"/>`
 }
 
-export function crestBody(color = C.SUMI, { cx = CREST.cx, cy = CREST.cy, r = CREST.r, ring = CREST.ring } = {}) {
-  const s = r / CREST.r
-  const R = Math.round(112 * s)
-  let body = `<circle cx="${cx}" cy="${cy}" r="${r - ring / 2}" fill="none" stroke="${color}" stroke-width="${ring}"/>`
-  body += `<mask id="shippo"><rect x="${cx - R}" y="${cy - R}" width="${2 * R}" height="${2 * R}" fill="#fff"/>`
-  for (const [dx, dy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) body += `<circle cx="${cx + dx * R}" cy="${cy + dy * R}" r="${R}" fill="#000"/>`
-  // まん中の花菱（4枚の菱の花びら）をくり抜く
-  for (let i = 0; i < 4; i += 1) {
-    const a = (i * Math.PI) / 2
-    body += diamond(cx + 22 * s * Math.sin(a), cy - 22 * s * Math.cos(a), 11 * s, 17 * s, i * 90, '#000')
-  }
-  body += `</mask><rect x="${cx - R}" y="${cy - R}" width="${2 * R}" height="${2 * R}" fill="${color}" mask="url(#shippo)"/>`
-  // 四つ星の先を通る円（七宝の輪）
-  body += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${color}" stroke-width="${Math.round(12 * s)}"/>`
-  return body
+const crestColor = (crest) => (crest.rare ? C.GOLD_DIM : C.SUMI)
+
+function crestImageSvg(crest) {
+  const { w, h } = CREST.image
+  return svg(w, h, CREST_SHAPES[crest.id](w / 2, h / 2, CREST.motif, crestColor(crest)))
 }
 
 // ---------- 題字・アイコン ----------
 
-function titleBody() {
-  let body = ''
-  const chars = TITLE.text.split('')
-  const start = TITLE.x - ((chars.length - 1) * TITLE.pitch) / 2
-  chars.forEach((ch, i) => {
-    body += text(ch, { x: start + i * TITLE.pitch, top: TITLE.y, size: TITLE.h / CAP, color: C.CREAM, weight: 'normal' })
-  })
-  for (const r of TITLE.rules) body += `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${C.RULE}"/>`
-  return body
+function rulesBody() {
+  return TITLE.rules.map((r) => `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${C.RULE}"/>`).join('')
+}
+
+// タイトル：1文字ずつ同じ間隔で、画像の中央に（元のデザインの題字と同じ字間）
+function titleImageSvg(crest) {
+  const { w, h } = TITLE.image
+  const chars = crest.title.split('')
+  const start = w / 2 - ((chars.length - 1) * TITLE.pitch) / 2
+  const top = TITLE.y - TITLE.image.y
+  const body = chars
+    .map((ch, i) => text(ch, { x: start + i * TITLE.pitch, top, size: TITLE.h / CAP, color: crest.rare ? C.GOLD : C.CREAM, weight: 'normal' }))
+    .join('')
+  return svg(w, h, body)
 }
 
 function iconsBody() {
@@ -125,7 +121,7 @@ function iconsBody() {
 }
 
 function backgroundSvg() {
-  return svg(SCREEN.width, SCREEN.height, `<rect width="${SCREEN.width}" height="${SCREEN.height}" fill="${C.BLACK}"/>` + crestBody() + titleBody() + iconsBody())
+  return svg(SCREEN.width, SCREEN.height, `<rect width="${SCREEN.width}" height="${SCREEN.height}" fill="${C.BLACK}"/>` + ringBody() + rulesBody() + iconsBody())
 }
 
 // ---------- 数字の画像 ----------
@@ -202,10 +198,11 @@ function dateLine(value, rect, color) {
   return text(value, { x: rect.x + rect.w / 2, top: rect.y + (rect.h - rect.size * CAP) / 2, size: rect.size, color, weight: 'normal' })
 }
 
-function previewSvg({ time, weekday, day, month, temp, battery, steps, heart }, { notification = false } = {}) {
+function previewSvg({ time, weekday, day, month, temp, battery, steps, heart, crest = 0 }, { notification = false } = {}) {
   const L = LAYOUT
   const small = DIGITS.small
   let body = img('background.png', { x: 0, y: 0, w: SCREEN.width, h: SCREEN.height })
+  body += img(`crests/${crest}.png`, CREST.image) + img(`titles/${crest}.png`, TITLE.image)
   const f = L.batteryFill
   const fw = Math.round((f.w * battery) / 100)
   if (fw > 0) body += `<rect x="${f.x}" y="${f.y}" width="${fw}" height="${f.h}" fill="${C.RED}"/>`
@@ -233,6 +230,10 @@ function aodPreviewSvg({ time, weekday, day, month }) {
 fs.rmSync(IMAGES, { recursive: true, force: true })
 
 write(path.join(IMAGES, 'background.png'), backgroundSvg())
+CRESTS.forEach((crest, i) => {
+  write(path.join(IMAGES, 'crests', `${i}.png`), crestImageSvg(crest))
+  write(path.join(IMAGES, 'titles', `${i}.png`), titleImageSvg(crest))
+})
 writeDigits('time', DIGITS.time, C.RED)
 writeDigits('aod', DIGITS.aod, C.AOD_TIME)
 writeDigits('small', DIGITS.small, C.RED, { units: true })
@@ -240,12 +241,26 @@ writeDigits('small', DIGITS.small, C.RED, { units: true })
 // weekday は 0＝日〜6＝土。ストアの見本は 10:09（時計の広告の決まりごと）
 const SAMPLE = { time: '10:09', weekday: 3, day: 30, month: 9, temp: 21, battery: 76, steps: 5478, heart: 85 }
 write(path.join(DOCS, 'preview-390x450.png'), previewSvg(SAMPLE))
-write(path.join(DOCS, 'preview-worst-390x450.png'), previewSvg({ time: '23:58', weekday: 4, day: 31, month: 12, temp: -12, battery: 100, steps: 99999, heart: 199 }))
-write(path.join(DOCS, 'preview-low-390x450.png'), previewSvg({ time: '7:41', weekday: 6, day: 5, month: 5, temp: null, battery: 9, steps: 0, heart: null }))
+write(path.join(DOCS, 'preview-worst-390x450.png'), previewSvg({ time: '23:58', weekday: 4, day: 31, month: 12, temp: -12, battery: 100, steps: 99999, heart: 199, crest: 5 }))
+write(path.join(DOCS, 'preview-low-390x450.png'), previewSvg({ time: '7:41', weekday: 6, day: 5, month: 5, temp: null, battery: 9, steps: 0, heart: null, crest: 3 }))
+write(path.join(DOCS, 'preview-rare-390x450.png'), previewSvg({ ...SAMPLE, crest: CRESTS.findIndex((c) => c.rare) }))
+// 紋の一覧（README・ストアの説明用）：3×3 に、紋とタイトル
+{
+  const cell = 200
+  let sheet = `<rect width="${cell * 3}" height="${cell * 3}" fill="#000"/>`
+  CRESTS.forEach((crest, i) => {
+    const x = (i % 3) * cell
+    const y = Math.floor(i / 3) * cell
+    const color = crest.rare ? C.GOLD : '#8A7A6A'
+    sheet += ringBody(color, { cx: x + cell / 2, cy: y + 88, r: 80, ring: 14 })
+    sheet += CREST_SHAPES[crest.id](x + cell / 2, y + 88, 58, color).replace(/id="([a-z]+)/g, `id="$1${i}`).replace(/url\(#([a-z]+)/g, `url(#$1${i}`)
+    sheet += text(crest.title, { x: x + cell / 2, top: y + 178, size: 14, color: crest.rare ? C.GOLD : C.CREAM, weight: 'normal', spacing: 3 })
+  })
+  write(path.join(DOCS, 'crests.png'), svg(cell * 3, cell * 3, sheet))
+}
 write(path.join(DOCS, 'preview-aod-390x450.png'), aodPreviewSvg(SAMPLE))
 write(path.join(DOCS, 'check-notification.png'), previewSvg(SAMPLE, { notification: true }))
-write(path.join(DOCS, 'crest.png'), svg(320, 320, `<rect width="320" height="320" fill="${C.BLACK}"/>` + crestBody('#8A7A6A', { cx: 160, cy: 160, r: 152 })))
 // アプリのアイコン・ストアのカバー用
 write(path.join(IMAGES, 'preview.png'), previewSvg(SAMPLE))
 
-console.log('Generated kamon assets in assets/bip-6/images and docs/')
+console.log(`Generated KAMONT assets in assets/bip-6/images and docs/（紋 ${CRESTS.length} 種類）`)

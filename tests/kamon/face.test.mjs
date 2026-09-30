@@ -4,6 +4,8 @@ import assert from 'node:assert/strict'
 import { PNG } from 'pngjs'
 import { CORNER_INSET, CREST, DATA_FIELDS, DIGITS, EDGE_MARGIN, LAYOUT, NOTIFICATION, SCREEN, TITLE, smallWidth, timeWidth } from '../../faces/kamon/watchface/layout.js'
 import { dateText, hourText } from '../../faces/kamon/watchface/format.js'
+import { CRESTS, RARE_CHANCE, pickCrest } from '../../faces/kamon/watchface/crests.js'
+import { CREST_SHAPES } from '../../faces/kamon/tools/crest-shapes.mjs'
 
 const FACE = new URL('../../faces/kamon/', import.meta.url)
 const IMAGES = 'assets/bip-6/images/'
@@ -57,7 +59,7 @@ test('everything stays inside the rounded screen', () => {
 
 test('nothing is drawn under the notification icon at the top center', () => {
   for (const key of ROW) assert.ok(!overlaps(LAYOUT[key], NOTIFICATION), key)
-  assert.ok(TITLE.y >= NOTIFICATION.y + NOTIFICATION.h, 'title is under the notification icon')
+  assert.ok(TITLE.image.y >= NOTIFICATION.y + NOTIFICATION.h, 'title image starts under the notification area')
   const bg = readPng(`${IMAGES}background.png`)
   for (let y = NOTIFICATION.y; y < NOTIFICATION.y + NOTIFICATION.h; y += 1) {
     for (let x = NOTIFICATION.x; x < NOTIFICATION.x + NOTIFICATION.w; x += 1) {
@@ -148,4 +150,70 @@ test('the date reads like the original design: WED 30 SEP', () => {
   assert.equal(dateText(0, 1, 1), 'SUN 1 JAN')
   assert.equal(dateText(6, 31, 12), 'SAT 31 DEC')
   assert.equal(dateText(null, 5, 5), '5 MAY')
+})
+
+// 決まった順に数を返す、くり返せる乱数（テスト用）
+function seeded(seed = 1) {
+  let x = seed
+  return () => {
+    x = (x * 1103515245 + 12345) % 2147483648
+    return x / 2147483648
+  }
+}
+
+test('there are 8 crests and 1 rare gold crest, each with a short English word', () => {
+  assert.equal(CRESTS.length, 9)
+  assert.equal(CRESTS.filter((c) => c.rare).length, 1)
+  CRESTS.forEach((crest, i) => {
+    assert.match(crest.title, /^[A-Z]+$/, crest.id)
+    assert.ok(crest.title.length <= TITLE.maxLength, `${crest.title} is longer than ${TITLE.maxLength}`)
+    assert.ok(CREST_SHAPES[crest.id], `shape for ${crest.id}`)
+    assert.ok(fs.existsSync(new URL(`${IMAGES}crests/${i}.png`, FACE)), `crest ${i}`)
+    assert.ok(fs.existsSync(new URL(`${IMAGES}titles/${i}.png`, FACE)), `title ${i}`)
+  })
+  assert.equal(new Set(CRESTS.map((c) => c.title)).size, CRESTS.length, 'titles are all different')
+})
+
+test('each time the screen turns on, a different crest comes (never the same one twice in a row)', () => {
+  const random = seeded(7)
+  let previous = pickCrest(null, random)
+  const seen = new Set([previous])
+  let rare = 0
+  const draws = 20000
+  for (let k = 0; k < draws; k += 1) {
+    const next = pickCrest(previous, random)
+    assert.notEqual(next, previous)
+    assert.ok(next >= 0 && next < CRESTS.length)
+    if (CRESTS[next].rare) rare += 1
+    seen.add(next)
+    previous = next
+  }
+  assert.equal(seen.size, CRESTS.length, 'every crest shows up')
+  // レアは直前がレアの時は出ないので、確率は RARE_CHANCE より少し低い
+  assert.ok(rare / draws > RARE_CHANCE * 0.7 && rare / draws < RARE_CHANCE * 1.1, `rare rate ${rare / draws}`)
+})
+
+test('the crest images stay inside the thick ring, and the title stays between the red lines', () => {
+  const inner = CREST.r - CREST.ring
+  CRESTS.forEach((crest, i) => {
+    const png = readPng(`${IMAGES}crests/${i}.png`)
+    assert.equal(png.width, CREST.image.w)
+    assert.equal(png.height, CREST.image.h)
+    let ink = 0
+    for (let y = 0; y < png.height; y += 1) {
+      for (let x = 0; x < png.width; x += 1) {
+        if (png.data[((png.width * y + x) << 2) + 3] === 0) continue
+        ink += 1
+        const d = Math.hypot(CREST.image.x + x + 0.5 - CREST.cx, CREST.image.y + y + 0.5 - CREST.cy)
+        assert.ok(d <= inner, `crest ${crest.id} touches the ring at (${x}, ${y})`)
+      }
+    }
+    assert.ok(ink > 3000, `crest ${crest.id} is drawn`)
+
+    const title = readPng(`${IMAGES}titles/${i}.png`)
+    const box = inkBox(title, (r, g, b, a) => a > 64)
+    assert.ok(box.x0 > 0 && box.x1 < title.width - 1 && box.y0 > 0 && box.y1 < title.height - 1, `title ${crest.title} is cut`)
+  })
+  const [left, right] = TITLE.rules
+  assert.ok(TITLE.image.x >= left.x + left.w && TITLE.image.x + TITLE.image.w <= right.x, 'title box overlaps the red lines')
 })

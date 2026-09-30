@@ -1,7 +1,8 @@
 import ui from '@zos/ui'
 import { Battery, Time, TIME_HOUR_FORMAT_12 } from '@zos/sensor'
 import { log } from '@zos/utils'
-import { DIGITS, LAYOUT, SCREEN } from './layout.js'
+import { CREST, DIGITS, LAYOUT, SCREEN, TITLE } from './layout.js'
+import { crestImage, pickCrest, titleImage } from './crests.js'
 import { COLORS } from './theme.js'
 import { createAodView } from './aod.js'
 import { dateText, hourText } from './format.js'
@@ -9,7 +10,7 @@ import { normalizeBattery } from '../../../shared/battery.js'
 import { weekdayIndex } from '../../../shared/date.js'
 import { createTimeSprites } from '../../../shared/time-sprites.js'
 
-const logger = log.getLogger('kamon')
+const logger = log.getLogger('kamont')
 const NORMAL = ui.show_level.ONLY_NORMAL
 const SMALL = 'images/digits/small'
 
@@ -59,6 +60,7 @@ WatchFace({
   state: {
     time: null,
     battery: null,
+    crest: null,
     widgets: {},
     aod: null,
     minuteCallback: null,
@@ -83,6 +85,7 @@ WatchFace({
 
     ui.createWidget(ui.widget.WIDGET_DELEGATE, {
       resume_call: () => {
+        this.nextCrest()
         this.updateMinute()
         this.updateBattery()
       },
@@ -90,11 +93,15 @@ WatchFace({
     })
   },
 
-  // 背景の絵に、紋・題字・線・アイコン・区切り・電池の枠まで入っている
+  // 背景の絵に、太い輪・線・アイコン・区切り・電池の枠まで入っている。
+  // 輪の中の紋とタイトルは1枚ずつだけ置き、画面が点くたびに画像を入れ替える（全部の紋を同時に描かない）
   drawNormalView() {
     const w = this.state.widgets
     const L = LAYOUT
     ui.createWidget(ui.widget.IMG, { x: 0, y: 0, w: SCREEN.width, h: SCREEN.height, src: 'images/background.png', show_level: NORMAL })
+    this.state.crest = pickCrest(null)
+    w.crest = ui.createWidget(ui.widget.IMG, { ...CREST.image, src: crestImage(this.state.crest), show_level: NORMAL })
+    w.title = ui.createWidget(ui.widget.IMG, { ...TITLE.image, src: titleImage(this.state.crest), show_level: NORMAL })
     // 電池の枠の中の塗り（残りに合わせて左から）
     w.batteryFill = ui.createWidget(ui.widget.FILL_RECT, { ...L.batteryFill, color: COLORS.RED, show_level: NORMAL })
 
@@ -125,6 +132,13 @@ WatchFace({
     dataNumber(L.steps, ui.data_type.STEP)
     dataNumber(L.heart, ui.data_type.HEART)
     dataNumber(L.battery, ui.data_type.BATTERY)
+  },
+
+  // 画面が点いた時だけ、紋とタイトルをランダムに次のものへ（直前と同じものは出さない。まれに金のレア）
+  nextCrest() {
+    this.state.crest = pickCrest(this.state.crest)
+    this.state.widgets.crest.setProperty(ui.prop.SRC, crestImage(this.state.crest))
+    this.state.widgets.title.setProperty(ui.prop.SRC, titleImage(this.state.crest))
   },
 
   // 分ごと：時刻と日付
