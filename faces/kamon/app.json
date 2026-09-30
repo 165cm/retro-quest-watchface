@@ -1,12 +1,12 @@
 {
   "configVersion": "v3",
   "app": {
-    "appId": 20261001,
+    "appId": 1129405,
     "appName": "KAMONT",
     "appType": "watchface",
     "version": {
       "code": 1,
-      "name": "0.1.0"
+      "name": "1.0.0"
     },
     "vender": "independent",
     "description": "KAMONT = KAMON (Japanese family crest) + Time. A new crest and a motivating word each time you raise your wrist (Amazfit Bip 6)",
