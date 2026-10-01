@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { PNG } from 'pngjs'
 import { QUOTES, nextQuoteIndex } from '../../faces/super-arbeiter/watchface/quotes.js'
-import { BAKED_TEXT, DIGITS, LAYOUT, NOTIFICATION, SCREEN, timeWidth } from '../../faces/super-arbeiter/watchface/layout.js'
+import { BAKED_TEXT, charWidth, DIGITS, LAYOUT, NOTIFICATION, SCREEN, timeWidth } from '../../faces/super-arbeiter/watchface/layout.js'
 import { COLORS } from '../../faces/super-arbeiter/watchface/theme.js'
 
 const FACE = new URL('../../faces/super-arbeiter/', import.meta.url)
@@ -123,10 +123,12 @@ test('each time the screen turns on, the next quote comes, and it goes around al
 
 test('the widest values fit in their boxes', () => {
   const fits = (text, spec, box) => {
-    const width = text.split('').reduce((sum, ch) => sum + (ch === ':' ? spec.colonW : ch === '/' ? spec.slashW : spec.w), 0)
+    const width = text.split('').reduce((sum, ch) => sum + charWidth(spec, ch), 0)
     return width + spec.gap * (text.length - 1) <= box.w
   }
-  assert.ok(fits('12/31', DIGITS.date, LAYOUT.date))
+  for (let month = 1; month <= 12; month += 1) {
+    for (let day = 1; day <= 31; day += 1) assert.ok(fits(`${month}/${day}`, DIGITS.date, LAYOUT.date), `${month}/${day}`)
+  }
   assert.ok(fits('999999', DIGITS.steps, LAYOUT.steps), 'steps up to 6 digits')
   assert.ok(fits('100', DIGITS.battery, LAYOUT.battery))
   assert.ok(timeWidth() <= LAYOUT.time.w)

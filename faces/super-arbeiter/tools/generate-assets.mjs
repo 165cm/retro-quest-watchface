@@ -11,7 +11,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
 import { PNG } from 'pngjs'
-import { DIGITS, LAYOUT, NOTIFICATION, SCREEN } from '../watchface/layout.js'
+import { charWidth, DIGITS, LAYOUT, NOTIFICATION, SCREEN } from '../watchface/layout.js'
 import { COLORS, DIGIT_STYLE, GLYPH_PAD, TYPE } from '../watchface/theme.js'
 import { GLYPH_TEXT, WEEKDAYS_JA } from '../watchface/glyphs.js'
 import { QUOTES } from '../watchface/quotes.js'
@@ -80,11 +80,15 @@ function writeFontDigits(name, spec, color) {
   // 高さは全部の数字で同じ。枠より幅の広い字（0・4 など）だけ、横を少し細くして収める
   const scale = (spec.h - 2 * GLYPH_PAD) / numbers[0].h
   const place = (g, cellW) => {
+    // 字の幅は、枠の内側（ふちの余白を除く）まで
     const w = Math.min(g.w * scale, cellW - 2 * GLYPH_PAD)
     const h = g.h * scale
     return `<image href="${g.href}" x="${((cellW - w) / 2).toFixed(2)}" y="${((spec.h - h) / 2).toFixed(2)}" width="${w.toFixed(2)}" height="${h.toFixed(2)}" preserveAspectRatio="none"/>`
   }
-  for (let digit = 0; digit <= 9; digit += 1) write(path.join(dir, `${digit}.png`), svg(spec.w, spec.h, place(glyphs[String(digit)], spec.w)))
+  for (let digit = 0; digit <= 9; digit += 1) {
+    const cellW = charWidth(spec, String(digit))
+    write(path.join(dir, `${digit}.png`), svg(cellW, spec.h, place(glyphs[String(digit)], cellW)))
+  }
   // 「-」（時計のデータがマイナスの時用。電池・歩数では出ない）
   const mw = Math.round(spec.w * 0.7)
   write(path.join(dir, 'negative.png'), svg(mw, spec.h, `<rect x="${GLYPH_PAD + 1}" y="${spec.h / 2 - 1.5}" width="${mw - 2 * GLYPH_PAD - 2}" height="3" fill="${color}"/>`))
@@ -104,7 +108,7 @@ function weekdaySvg(index) {
 // ---------- プレビュー（文字盤全体をまとめて描く） ----------
 
 function spriteRow(text, dir, rect, spec, align = 'left') {
-  const width = (ch) => (ch === ':' ? spec.colonW : ch === '/' ? spec.slashW : spec.w)
+  const width = (ch) => charWidth(spec, ch)
   const chars = text.split('')
   const total = chars.reduce((s, ch) => s + width(ch), 0) + (spec.gap || 0) * (chars.length - 1)
   let x = align === 'center' ? rect.x + Math.round((rect.w - total) / 2) : align === 'right' ? rect.x + rect.w - total : rect.x

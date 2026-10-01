@@ -1,7 +1,7 @@
 import ui from '@zos/ui'
 import { Battery, Time, TIME_HOUR_FORMAT_12 } from '@zos/sensor'
 import { log } from '@zos/utils'
-import { DIGITS, LAYOUT, SCREEN } from './layout.js'
+import { charWidth, DIGITS, LAYOUT, SCREEN } from './layout.js'
 import { QUOTES, nextQuoteIndex } from './quotes.js'
 import { WEEKDAYS_JA } from './glyphs.js'
 import { COLORS } from './theme.js'
@@ -44,7 +44,7 @@ function image(rect, src) {
   return ui.createWidget(ui.widget.IMG, { ...rect, src, show_level: NORMAL })
 }
 
-const dateWidth = (ch) => (ch === '/' ? DIGITS.date.slashW : DIGITS.date.w)
+const dateWidth = (ch) => charWidth(DIGITS.date, ch)
 const dateGlyph = (ch) => `images/digits/date/${ch === '/' ? 'slash' : ch}.png`
 
 WatchFace({

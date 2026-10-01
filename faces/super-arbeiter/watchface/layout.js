@@ -20,10 +20,18 @@ export const NOTIFICATION = Object.freeze({ x: 170, y: 0, w: 50, h: 46 })
 export const DIGITS = Object.freeze({
   time: { w: 66, h: 94, colonW: 24, gap: 0 },
   aod: { w: 48, h: 76, colonW: 17, gap: 0 },
-  date: { w: 14, h: 22, slashW: 9, gap: -1 },
+  // 日付：字の幅に合わせた画像の幅（細い「1」は狭く）。字は画像の中央に置くので、並びの中央＝字の中央になる
+  date: { w: 13, h: 22, slashW: 9, gap: -1, widths: { 1: 10 } },
   steps: { w: 14, h: 28, gap: 0 },
   battery: { w: 18, h: 28, gap: 0 },
 })
+
+// 1文字の画像の幅（「:」「/」と、字ごとの幅 widths があればそれを使う）
+export function charWidth(spec, ch) {
+  if (ch === ':') return spec.colonW
+  if (ch === '/') return spec.slashW
+  return (spec.widths && spec.widths[ch]) || spec.w
+}
 
 // 時刻の数字列の幅（2桁の時：4桁＋「:」）
 export function timeWidth(spec = DIGITS.time, hourDigits = 2) {
@@ -33,9 +41,9 @@ export function timeWidth(spec = DIGITS.time, hourDigits = 2) {
 export const LAYOUT = Object.freeze({
   // 時刻：この範囲の中央にそろえる（完成図の x=83〜374、y=117〜211）
   time: { x: 83, y: 117, w: 291 },
-  // 日付（中央ぞろえ）と曜日。カレンダーのアイコン（x=26〜54、y=126〜152）の下
-  date: { x: 14, y: 157, w: 64, h: 22 },
-  weekday: { x: 14, y: 184, w: 64, h: 22 },
+  // 日付と曜日：カレンダーのアイコン（x=26〜54、y=126〜152）の真下。アイコンの中央 x=40.5 にそろえる
+  date: { x: 12, y: 157, w: 57, h: 22 },
+  weekday: { x: 12, y: 184, w: 57, h: 22 },
   // セリフの札（174×116、下地は透明）。吹き出しの内側（測った値 x=183〜377、y=244〜356）
   quote: { x: 195, y: 241, w: 174, h: 116 },
   // 下の段：くつ（x=40〜116）の右に歩数、区切り（x=209〜225）、電池の枠（x=223〜263）の右に残り

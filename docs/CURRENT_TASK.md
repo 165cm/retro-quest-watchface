@@ -1,6 +1,6 @@
 # いまの状態（CURRENT_TASK）
 
-最終更新：2026-09-30（Claude・KAMONT の紋ガチャ）。**作業を始める時・終えた時に更新する。**
+最終更新：2026-10-01（Claude・SUPER ARBEITER の日付のセンタリング）。**作業を始める時・終えた時に更新する。**
 
 ## いまの目標
 
@@ -14,18 +14,19 @@
 
 ## 次のタスク（上から優先）
 
-1. SUPER ARBEITER（最終採用案・ちかフォント反映後）を実機 Bip 6 でもう一度確かめる（ユーザーの PC で `npm run preview -- super-arbeiter`）。通知アイコンが暖簾の上の赤い余白に収まるか、セリフが読めるか、画面が点くたびにセリフが替わるか（腕を上げた時・AOD から戻った時）、通常と AOD の切り替え、歩数・電池の数字と電池の塗りの更新を確かめる
-2. SUPER ARBEITER の `appId`（仮の値 `20260930`）で実機に入れられるか確かめる。だめなら Zepp Console で新しく作った値にする
-3. Pixel Wayfarer を実機 Bip 6（または Simulator）で確認する：通常表示・AOD・12/24時間・摂氏/華氏・天気の同期・設定の変更（ユーザーの PC と時計が必要）
-4. Pixel Wayfarer の気温の表示を実機で確認する：`faces/pixel-wayfarer/watchface/index.js` で、文字の仮表示（`L --°` など）と数字の画像（`TEXT_IMG`）が同じ場所に重ねて置かれている。重なって見えないか見る
-5. Pixel Wayfarer のストア提出（`faces/pixel-wayfarer/README.md`「公開・提出」）
-6. KAMONT の紋ガチャ（9種類）をユーザーに見てもらい、直す。実機で、画面が点くたびに紋とタイトルが替わるか・レアの見え方を確かめる
-7. KAMONT の残りを実機 Bip 6 で確かめる：AOD・12時間表示・華氏・心拍が無い時の「--」・電池が少ない時の塗り（通常表示・通知アイコン・四隅・気温・歩数・心拍・電池の数字は確認済み）
-8. 「KAMONT」の商標をユーザーが J-PlatPat で確かめる（ウェブ検索では、家具・薬など別の分野の「Kamont」だけが見つかった）
-9. KAMONT のストア申請：ユーザーが Mac で `.zab` をビルドして Zepp Console（appId 1129405）にアップロードし、`faces/kamon/docs/STORE_LISTING.md` の文面と `docs/store/` の画像で申請する
+1. SUPER ARBEITER の `appId`（仮の値 `20260930`）で実機に入れられるか確かめる。だめなら Zepp Console で新しく作った値にする
+2. Pixel Wayfarer を実機 Bip 6（または Simulator）で確認する：通常表示・AOD・12/24時間・摂氏/華氏・天気の同期・設定の変更（ユーザーの PC と時計が必要）
+3. Pixel Wayfarer の気温の表示を実機で確認する：`faces/pixel-wayfarer/watchface/index.js` で、文字の仮表示（`L --°` など）と数字の画像（`TEXT_IMG`）が同じ場所に重ねて置かれている。重なって見えないか見る
+4. Pixel Wayfarer のストア提出（`faces/pixel-wayfarer/README.md`「公開・提出」）
+5. KAMONT の紋ガチャ（9種類）をユーザーに見てもらい、直す。実機で、画面が点くたびに紋とタイトルが替わるか・レアの見え方を確かめる
+6. KAMONT の残りを実機 Bip 6 で確かめる：AOD・12時間表示・華氏・心拍が無い時の「--」・電池が少ない時の塗り（通常表示・通知アイコン・四隅・気温・歩数・心拍・電池の数字は確認済み）
+7. 「KAMONT」の商標をユーザーが J-PlatPat で確かめる（ウェブ検索では、家具・薬など別の分野の「Kamont」だけが見つかった）
+8. KAMONT のストア申請：ユーザーが Mac で `.zab` をビルドして Zepp Console（appId 1129405）にアップロードし、`faces/kamon/docs/STORE_LISTING.md` の文面と `docs/store/` の画像で申請する
 
 ## 最近終わったこと（新しい順）
 
+- 2026-10-01 ユーザーの指摘で、SUPER ARBEITER の日付と曜日をカレンダーのアイコンの真下（中央 x=40.5）にそろえた。字ごとの幅の画像にし、全月日・全曜日で 0.5px 以内に収まることをテストにした（Claude）
+- 2026-09-30 SUPER ARBEITER（最終採用案・ちかフォント反映後）を、ユーザーが実機で確認した（ユーザー）
 - 2026-09-30 ユーザーが Zepp Console で KAMONT を作成（appId `1129405`）。`app.json` に入れ、版を 1.0.0 にした。ストア申請用の文面（`faces/kamon/docs/STORE_LISTING.md`）と、四隅が透明なスクリーンショット5枚（`faces/kamon/docs/store/`）を用意した（Claude）
 - 2026-09-30 ユーザーの希望で、名前を「KAMONT」（家紋と／KAMON + Time）にし、画面が点くたびに紋9種類（うち金のレア1）と英単語のタイトルがランダムに替わる「紋ガチャ」にした。直前と同じ紋は出さない。レアは約5%（Claude）
 - 2026-09-30 ユーザーの PC で KAMON をビルドして動かし、画面写真で確かめた：時刻・日付・気温・歩数・心拍・電池の数字が出る。通知アイコンは題字の上に収まり、重ならない。下の段は四隅で切れていない。見た目もユーザーの OK が出た（Claude）
