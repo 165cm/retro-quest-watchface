@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { PNG } from 'pngjs'
 import { QUOTES, nextQuoteIndex } from '../../faces/super-arbeiter/watchface/quotes.js'
-import { BAKED_TEXT, DIGITS, LAYOUT, NOTIFICATION, SCREEN, timeWidth } from '../../faces/super-arbeiter/watchface/layout.js'
+import { BAKED_TEXT, DIGITS, LAYOUT, NOTIFICATION, SCREEN, textWidth } from '../../faces/super-arbeiter/watchface/layout.js'
 import { COLORS } from '../../faces/super-arbeiter/watchface/theme.js'
 
 const FACE = new URL('../../faces/super-arbeiter/', import.meta.url)
@@ -33,19 +33,25 @@ function assertSafe(name, rect) {
   }
 }
 
-// 時刻：2桁の時のいちばん広い幅を、時刻の範囲の中央に置いた時の枠
-function timeRect() {
-  const w = timeWidth()
-  return { x: LAYOUT.time.x + Math.round((LAYOUT.time.w - w) / 2), y: LAYOUT.time.y, w, h: DIGITS.time.h }
+// すべての時刻（24時間・12時間）
+function allTimes() {
+  const hours = [...new Set([...Array.from({ length: 24 }, (_, h) => String(h)), ...Array.from({ length: 12 }, (_, h) => String(h + 1))])]
+  return hours.flatMap((h) => Array.from({ length: 60 }, (_, m) => `${h}:${String(m).padStart(2, '0')}`))
 }
+const widest = (spec, texts) => texts.reduce((best, t) => (textWidth(spec, t) > textWidth(spec, best) ? t : best))
+
+// 時刻の並びの枠（いちばん広い時刻を、枠の中央に置いた時）
+function timeRect(spec = DIGITS.time, box = LAYOUT.time) {
+  const w = textWidth(spec, widest(spec, allTimes()))
+  return { x: box.x + Math.round((box.w - w) / 2), y: box.y, w, h: spec.h }
+}
+
+const BOTTOM = ['calendarIcon', 'date', 'divider1', 'shoeIcon', 'steps', 'divider2', 'batteryIcon', 'battery', 'batteryFill']
 
 test('numbers and words stay inside the rounded screen, 12px away from the edge', () => {
   assertSafe('time', timeRect())
-  const aodW = timeWidth(DIGITS.aod)
-  assertSafe('aod time', { x: Math.round((SCREEN.width - aodW) / 2), y: LAYOUT.aod.timeY, w: aodW, h: DIGITS.aod.h })
-  for (const key of ['date', 'weekday', 'quote', 'steps', 'battery', 'batteryFill']) {
-    assertSafe(key, LAYOUT[key])
-  }
+  assertSafe('aod time', timeRect(DIGITS.aod, LAYOUT.aod.time))
+  for (const key of ['quote', ...BOTTOM]) assertSafe(key, LAYOUT[key])
   assertSafe('aod date', LAYOUT.aod.date)
   assertSafe('aod hp', LAYOUT.aod.hp)
   // 背景の絵に入っている文字（暖簾・提灯）
@@ -57,24 +63,31 @@ const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h
 test('nothing with words sits under the notification icon at the top center', () => {
   const zone = NOTIFICATION
   for (const [key, rect] of Object.entries(BAKED_TEXT)) assert.ok(!overlaps(rect, zone), `${key} text is under the notification icon`)
-  for (const key of ['date', 'weekday', 'quote', 'steps', 'battery']) {
-    assert.ok(!overlaps(LAYOUT[key], zone), `${key} is under the notification icon`)
-  }
+  for (const key of ['quote', ...BOTTOM]) assert.ok(!overlaps(LAYOUT[key], zone), `${key} is under the notification icon`)
   assert.ok(!overlaps(timeRect(), zone))
 })
 
-test('the bottom numbers stay between the icons and the divider', () => {
-  // 背景の絵で測った範囲：くつ x=40〜116、区切り x=209〜225、電池の枠 x=223〜263
-  assert.ok(LAYOUT.steps.x >= 118, 'steps start right of the shoe')
-  assert.ok(LAYOUT.steps.x + LAYOUT.steps.w <= 207, 'steps end left of the divider')
-  assert.ok(LAYOUT.battery.x >= 266, 'battery number starts right of the battery icon')
+test('the bottom row is in order: calendar date | shoe steps | battery charge, without overlaps', () => {
+  const order = BOTTOM.filter((k) => k !== 'batteryFill')
+  for (let i = 1; i < order.length; i += 1) {
+    const a = LAYOUT[order[i - 1]]
+    const b = LAYOUT[order[i]]
+    assert.ok(a.x + a.w + 2 <= b.x, `${order[i - 1]} runs into ${order[i]}`)
+  }
+  // 並び全体は画面の左右のまん中
+  const left = LAYOUT.calendarIcon.x
+  const right = LAYOUT.battery.x + LAYOUT.battery.w
+  assert.ok(Math.abs((left + right) / 2 - SCREEN.width / 2) <= 0.5, `the bottom row is centered at ${(left + right) / 2}`)
+  // 電池の塗りは電池のアイコンの内側
   const f = LAYOUT.batteryFill
-  assert.ok(f.x >= 227 && f.x + f.w <= 256 && f.y >= 402 && f.y + f.h <= 417, 'battery fill stays inside the battery frame')
+  const icon = LAYOUT.batteryIcon
+  assert.ok(f.x > icon.x && f.x + f.w < icon.x + icon.w && f.y > icon.y && f.y + f.h < icon.y + icon.h)
 })
 
-test('the date and the time do not overlap', () => {
-  assert.ok(LAYOUT.date.x + LAYOUT.date.w <= timeRect().x, 'date box runs into the time')
-  assert.ok(LAYOUT.weekday.x + LAYOUT.weekday.w <= timeRect().x, 'weekday box runs into the time')
+test('the time sits below the noren and above the speech bubble', () => {
+  assert.ok(LAYOUT.time.y >= BAKED_TEXT.title.y + BAKED_TEXT.title.h + 4)
+  assert.ok(LAYOUT.time.y + LAYOUT.time.h <= LAYOUT.quote.y)
+  assert.ok(LAYOUT.quote.y + LAYOUT.quote.h <= LAYOUT.calendarIcon.y)
 })
 
 test('the quote cards only draw on the cream inside of the speech bubble (the black frame stays visible)', () => {
@@ -122,13 +135,15 @@ test('each time the screen turns on, the next quote comes, and it goes around al
 })
 
 test('the widest values fit in their boxes', () => {
-  const fits = (text, spec, box) => {
-    const width = text.split('').reduce((sum, ch) => sum + (ch === ':' ? spec.colonW : ch === '/' ? spec.slashW : spec.w), 0)
-    return width + spec.gap * (text.length - 1) <= box.w
+  const fits = (spec, box, text) => assert.ok(textWidth(spec, text) <= box.w, `${text} does not fit (${textWidth(spec, text)} > ${box.w})`)
+  for (let month = 1; month <= 12; month += 1) {
+    for (let day = 1; day <= 31; day += 1) fits(DIGITS.date, LAYOUT.date, `${month}/${day}`)
   }
-  assert.ok(fits('12/31', DIGITS.date, LAYOUT.date))
-  assert.ok(fits('999999', DIGITS.steps, LAYOUT.steps), 'steps up to 6 digits')
-  assert.ok(fits('100', DIGITS.battery, LAYOUT.battery))
-  assert.ok(timeWidth() <= LAYOUT.time.w)
-  assert.ok(DIGITS.time.h > DIGITS.battery.h * 2, 'the time must stay the biggest')
+  fits(DIGITS.steps, LAYOUT.steps, '999999')
+  fits(DIGITS.battery, LAYOUT.battery, '100')
+  for (const t of allTimes()) {
+    fits(DIGITS.time, LAYOUT.time, t)
+    fits(DIGITS.aod, LAYOUT.aod.time, t)
+  }
+  assert.ok(DIGITS.time.h > DIGITS.battery.h * 3, 'the time must stay the biggest')
 })

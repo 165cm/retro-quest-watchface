@@ -70,14 +70,15 @@
 | ファイル・フォルダ | 役割 |
 |---|---|
 | `app.json` | アプリの設定。appId は仮の値（`20260930`）。文字盤だけ（スマホの設定・Side Service はない） |
-| `watchface/index.js` | 文字盤の本体。分ごと（と画面が戻った時）に時刻・日付・曜日を更新する。セリフは画面が点いた時だけ次の札へ替える。歩数と電池の数字は時計のデータに直接つなぎ、電池の枠の塗りは電池の変化で更新する |
-| `watchface/layout.js`・`theme.js` | 座標・大きさ／色・筆の数字の太さ |
+| `watchface/index.js` | 文字盤の本体。分ごと（と画面が戻った時）に時刻・日付（AOD は曜日も）を更新する。セリフは画面が点いた時だけ次の札へ替える。歩数と電池の数字は時計のデータに直接つなぎ、電池の枠の塗りは電池の変化で更新する |
+| `watchface/layout.js`・`theme.js` | 座標・大きさ（下の段の並びも）／色 |
 | `watchface/quotes.js` | セリフ7枚の並びと、次の札の選び方（`nextQuoteIndex`） |
-| `watchface/glyphs.js` | フォントで描く小さい文字（数字・「/」・日本語の曜日） |
+| `watchface/glyphs.js` | フォントで描く小さい文字（数字・「/」）と日本語の曜日の名前 |
+| `watchface/glyph-widths.js` | 数字の画像の字ごとの幅。`generate-assets.mjs` が書き出す（手で直さない） |
+| `watchface/digit-text.js` | 数字の画像を字ごとの幅で並べる（時刻・日付） |
 | `watchface/aod.js` | AOD の表示（時刻・日付と曜日・HP） |
-| `tools/prepare-source.mjs` | 受け取った最終採用案の素材（背景・セリフの札）を整え、小さい文字の字形をフォントで描いて `source/` に保存する（1回だけ） |
-| `tools/brush-digits.mjs` | 筆の数字 0〜9 と「:」の字形。1字ずつ、筆の通る点と太さで決めてある |
-| `tools/generate-assets.mjs` | `source/`・筆の数字から、時計の画像とプレビュー（セリフ7枚・電池少なめ・AOD・通知の確認図）を作る |
+| `tools/prepare-source.mjs` | 受け取った最終採用案の素材（背景・アイコン・セリフの札）を整え、数字の字形をフォント（ちかフォント・M PLUS Rounded 1c Black）で描いて `source/` に保存する（1回だけ） |
+| `tools/generate-assets.mjs` | `source/` から、時計の画像（下の段のアイコンを描き込んだ背景・数字）とプレビュー（セリフ7枚・電池少なめ・AOD・通知の確認図）を作る |
 | `source/` | 整えた素材と字形（由来は README の「素材と権利」） |
 
 ### 文字盤：`faces/kamon/`（KAMONT）
