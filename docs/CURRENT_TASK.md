@@ -1,6 +1,6 @@
 # いまの状態（CURRENT_TASK）
 
-最終更新：2026-10-01（Claude・SUPER ARBEITER の日付のセンタリング）。**作業を始める時・終えた時に更新する。**
+最終更新：2026-10-01（Claude・SUPER ARBEITER の下の段と時刻のフォント）。**作業を始める時・終えた時に更新する。**
 
 ## いまの目標
 
@@ -14,18 +14,19 @@
 
 ## 次のタスク（上から優先）
 
-1. SUPER ARBEITER の `appId`（仮の値 `20260930`）で実機に入れられるか確かめる。だめなら Zepp Console で新しく作った値にする
-2. Pixel Wayfarer を実機 Bip 6（または Simulator）で確認する：通常表示・AOD・12/24時間・摂氏/華氏・天気の同期・設定の変更（ユーザーの PC と時計が必要）
-3. Pixel Wayfarer の気温の表示を実機で確認する：`faces/pixel-wayfarer/watchface/index.js` で、文字の仮表示（`L --°` など）と数字の画像（`TEXT_IMG`）が同じ場所に重ねて置かれている。重なって見えないか見る
-4. Pixel Wayfarer のストア提出（`faces/pixel-wayfarer/README.md`「公開・提出」）
-5. KAMONT の紋ガチャ（9種類）をユーザーに見てもらい、直す。実機で、画面が点くたびに紋とタイトルが替わるか・レアの見え方を確かめる
-6. KAMONT の残りを実機 Bip 6 で確かめる：AOD・12時間表示・華氏・心拍が無い時の「--」・電池が少ない時の塗り（通常表示・通知アイコン・四隅・気温・歩数・心拍・電池の数字は確認済み）
-7. 「KAMONT」の商標をユーザーが J-PlatPat で確かめる（ウェブ検索では、家具・薬など別の分野の「Kamont」だけが見つかった）
-8. KAMONT のストア申請：ユーザーが Mac で `.zab` をビルドして Zepp Console（appId 1129405）にアップロードし、`faces/kamon/docs/STORE_LISTING.md` の文面と `docs/store/` の画像で申請する
+1. SUPER ARBEITER の新しい下の段と時刻のフォントを実機 Bip 6 で確かめる（下の段の小さい数字が読めるか、時刻の幅が変わっても気にならないか）
+2. SUPER ARBEITER の `appId`（仮の値 `20260930`）で実機に入れられるか確かめる。だめなら Zepp Console で新しく作った値にする
+3. Pixel Wayfarer を実機 Bip 6（または Simulator）で確認する：通常表示・AOD・12/24時間・摂氏/華氏・天気の同期・設定の変更（ユーザーの PC と時計が必要）
+4. Pixel Wayfarer の気温の表示を実機で確認する：`faces/pixel-wayfarer/watchface/index.js` で、文字の仮表示（`L --°` など）と数字の画像（`TEXT_IMG`）が同じ場所に重ねて置かれている。重なって見えないか見る
+5. Pixel Wayfarer のストア提出（`faces/pixel-wayfarer/README.md`「公開・提出」）
+6. KAMONT の紋ガチャ（9種類）をユーザーに見てもらい、直す。実機で、画面が点くたびに紋とタイトルが替わるか・レアの見え方を確かめる
+7. KAMONT の残りを実機 Bip 6 で確かめる：AOD・12時間表示・華氏・心拍が無い時の「--」・電池が少ない時の塗り（通常表示・通知アイコン・四隅・気温・歩数・心拍・電池の数字は確認済み）
+8. 「KAMONT」の商標をユーザーが J-PlatPat で確かめる（ウェブ検索では、家具・薬など別の分野の「Kamont」だけが見つかった）
+9. KAMONT のストア申請：ユーザーが Mac で `.zab` をビルドして Zepp Console（appId 1129405）にアップロードし、`faces/kamon/docs/STORE_LISTING.md` の文面と `docs/store/` の画像で申請する
 
 ## 最近終わったこと（新しい順）
 
-- 2026-10-01 ユーザーの指摘で、SUPER ARBEITER の日付と曜日をカレンダーのアイコンの真下（中央 x=40.5）にそろえた。字ごとの幅の画像にし、全月日・全曜日で 0.5px 以内に収まることをテストにした（Claude）
+- 2026-10-01 ユーザーの指示で、SUPER ARBEITER の日付を下の段に移した（カレンダー 日付｜くつ 歩数｜電池 残り。曜日は AOD だけ）。時刻は筆の数字をやめ、太い丸ゴシック（M PLUS Rounded 1c Black、OFL）で画面の左右のまん中に。全時刻で中央から 0.5px 以内をテストにした（Claude）
 - 2026-09-30 SUPER ARBEITER（最終採用案・ちかフォント反映後）を、ユーザーが実機で確認した（ユーザー）
 - 2026-09-30 ユーザーが Zepp Console で KAMONT を作成（appId `1129405`）。`app.json` に入れ、版を 1.0.0 にした。ストア申請用の文面（`faces/kamon/docs/STORE_LISTING.md`）と、四隅が透明なスクリーンショット5枚（`faces/kamon/docs/store/`）を用意した（Claude）
 - 2026-09-30 ユーザーの希望で、名前を「KAMONT」（家紋と／KAMON + Time）にし、画面が点くたびに紋9種類（うち金のレア1）と英単語のタイトルがランダムに替わる「紋ガチャ」にした。直前と同じ紋は出さない。レアは約5%（Claude）
@@ -65,7 +66,7 @@
 - SUPER ARBEITER のセリフは7枚を、画面が点くたび（`resume_call`）に順番に次の札へ替える（ユーザーの希望。指示書の日替わりから変更）。画面が消えている間・分ごとには替えない。何枚目かは保存しない。札の画像は1枚だけ置く。セリフを使うので自分用にし、ストアには出さない（2026-09-30 改修用素材の指示書）
 - SUPER ARBEITER の上のまん中（y 0〜46）は通知アイコンのために文字を置かない。通知アイコンは背景に描き込まない
 - SUPER ARBEITER は最終採用案（`faces/super-arbeiter/docs/reference-approved.png`）に合わせる。BREAK はやめた（それまでのスマホの設定 `breakTime`／`sa_break` も消した）。下の段にラベルや単位は出さない
-- SUPER ARBEITER の小さい文字はフォントの字形（ちかフォント＋補助の IPA ゴシック）。フォント本体はリポジトリに入れず、描いた字形の画像だけを `source/glyphs/` に置く
+- SUPER ARBEITER の数字はフォントの字形（時刻は M PLUS Rounded 1c Black、日付・歩数・電池はちかフォント）。フォント本体はリポジトリに入れず、描いた字形の画像だけを `source/glyphs/` に置く。公式グッズのフォントは使わない
 - PR のマージは squash にそろえる（共通ルールどおり。中央マニュアルの「通常は merge commit」より優先）
 - `.github/AGENTS.md` は、中央マニュアルとティアの案内だけを残す短い入口にした。ルールの正本はルートの `AGENTS.md` と `docs/`
 - Zeus CLI 1.9.3 の依存の不具合は `package.json` の `overrides` で固定して回避。`npm audit fix --force` は CLI が壊れるので使わない

@@ -1,7 +1,7 @@
 import ui from '@zos/ui'
 import { DIGITS, LAYOUT, SCREEN } from './layout.js'
 import { COLORS, TYPE } from './theme.js'
-import { createTimeSprites } from '../../../shared/time-sprites.js'
+import { createDigitText } from './digit-text.js'
 
 // 画面オフ時：黒い背景に、時刻・日付・HP だけ（暗いクリーム色で、光る所を少なく）
 export function createAodView() {
@@ -15,16 +15,8 @@ export function createAodView() {
     show_level: showLevel,
   })
 
-  const time = createTimeSprites({
-    screenWidth: SCREEN.width,
-    y: LAYOUT.aod.timeY,
-    digitPath: 'images/digits/aod',
-    digitW: DIGITS.aod.w,
-    digitH: DIGITS.aod.h,
-    colonW: DIGITS.aod.colonW,
-    gap: DIGITS.aod.gap,
-    showLevel,
-  })
+  // 時刻：通常表示と同じ太い丸ゴシックを、暗いクリーム色で。画面の左右のまん中
+  const time = createDigitText(DIGITS.aod, LAYOUT.aod.time, showLevel)
 
   const text = (rect, size) =>
     ui.createWidget(ui.widget.TEXT, {

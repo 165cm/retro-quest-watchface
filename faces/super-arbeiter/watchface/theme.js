@@ -8,13 +8,7 @@ export const COLORS = Object.freeze({
   NOTIFICATION_CHECK: 0x22cc88, // 確認図だけに重ねる、通知のマークの目印（製品の背景には入れない）
 })
 
-// 筆の数字の太さ（倍率）・前傾（度）・横の細さ（squeeze）。時刻はいちばん太く、傾きは控えめ
-export const DIGIT_STYLE = Object.freeze({
-  time: { weight: 1.5, slant: -5, dry: true, squeeze: 0.97 },
-  aod: { weight: 0.8, slant: -5, dry: false, squeeze: 1 }, // 画面オフ時は細く、光る所を減らす
-})
-
-// フォントの数字（日付・歩数・電池）を画像の枠に置く時の、上下左右の余白（px）
+// フォントの数字を画像に置く時の、上下左右の余白（px）
 export const GLYPH_PAD = 1
 
 export const TYPE = Object.freeze({

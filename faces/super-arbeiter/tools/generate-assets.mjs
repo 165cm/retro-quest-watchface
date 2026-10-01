@@ -1,21 +1,21 @@
 // SUPER ARBEITER の文字盤の絵（PNG）をすべて作る。
 //   npm run assets -- super-arbeiter
 //
-// - 固定背景（暖簾・提灯・カレンダー・丼・吹き出し・雷紋・くつ・区切り・電池の枠）は source/background.png をそのまま使う
-//   （受け取った最終採用案の素材。由来は README の「素材と権利」。source/ は tools/prepare-source.mjs で作る）
+// - 固定背景（暖簾・提灯・丼・吹き出し・雷紋）は source/background.png。下の段のアイコン（カレンダー・くつ・電池の枠）と
+//   区切りの線を、ここで LAYOUT の位置に描き込む（受け取った最終採用案の素材。由来は README の「素材と権利」）
 // - セリフの札（7枚、下地は透明）は source/quotes/ をそのまま使う（縦横を別の倍率で伸ばさない）
-// - 時刻と AOD の数字は tools/brush-digits.mjs で1字ずつ作った筆の字形
-// - 日付・歩数・電池の数字と、日本語の曜日は source/glyphs/ のフォントの字形を、色を付けて枠に置く
+// - 数字はすべて source/glyphs/ のフォントの字形を、色を付けて画像の中央に置く
+//   （時刻・AOD は太い丸ゴシック、日付・歩数・電池はちかフォント）
+// - 字ごとの幅の表を watchface/glyph-widths.js に書き出す（時計とテストが使う）
 // - キャラクター・公式ロゴは使わない。通知のマークは背景に描かない
 import fs from 'node:fs'
 import path from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
 import { PNG } from 'pngjs'
-import { charWidth, DIGITS, LAYOUT, NOTIFICATION, SCREEN } from '../watchface/layout.js'
-import { COLORS, DIGIT_STYLE, GLYPH_PAD, TYPE } from '../watchface/theme.js'
+import { DIGITS, LAYOUT, NOTIFICATION, SCREEN } from '../watchface/layout.js'
+import { COLORS, GLYPH_PAD, TYPE } from '../watchface/theme.js'
 import { GLYPH_TEXT, WEEKDAYS_JA } from '../watchface/glyphs.js'
 import { QUOTES } from '../watchface/quotes.js'
-import { colonBody, digitBody, exportViews, minusBody, viewBoxText } from './brush-digits.mjs'
 
 const ROOT = process.cwd()
 const SOURCE = path.join(ROOT, 'source')
@@ -46,21 +46,7 @@ function dataUri(file) {
   return `data:image/png;base64,${fs.readFileSync(file).toString('base64')}`
 }
 
-// ---------- 数字（筆の数字） ----------
-// 書き出す枠は brush-digits.mjs の exportViews で、太さ・傾きを入れたあとの輪郭が切れないように決める
-
-function writeBrushDigits(name, spec, color, style) {
-  const dir = path.join(IMAGES, 'digits', name)
-  const views = exportViews(spec, style)
-  for (let digit = 0; digit <= 9; digit += 1) {
-    write(path.join(dir, `${digit}.png`), svg(spec.w, spec.h, digitBody(digit, color, { ...style, id: `${name}${digit}` }), viewBoxText(views.digit)))
-  }
-  // 「-」（時計のデータがマイナスの時用。電池・歩数では出ない）
-  write(path.join(dir, 'negative.png'), svg(Math.round(spec.w * 0.7), spec.h, minusBody(color, style), viewBoxText(views.minus)))
-  if (spec.colonW) write(path.join(dir, 'colon.png'), svg(spec.colonW, spec.h, colonBody(color, style), viewBoxText(views.colon)))
-}
-
-// ---------- フォントの字形（日付・歩数・電池の数字、曜日） ----------
+// ---------- 数字（フォントの字形） ----------
 
 // 黒で描いた字形の画像を、形（不透明度）はそのままに、指定の色にする
 function tinted(file, color) {
@@ -70,52 +56,74 @@ function tinted(file, color) {
   return { href: `data:image/png;base64,${PNG.sync.write(png).toString('base64')}`, w: png.width, h: png.height }
 }
 
-const glyphFile = (name) => path.join(SOURCE, 'glyphs', `${name}.png`)
-
-// 数字は全部同じ高さで描く（大きさをそろえる）。字は枠の中央に、ふちに GLYPH_PAD の余白を残す
-function writeFontDigits(name, spec, color) {
-  const dir = path.join(IMAGES, 'digits', name)
-  const glyphs = Object.fromEntries(GLYPH_TEXT.map((ch) => [ch, tinted(glyphFile(ch === '/' ? 'slash' : ch), color)]))
-  const numbers = GLYPH_TEXT.filter((ch) => /\d/.test(ch)).map((ch) => glyphs[ch])
-  // 高さは全部の数字で同じ。枠より幅の広い字（0・4 など）だけ、横を少し細くして収める
-  const scale = (spec.h - 2 * GLYPH_PAD) / numbers[0].h
-  const place = (g, cellW) => {
-    // 字の幅は、枠の内側（ふちの余白を除く）まで
-    const w = Math.min(g.w * scale, cellW - 2 * GLYPH_PAD)
-    const h = g.h * scale
-    return `<image href="${g.href}" x="${((cellW - w) / 2).toFixed(2)}" y="${((spec.h - h) / 2).toFixed(2)}" width="${w.toFixed(2)}" height="${h.toFixed(2)}" preserveAspectRatio="none"/>`
-  }
-  for (let digit = 0; digit <= 9; digit += 1) {
-    const cellW = charWidth(spec, String(digit))
-    write(path.join(dir, `${digit}.png`), svg(cellW, spec.h, place(glyphs[String(digit)], cellW)))
-  }
-  // 「-」（時計のデータがマイナスの時用。電池・歩数では出ない）
-  const mw = Math.round(spec.w * 0.7)
-  write(path.join(dir, 'negative.png'), svg(mw, spec.h, `<rect x="${GLYPH_PAD + 1}" y="${spec.h / 2 - 1.5}" width="${mw - 2 * GLYPH_PAD - 2}" height="3" fill="${color}"/>`))
-  if (spec.slashW) write(path.join(dir, 'slash.png'), svg(spec.slashW, spec.h, place(glyphs['/'], spec.slashW)))
+const glyphName = (ch) => (ch === ':' ? 'colon' : ch === '/' ? 'slash' : ch)
+const SETS = {
+  small: { chars: GLYPH_TEXT, file: (ch) => path.join(SOURCE, 'glyphs', `${glyphName(ch)}.png`) },
+  time: { chars: [...'0123456789:'], file: (ch) => path.join(SOURCE, 'glyphs', `time-${glyphName(ch)}.png`) },
 }
 
-// 曜日（日）〜（土）：縦横比を保って枠の中央に置く
-function weekdaySvg(index) {
-  const { w, h } = LAYOUT.weekday
-  const g = tinted(glyphFile(`weekday-${index}`), C.black)
-  const s = Math.min((w - 2 * GLYPH_PAD) / g.w, (h - 2 * GLYPH_PAD) / g.h)
-  const dw = g.w * s
-  const dh = g.h * s
-  return svg(w, h, `<image href="${g.href}" x="${((w - dw) / 2).toFixed(2)}" y="${((h - dh) / 2).toFixed(2)}" width="${dw.toFixed(2)}" height="${dh.toFixed(2)}" preserveAspectRatio="none"/>`)
+// 数字は全部同じ高さで描く（大きさをそろえる）。字は画像の中央に、左右に GLYPH_PAD の余白を残す。
+// 幅が決まっている（spec.w）時はその幅、ない時は字ごとの幅にする。返り値は字ごとの画像の幅
+function writeDigits(spec, color, set) {
+  const dir = path.join(IMAGES, 'digits', spec.name)
+  const glyphs = Object.fromEntries(set.chars.map((ch) => [ch, tinted(set.file(ch), color)]))
+  const scale = (spec.h - 2 * GLYPH_PAD) / glyphs['0'].h
+  const widths = {}
+  for (const ch of set.chars) {
+    const g = glyphs[ch]
+    let ink = g.w * scale
+    if (spec.maxInk) ink = Math.min(ink, ch === '/' && spec.slashInk ? spec.slashInk : spec.maxInk)
+    const cellW = spec.w || Math.max(1, Math.round(ink)) + 2 * GLYPH_PAD
+    // 字の幅は、画像の内側（ふちの余白を除く）ちょうど。広い字は横だけ細くなる
+    const w = spec.w ? Math.min(ink, cellW - 2 * GLYPH_PAD) : cellW - 2 * GLYPH_PAD
+    const h = g.h * scale
+    widths[ch] = cellW
+    const body = `<image href="${g.href}" x="${((cellW - w) / 2).toFixed(2)}" y="${((spec.h - h) / 2).toFixed(2)}" width="${w.toFixed(2)}" height="${h.toFixed(2)}" preserveAspectRatio="none"/>`
+    write(path.join(dir, `${glyphName(ch)}.png`), svg(cellW, spec.h, body))
+  }
+  // 「-」（時計のデータがマイナスの時用。電池・歩数では出ない）
+  if (spec.w) {
+    const mw = Math.round(spec.w * 0.7)
+    write(path.join(dir, 'negative.png'), svg(mw, spec.h, `<rect x="${GLYPH_PAD + 1}" y="${spec.h / 2 - 1.5}" width="${mw - 2 * GLYPH_PAD - 2}" height="3" fill="${color}"/>`))
+  }
+  return widths
+}
+
+// 字ごとの幅（このあとプレビューで使う。generate の最後に watchface/glyph-widths.js にも書く）
+const WIDTHS = {}
+const widthOf = (spec, ch) => (WIDTHS[spec.name] ? WIDTHS[spec.name][ch] : spec.w)
+
+// ---------- 背景（下の段のアイコンと区切りを描き込む） ----------
+
+function iconImage(name, rect) {
+  const file = path.join(SOURCE, 'icons', `${name}.png`)
+  const png = PNG.sync.read(fs.readFileSync(file))
+  // 縦横比を保って枠の中央に置く
+  const s = Math.min(rect.w / png.width, rect.h / png.height)
+  const w = png.width * s
+  const h = png.height * s
+  return `<image href="${dataUri(file)}" x="${(rect.x + (rect.w - w) / 2).toFixed(2)}" y="${(rect.y + (rect.h - h) / 2).toFixed(2)}" width="${w.toFixed(2)}" height="${h.toFixed(2)}" preserveAspectRatio="none"/>`
+}
+
+function backgroundSvg() {
+  const L = LAYOUT
+  const line = (r) => `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="${r.w / 2}" fill="${C.black}"/>`
+  let body = `<image href="${dataUri(path.join(SOURCE, 'background.png'))}" x="0" y="0" width="${SCREEN.width}" height="${SCREEN.height}" preserveAspectRatio="none"/>`
+  body += iconImage('calendar', L.calendarIcon) + iconImage('shoe', L.shoeIcon) + iconImage('battery', L.batteryIcon)
+  body += line(L.divider1) + line(L.divider2)
+  return svg(SCREEN.width, SCREEN.height, body)
 }
 
 // ---------- プレビュー（文字盤全体をまとめて描く） ----------
 
 function spriteRow(text, dir, rect, spec, align = 'left') {
-  const width = (ch) => charWidth(spec, ch)
+  const width = (ch) => widthOf(spec, ch)
   const chars = text.split('')
   const total = chars.reduce((s, ch) => s + width(ch), 0) + (spec.gap || 0) * (chars.length - 1)
   let x = align === 'center' ? rect.x + Math.round((rect.w - total) / 2) : align === 'right' ? rect.x + rect.w - total : rect.x
   let out = ''
   for (const ch of chars) {
-    const name = ch === ':' ? 'colon' : ch === '/' ? 'slash' : ch
-    out += `<image href="${dataUri(path.join(IMAGES, 'digits', dir, `${name}.png`))}" x="${x}" y="${rect.y}" width="${width(ch)}" height="${rect.h}"/>`
+    out += `<image href="${dataUri(path.join(IMAGES, 'digits', dir, `${glyphName(ch)}.png`))}" x="${x}" y="${rect.y}" width="${width(ch)}" height="${rect.h}"/>`
     x += width(ch) + (spec.gap || 0)
   }
   return out
@@ -137,14 +145,13 @@ function notificationLayer() {
   )
 }
 
-function previewSvg({ time, battery, steps, date, weekday, quote }, { notification = false } = {}) {
+function previewSvg({ time, battery, steps, date, quote }, { notification = false } = {}) {
   const L = LAYOUT
   const img = (file, rect) => `<image href="${dataUri(path.join(IMAGES, file))}" x="${rect.x}" y="${rect.y}" width="${rect.w}" height="${rect.h}"/>`
   let body = img('background.png', { x: 0, y: 0, w: SCREEN.width, h: SCREEN.height })
   body += img(`quotes/${quote}.png`, L.quote)
-  body += spriteRow(time, 'time', { x: L.time.x, y: L.time.y, w: L.time.w, h: DIGITS.time.h }, DIGITS.time, 'center')
-  body += spriteRow(date, 'date', L.date, DIGITS.date, 'center')
-  body += img(`weekday/${weekday}.png`, L.weekday)
+  body += spriteRow(time, 'time', L.time, DIGITS.time, 'center')
+  body += spriteRow(date, 'date', L.date, DIGITS.date)
   body += spriteRow(String(steps), 'steps', L.steps, DIGITS.steps)
   body += spriteRow(String(battery), 'battery', L.battery, DIGITS.battery)
   const f = L.batteryFill
@@ -159,25 +166,29 @@ function aodPreviewSvg({ time, date, weekday, battery }) {
   const text = (value, rect) =>
     `<text x="${rect.x + rect.w / 2}" y="${rect.y + rect.h / 2 + TYPE.aodDate * 0.35}" font-size="${TYPE.aodDate}" fill="${C.aod}" text-anchor="middle" font-family="IPAGothic, sans-serif">${value}</text>`
   let body = `<rect width="${SCREEN.width}" height="${SCREEN.height}" fill="#000"/>`
-  body += spriteRow(time, 'aod', { x: 0, y: L.timeY, w: SCREEN.width, h: DIGITS.aod.h }, DIGITS.aod, 'center')
+  body += spriteRow(time, 'aod', L.time, DIGITS.aod, 'center')
   body += text(`${date}(${WEEKDAYS_JA[weekday]})`, L.date) + text(`HP ${battery}`, L.hp)
   return svg(SCREEN.width, SCREEN.height, body + roundedMask())
 }
 
 // ---------- 実行 ----------
 
-if (!fs.existsSync(path.join(SOURCE, 'glyphs', '0.png'))) {
+if (!fs.existsSync(path.join(SOURCE, 'glyphs', 'time-0.png'))) {
   console.error('source/ がありません。先に tools/prepare-source.mjs を実行してください（README の「素材と権利」）')
   process.exit(1)
 }
 fs.rmSync(IMAGES, { recursive: true, force: true })
 
-writeBrushDigits('time', DIGITS.time, C.black, DIGIT_STYLE.time)
-writeBrushDigits('aod', DIGITS.aod, C.aod, DIGIT_STYLE.aod)
-writeFontDigits('date', DIGITS.date, C.black)
-writeFontDigits('steps', DIGITS.steps, C.black)
-writeFontDigits('battery', DIGITS.battery, C.red)
-WEEKDAYS_JA.forEach((_, index) => write(path.join(IMAGES, 'weekday', `${index}.png`), weekdaySvg(index)))
+WIDTHS.time = writeDigits(DIGITS.time, C.black, SETS.time)
+WIDTHS.aod = writeDigits(DIGITS.aod, C.aod, SETS.time)
+WIDTHS.date = writeDigits(DIGITS.date, C.black, SETS.small)
+writeDigits(DIGITS.steps, C.black, SETS.small)
+writeDigits(DIGITS.battery, C.red, SETS.small)
+fs.writeFileSync(
+  path.join(ROOT, 'watchface', 'glyph-widths.js'),
+  '// tools/generate-assets.mjs が書き出す表（手で直さない）。数字の画像の、字ごとの幅（px）\n' +
+    `export const GLYPH_WIDTHS = Object.freeze(${JSON.stringify(WIDTHS, null, 2).replace(/"([^"]+)":/g, (_, k) => (/^\w+$/.test(k) && !/^\d/.test(k) ? `${k}:` : `'${k}':`))})\n`,
+)
 
 // セリフの札：QUOTES の番号（1〜7）と source/quotes/quote-0N.png を対応させる（そのままの大きさ）
 QUOTES.forEach((quote, index) => {
@@ -187,9 +198,9 @@ QUOTES.forEach((quote, index) => {
   fs.copyFileSync(file, dest)
 })
 
-fs.copyFileSync(path.join(SOURCE, 'background.png'), path.join(IMAGES, 'background.png'))
+write(path.join(IMAGES, 'background.png'), backgroundSvg())
 
-// 完成見本：通常（セリフ7種）・電池少なめ・AOD・通知のマークを重ねた確認図。weekday は 0＝日〜6＝土
+// 完成見本：通常（セリフ7種）・電池少なめ・AOD・通知のマークを重ねた確認図。weekday は 0＝日〜6＝土（AOD だけで使う）
 const SAMPLE = { time: '18:42', battery: 79, steps: 4449, date: '9/30', weekday: 3, quote: 2 }
 write(path.join(DOCS, 'preview-390x450.png'), previewSvg(SAMPLE))
 QUOTES.forEach((_, i) => {
